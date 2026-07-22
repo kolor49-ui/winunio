@@ -75,6 +75,44 @@ a {
   color: var(--color-text);
 }
 
+.nav-user {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  font-weight: 500;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-logout {
+  font: inherit;
+  font-size: 0.9375rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-muted);
+}
+
+.nav-logout:hover {
+  color: var(--color-text);
+}
+
+.debate-link {
+  text-decoration: none;
+  display: block;
+}
+
+.debate-card:hover {
+  border-color: var(--color-a);
+}
+
+.debate-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -169,4 +207,41 @@ textarea {
 
 .side-b {
   background: var(--color-b);
+}
+
+.application-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.application-item {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+
+.application-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.round-side-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.round-side-block:first-of-type {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
 }

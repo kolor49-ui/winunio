@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { SiteHeader } from "./site-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,18 +13,7 @@ export default function RootLayout({
   return (
     <html lang="hu">
       <body>
-        <header className="site-header">
-          <div className="container">
-            <Link href="/" className="logo">
-              Winunio
-            </Link>
-            <nav className="nav-links">
-              <Link href="/debates/new">Vitát indítok</Link>
-              <Link href="/login">Bejelentkezés</Link>
-              <Link href="/register">Regisztráció</Link>
-            </nav>
-          </div>
-        </header>
+        <SiteHeader />
         <main className="container">{children}</main>
       </body>
     </html>

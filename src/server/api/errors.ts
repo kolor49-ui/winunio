@@ -1,7 +1,14 @@
 import { ZodError } from "zod";
+import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 
 export function handleRouteError(error: unknown): Response {
+  if (error instanceof DomainError) {
+    return Response.json(
+      { error: { code: error.code, message: error.message } },
+      { status: 409 },
+    );
+  }
   if (error instanceof ApiError) {
     return Response.json(
       { error: { code: error.code, message: error.message } },

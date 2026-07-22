@@ -1,5 +1,5 @@
-import type { DebateStatus } from "./types.js";
-import { DomainError } from "./types.js";
+import type { DebateStatus } from "./types";
+import { DomainError } from "./types";
 
 export type DebateEvent =
   | { type: "SELECT_PARTNER" }

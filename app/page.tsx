@@ -1,11 +1,25 @@
 import Link from "next/link";
+import { getSession } from "@/server/api/http";
 import { listDebates } from "@/server/services/debate-service";
+import { getUserById } from "@/server/services/auth-service";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_LABELS: Record<string, string> = {
+  waiting_for_partner: "Partnerre vár",
+  invitation_pending: "Meghívás folyamatban",
+  active: "Aktív vita",
+  waiting_for_continuation: "Folytatásra vár",
+  completed: "Lezárva",
+  cancelled: "Visszavonva",
+  under_review: "Felülvizsgálat alatt",
+};
 
 export default async function HomePage() {
   let debates: Awaited<ReturnType<typeof listDebates>> = [];
   let dbError: string | null = null;
+  const session = await getSession();
+  const user = session ? await getUserById(session.userId) : null;
 
   try {
     debates = await listDebates("new");
@@ -21,6 +35,18 @@ export default async function HomePage() {
       <p className="hint">
         Két fél, közös jutalom — a közönség csak folytatást kérhet.
       </p>
+
+      {user ? (
+        <p className="hint">
+          Bejelentkezve: <strong>{user.email}</strong> — kattints egy vitára a
+          jelentkezéshez vagy kezeléshez.
+        </p>
+      ) : (
+        <p className="hint">
+          <Link href="/login">Jelentkezz be</Link>, ha partnernek szeretnél
+          jelentkezni.
+        </p>
+      )}
 
       {dbError && (
         <div className="card">
@@ -43,13 +69,14 @@ export default async function HomePage() {
           <Link
             key={d.id}
             href={`/debates/${d.id}`}
-            style={{ textDecoration: "none" }}
+            className="debate-link"
           >
-            <article className="card">
+            <article className="card debate-card">
               <h2>{d.question}</h2>
               <p className="meta">
-                {d.category} · {d.status}
+                {d.category} · {STATUS_LABELS[d.status] ?? d.status}
               </p>
+              <p className="hint">Megnyitás →</p>
             </article>
           </Link>
         ))

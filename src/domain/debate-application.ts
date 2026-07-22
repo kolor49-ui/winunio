@@ -1,5 +1,5 @@
-import type { DebateApplicationStatus } from "./types.js";
-import { DomainError } from "./types.js";
+import type { DebateApplicationStatus } from "./types";
+import { DomainError } from "./types";
 
 export type DebateApplicationEvent =
   | { type: "APPLY" }

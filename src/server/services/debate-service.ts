@@ -206,6 +206,28 @@ export async function getDebateById(debateId: string) {
     LIMIT 1
   `;
 
+  const [invitedApplication] = await sql<
+    {
+      id: string;
+      stance: string;
+      invitation_expires_at: Date | null;
+      user_id: string;
+    }[]
+  >`
+    SELECT id, stance, invitation_expires_at, user_id
+    FROM debate_applications
+    WHERE debate_id = ${debateId} AND status = 'invited'
+    ORDER BY invited_at DESC
+    LIMIT 1
+  `;
+
+  const [acceptedApplication] = await sql<{ stance: string }[]>`
+    SELECT stance
+    FROM debate_applications
+    WHERE debate_id = ${debateId} AND status = 'accepted'
+    LIMIT 1
+  `;
+
   return {
     id: debate.id,
     initiator_id: debate.initiator_id,
@@ -231,6 +253,16 @@ export async function getDebateById(debateId: string) {
         }
       : null,
     continuation_request_count,
+    pending_invitation: invitedApplication
+      ? {
+          id: invitedApplication.id,
+          stance: invitedApplication.stance,
+          invitation_expires_at:
+            invitedApplication.invitation_expires_at?.toISOString() ?? null,
+          invitee_user_id: invitedApplication.user_id,
+        }
+      : null,
+    partner_stance: acceptedApplication?.stance ?? invitedApplication?.stance ?? null,
     reward: reward
       ? {
           amount_per_participant: Number(reward.amount_per_participant),

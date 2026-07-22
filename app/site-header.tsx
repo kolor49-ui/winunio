@@ -1,0 +1,35 @@
+import Link from "next/link";
+import { LogoutButton } from "./logout-button";
+import { getSession } from "@/server/api/http";
+import { getUserById } from "@/server/services/auth-service";
+
+export async function SiteHeader() {
+  const session = await getSession();
+  const user = session ? await getUserById(session.userId) : null;
+
+  return (
+    <header className="site-header">
+      <div className="container">
+        <Link href="/" className="logo">
+          Winunio
+        </Link>
+        <nav className="nav-links">
+          <Link href="/debates/new">Vitát indítok</Link>
+          {user ? (
+            <>
+              <span className="nav-user" title="Bejelentkezve">
+                {user.email}
+              </span>
+              <LogoutButton />
+            </>
+          ) : (
+            <>
+              <Link href="/login">Bejelentkezés</Link>
+              <Link href="/register">Regisztráció</Link>
+            </>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}

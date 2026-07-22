@@ -1,5 +1,5 @@
-import type { RoundStatus } from "./types.js";
-import { DomainError } from "./types.js";
+import type { RoundStatus } from "./types";
+import { DomainError } from "./types";
 
 export type RoundEvent =
   | { type: "BOTH_PARTICIPANTS_SUBMITTED" }

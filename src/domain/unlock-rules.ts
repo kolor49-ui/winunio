@@ -1,4 +1,4 @@
-import type { RoundUnlockRule } from "./types.js";
+import type { RoundUnlockRule } from "./types";
 
 /** MVP seed values — mirrors db/migrations/000002_seed_round_unlock_rules.up.sql */
 export const MVP_UNLOCK_RULES: RoundUnlockRule[] = [

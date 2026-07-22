@@ -5,10 +5,10 @@ import type {
   DebateStatus,
   RoundStatus,
   RoundUnlockRule,
-} from "./types.js";
-import { DomainError } from "./types.js";
-import { getUnlockRuleForCompletedRound, isThresholdMet } from "./unlock-rules.js";
-import { canAcceptContinuationRequests } from "./round.js";
+} from "./types";
+import { DomainError } from "./types";
+import { getUnlockRuleForCompletedRound, isThresholdMet } from "./unlock-rules";
+import { canAcceptContinuationRequests } from "./round";
 
 export type ContinuationChallengeEvent =
   | { type: "VERIFY_SUCCESS" }
