@@ -36,6 +36,9 @@ Páros vitaplatform — két fél, közös jutalom, közönség csak folytatást
 ```
 Winunio/
 ├── README.md
+├── db/
+│   ├── README.md
+│   └── migrations/
 ├── docs/
 │   ├── PRODUCT.md
 │   ├── MVP_SCOPE.md
@@ -53,11 +56,9 @@ Winunio/
         └── winunio-project.mdc
 ```
 
-**Megjegyzés:** Ez a repo jelenleg csak specifikációt tartalmaz. Alkalmazáskód, scaffold és adatbázis külön lépés.
-
 ## Következő lépések (implementáció)
 
-1. Git init + első commit (docs only).
-2. Postgres séma / migrációk a `DATA_MODEL.md` alapján.
+1. ~~Git init + első commit (docs only).~~
+2. ~~Postgres séma / migrációk a `DATA_MODEL.md` alapján.~~ → lásd [db/README.md](db/README.md)
 3. Állapotgép tesztek a `STATE_MACHINE.md` alapján.
 4. Next.js scaffold + auth + első API végpontok.
