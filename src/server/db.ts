@@ -13,11 +13,25 @@ function getDatabaseUrl(): string {
   return url;
 }
 
+function getSslOption(url: string): "require" | undefined {
+  if (
+    url.includes("sslmode=require") ||
+    url.includes("neon.tech") ||
+    url.includes("supabase.co")
+  ) {
+    return "require";
+  }
+  return undefined;
+}
+
 export function getSql() {
   if (!globalThis.__winunioSql) {
-    globalThis.__winunioSql = postgres(getDatabaseUrl(), {
+    const url = getDatabaseUrl();
+    const ssl = getSslOption(url);
+    globalThis.__winunioSql = postgres(url, {
       max: 10,
       prepare: false,
+      ...(ssl ? { ssl } : {}),
     });
   }
   return globalThis.__winunioSql;

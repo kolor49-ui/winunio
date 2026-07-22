@@ -4,7 +4,16 @@ import { listDebates } from "@/server/services/debate-service";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const debates = await listDebates("new");
+  let debates: Awaited<ReturnType<typeof listDebates>> = [];
+  let dbError: string | null = null;
+
+  try {
+    debates = await listDebates("new");
+  } catch (error) {
+    console.error("HomePage DB error:", error);
+    dbError =
+      error instanceof Error ? error.message : "Adatbázis kapcsolat sikertelen";
+  }
 
   return (
     <>
@@ -13,12 +22,23 @@ export default async function HomePage() {
         Két fél, közös jutalom — a közönség csak folytatást kérhet.
       </p>
 
-      {debates.length === 0 ? (
+      {dbError && (
+        <div className="card">
+          <p className="error">Szerver hiba: adatbázis nem elérhető.</p>
+          <p className="hint">
+            Vercel: állítsd be a <code>DATABASE_URL</code> és{" "}
+            <code>AUTH_SECRET</code> env változókat, futtasd a migrációkat, majd
+            redeploy.
+          </p>
+        </div>
+      )}
+
+      {!dbError && debates.length === 0 ? (
         <div className="card">
           <p>Még nincs vita. </p>
           <Link href="/debates/new">Indítsd az elsőt →</Link>
         </div>
-      ) : (
+      ) : !dbError ? (
         debates.map((d) => (
           <Link
             key={d.id}
@@ -33,7 +53,7 @@ export default async function HomePage() {
             </article>
           </Link>
         ))
-      )}
+      ) : null}
     </>
   );
 }
