@@ -64,4 +64,17 @@ Winunio/
 1. ~~Git init + első commit (docs only).~~
 2. ~~Postgres séma / migrációk a `DATA_MODEL.md` alapján.~~ → [db/README.md](db/README.md)
 3. ~~Állapotgép tesztek a `STATE_MACHINE.md` alapján.~~ → `npm test`
-4. Next.js scaffold + auth + első API végpontok.
+4. ~~Next.js scaffold + auth + első API végpontok.~~ → `npm run dev`
+
+## App futtatás
+
+```bash
+cp .env.example .env   # DATABASE_URL + AUTH_SECRET
+npm run db:migrate     # ha még nem futott a 000003
+npm install
+npm run dev
+```
+
+Nyisd meg: http://localhost:3000
+
+API: `/api/v1/health`, `/api/v1/auth/*`, `/api/v1/debates`

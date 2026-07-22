@@ -8,6 +8,7 @@ Postgres séma a [docs/DATA_MODEL.md](../docs/DATA_MODEL.md) alapján.
 |----------|----------|
 | `000001_initial_schema` | Táblák, enumok, constraint-ek, indexek |
 | `000002_seed_round_unlock_rules` | MVP küszöb + jutalom seed (1→25/1000 … 5→500/12000) |
+| `000003_add_user_password_hash` | E-mail + jelszó auth (`password_hash`) |
 
 ## Előfeltétel
 

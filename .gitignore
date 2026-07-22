@@ -1,5 +1,4 @@
 # Environment
-.env
 .env.*
 !.env.example
 
@@ -11,9 +10,12 @@
 
 # Dependencies (later steps)
 node_modules/
-dist/
 .next/
+dist/
 coverage/
+.env
+.env.local
+*.tsbuildinfo
 
 # Local database
 *.local.sql
