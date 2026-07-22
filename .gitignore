@@ -13,6 +13,12 @@
 node_modules/
 dist/
 .next/
+coverage/
 
 # Local database
 *.local.sql
+tools/Postgres.app/
+Postgres.app/
+Postgres
+Postgres-*
+*.dmg

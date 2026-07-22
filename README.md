@@ -36,6 +36,9 @@ Páros vitaplatform — két fél, közös jutalom, közönség csak folytatást
 ```
 Winunio/
 ├── README.md
+├── package.json
+├── src/domain/          # tiszta állapotgép logika
+├── tests/state-machine/
 ├── db/
 │   ├── README.md
 │   └── migrations/
@@ -59,6 +62,6 @@ Winunio/
 ## Következő lépések (implementáció)
 
 1. ~~Git init + első commit (docs only).~~
-2. ~~Postgres séma / migrációk a `DATA_MODEL.md` alapján.~~ → lásd [db/README.md](db/README.md)
-3. Állapotgép tesztek a `STATE_MACHINE.md` alapján.
+2. ~~Postgres séma / migrációk a `DATA_MODEL.md` alapján.~~ → [db/README.md](db/README.md)
+3. ~~Állapotgép tesztek a `STATE_MACHINE.md` alapján.~~ → `npm test`
 4. Next.js scaffold + auth + első API végpontok.

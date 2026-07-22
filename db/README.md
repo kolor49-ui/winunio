@@ -14,6 +14,40 @@ Postgres séma a [docs/DATA_MODEL.md](../docs/DATA_MODEL.md) alapján.
 - PostgreSQL 14+ (ajánlott)
 - `DATABASE_URL` — pl. `postgres://user:pass@localhost:5432/winunio?sslmode=disable`
 
+## Gyors setup (macOS)
+
+### A) Homebrew (ajánlott, ha nincs még Postgres)
+
+1. **Homebrew** (egyszer, Terminal — jelszó kell):
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/usr/local/bin/brew shellenv)"   # Intel Mac
+```
+
+2. **Automatikus setup** (Postgres telepítés + DB + migráció):
+
+```bash
+cd /Users/macbookair/Desktop/Winunio
+bash scripts/setup-postgres-mac.sh
+```
+
+### B) Docker (ha van Docker Desktop)
+
+```bash
+cd /Users/macbookair/Desktop/Winunio
+bash scripts/setup-postgres-docker.sh
+```
+
+`DATABASE_URL`: `postgres://winunio:winunio@localhost:5432/winunio?sslmode=disable`
+
+### C) Postgres.app
+
+1. Töltsd le: https://postgresapp.com/
+2. Indítsd el, hozz létre egy `winunio` adatbázist
+3. Add hozzá a PATH-hoz a Postgres.app bin mappát
+4. Futtasd a psql parancsokat lent
+
 ## Futtatás (psql)
 
 ```bash

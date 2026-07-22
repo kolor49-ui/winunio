@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: winunio-postgres
+    environment:
+      POSTGRES_USER: winunio
+      POSTGRES_PASSWORD: winunio
+      POSTGRES_DB: winunio
+    ports:
+      - "5432:5432"
+    volumes:
+      - winunio_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U winunio -d winunio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  winunio_pgdata:
