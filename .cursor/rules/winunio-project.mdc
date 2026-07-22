@@ -1,0 +1,110 @@
+---
+description: Winunio MVP kötelező termék- és fejlesztési szabályai
+alwaysApply: true
+---
+
+# Kötelező források
+
+Módosítás vagy új funkció tervezése előtt olvasd el:
+
+- docs/PRODUCT.md
+- docs/MVP_SCOPE.md
+- docs/BUSINESS_RULES.md
+- docs/DESIGN_SYSTEM.md
+
+A dokumentumok közül az MVP_SCOPE határozza meg, mi valósítható meg az aktuális fejlesztési szakaszban.
+
+Üzleti logika (küszöbök, állapotátmenetek, időzítés) forrása: `docs/BUSINESS_RULES.md` — ne találd ki.
+
+# MVP-n kívüli funkciók
+
+Az alábbi funkciókat ne tervezd meg, ne implementáld, és ne készítsd elő későbbi használatra sem:
+
+- nevezési díj;
+- követőrendszer;
+- privát üzenetek;
+- résztvevői ranglista;
+- győzelmi arány;
+- lájk;
+- emoji- vagy egyéb közösségi reakció;
+- A vagy B résztvevőre leadott szavazat;
+- automatikus partnerértékelés;
+- automatikus partnerkiválasztás;
+- partneralkalmassági pontszám;
+- követőszám vagy népszerűség alapú kiemelés (személyre szabott ajánlóalgoritmus);
+- bonyolult ajánlóalgoritmus;
+- natív mobilalkalmazás (reszponzív web igen);
+- kriptovaluta vagy token;
+- automatikus adományozás;
+- eltérő jutalom a két vitázónak;
+- győztes vagy vesztes kijelölése;
+- trófea, dobogó vagy versenyeredmény;
+- vitázói teljesítménypontszám;
+- álláspontok automatikus minősítése;
+- közönségi komment szekció a vita alatt;
+- AI összefoglaló a vitáról;
+- „ki nyerte ezt a kört” vagy argumentum-szavazás;
+- push értesítés versenyjellegű üzenetekkel („X vezet”).
+
+Ne hozz létre ezekhez:
+
+- adatbázismezőt;
+- API-végpontot;
+- komponenst;
+- feature flaget;
+- üres placeholdert;
+- jövőbeli absztrakciót;
+- navigációs elemet;
+- rejtett vagy kikommentezett kódot.
+
+# Kötelező termékszabályok
+
+- Egy vitában egyszerre két fél vesz részt.
+- A vitaindító választ partnert a jelentkezők közül.
+- A kiválasztott félnek el kell fogadnia a meghívást.
+- A platform nem rangsorolja és nem minősíti a jelentkezőket.
+- A közönség kizárólag a vita folytatását kérheti.
+- Egy fiók egy lezárt fordulóra egyszer kérhet folytatást.
+- A folytatáskérés nem valamelyik vitázó támogatása.
+- Nincs győztes és vesztes.
+- Mindkét vitázó mindig azonos jutalmat kap.
+- Induláskor a jelentkezés és a részvétel ingyenes.
+- A és B vizuális szerepe állandó (A bal, B jobb — soha nem cserél).
+- A színek azonosítanak, de nem minősítenek.
+- A = zsályazöld `#6F8F72`, B = levendula `#8A78A8` — soha nem cserélődnek.
+- Folytatás gomb = grafitszürke, nem A vagy B szín.
+- Küszöb előtt nincs jutalom UI — nincs „0 Ft”.
+- Moderáció = jogellenes tartalom, spam, visszaélés — nem álláspont vagy vitázói képesség minősítése.
+
+# Szóhasználat (UI és kód)
+
+Tiltott UI-szövegben: „szavazat”, „szavazz”, „győztes”, „vesztes”, „VS”, „like”.
+
+Helyette: „folytatást kérem”, „folytatáskérés”, „A / B”, „résztvevő”.
+
+# Implementáció
+
+- Csak a `docs/`-ban rögzített viselkedés.
+- Új üzleti szabály → előbb docs frissítés, aztán kód.
+- Új tábla vagy végpont csak akkor, ha `DATA_MODEL.md` / `API.md` vagy explicit feladat hivatkozik rá.
+- `continuation-requests` végpont **idempotens** legyen.
+- API és USER_FLOWS váz — ne töltsd ki feltételezésekkel jóváhagyás nélkül.
+
+# Változtatási szabály
+
+Ha egy feladat az MVP-n kívüli funkciót kér:
+
+1. ne implementáld automatikusan;
+2. nevezd meg, melyik MVP-korláttal ütközik;
+3. írd le röviden a várható hatását;
+4. kérj kifejezett jóváhagyást a dokumentáció módosítására;
+5. csak a dokumentáció frissítése után kezdj implementálni.
+
+# Bizonytalanság
+
+Ha a dokumentáció hiányos vagy ellentmondásos:
+
+- ne találj ki új termékszabályt;
+- ne másolj megszokott közösségimédia-megoldást;
+- ne tekintsd automatikusan jó mintának a lájkot, rangsort, követést vagy algoritmikus ajánlást;
+- állj meg, és kérj termékdöntést.
