@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
 import { getSession } from "@/server/api/http";
@@ -11,7 +12,15 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="container">
         <Link href="/" className="logo">
-          Winunio
+          <Image
+            src="/logo.png"
+            alt=""
+            width={36}
+            height={36}
+            priority
+            className="logo-mark"
+          />
+          <span>Winunio</span>
         </Link>
         <nav className="nav-links">
           <Link href="/debates/new">Vitát indítok</Link>
