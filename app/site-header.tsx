@@ -14,8 +14,8 @@ export async function SiteHeader() {
           <img
             src="/logo.svg"
             alt=""
-            width={36}
-            height={36}
+            width={48}
+            height={48}
             className="logo-mark"
           />
           <span>Winunio</span>
