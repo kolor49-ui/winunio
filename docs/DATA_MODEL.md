@@ -35,7 +35,7 @@ Debate ──< Round ──< Argument
 | `created_at` | timestamp | |
 | `status` | enum | `active` \| `suspended` \| `deleted` |
 
----
+**Törlés után:** e-mail helyettesítő domain (`deleted.winunio.invalid`); bejelentkezés és folytatáskérés nem lehetséges. Vitatartalom megmaradhat anonimizált résztvevővel — lásd [MODERATION.md](MODERATION.md).
 
 ## PublicProfile
 

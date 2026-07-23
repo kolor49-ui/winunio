@@ -15,6 +15,18 @@ Minden végpontnál dokumentálandó: cél, bemenet, válasz, jogosultság, üzl
 
 Vitázók: e-mail + jelszó (MVP). Passkey regisztráció folytatáskéréshez.
 
+### `DELETE /api/v1/auth/account`
+
+Fiók végleges törlése (GDPR).
+
+| | |
+|---|---|
+| **Jogosultság** | Bejelentkezett, `active` |
+| **Bemenet** | `password` |
+| **Üzleti szabály** | Anonimizálás + viták kezelése — [MODERATION.md](MODERATION.md) |
+| **Válasz** | `200` `{ deleted: true }`; session törlődik |
+| **Hibák** | `401` jelszó; `403` suspended; `409` már törölve |
+
 ---
 
 ## Debates

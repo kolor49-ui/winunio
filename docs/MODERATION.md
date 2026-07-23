@@ -62,8 +62,41 @@ A partner kiválasztás **nem** minősítés — de szisztematikus kizárás / s
 
 ---
 
-## GDPR / törlés
+## GDPR / fióktörlés
 
-[TBD implementáció] — fióktörlés, adatmegőrzési idők külön policy.
+A felhasználó **saját maga** kérheti a fiók végleges törlését (GDPR törlési jog). A moderációs `suspended` státusz **blokkolja** a törlést.
 
-Kapcsolódó: [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md), [BUSINESS_RULES.md](BUSINESS_RULES.md) §12, [DATA_MODEL.md](DATA_MODEL.md).
+### Kérés feltételei
+
+1. Bejelentkezett, `active` fiók.
+2. Jelszó megerősítés kötelező.
+3. `suspended` fiók → **403** (moderációs zárolás alatt nem törölhető).
+4. Már `deleted` → **409** (idempotens visszajelzés).
+
+### Személyes adatok (azonnal)
+
+| Adat | Kezelés |
+|------|---------|
+| `email` | Egyedi helyettes: `deleted.{userId}@deleted.winunio.invalid` — az eredeti cím **felszabadul** új regisztrációra |
+| `password_hash` | Véletlen, használhatatlan hash |
+| `email_verified_at`, `phone_verified_at` | NULL |
+| `public_profiles` | `display_name` NULL, `is_anonymous` true, `avatar_url` NULL |
+| `email_auth_tokens`, `passkey_credentials`, `phone_verifications` | Törlés |
+| `continuation_requests`, `continuation_challenges` | Törlés |
+| `users.status` | `deleted` |
+
+### Viták és tartalom
+
+| Helyzet | Kezelés |
+|---------|---------|
+| Indító, vita még **nem indult** (`draft`, `waiting_for_partner`, `invitation_pending`) | Vita `cancelled`; nyitott jelentkezések `closed` / `withdrawn` |
+| Meghívott partner, még nem fogadta el | Jelentkezés `rejected`; vita vissza `waiting_for_partner` |
+| **Aktív vita** (`active`, `waiting_for_continuation`, `under_review`, `completed`) | A vita **megmarad**; a résztvevő nyilvános neve **„Törölt fiók”** (anonimizált profil) |
+| Publikált argumentumok | Megmaradnak — vitatörténeti integritás; személyes azonosító nem |
+
+### UI
+
+- Beállítások: `/account` — **Fiók végleges törlése** + jelszó + figyelmeztetés.
+- Siker után kijelentkezés; ugyanazzal az e-mail címmel **újra regisztrálhat**.
+
+Kapcsolódó: [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md), [BUSINESS_RULES.md](BUSINESS_RULES.md) §13, [DATA_MODEL.md](DATA_MODEL.md), [API.md](API.md).

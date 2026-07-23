@@ -17,6 +17,7 @@ export async function SiteHeader() {
           <Link href="/debates/new">Vitát indítok</Link>
           {user ? (
             <>
+              <Link href="/account">Fiók</Link>
               {!user.email_verified && (
                 <Link href="/verify-email" className="nav-verify">
                   E-mail megerősítés

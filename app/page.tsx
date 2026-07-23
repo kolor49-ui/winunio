@@ -15,7 +15,10 @@ const STATUS_LABELS: Record<string, string> = {
   under_review: "Felülvizsgálat alatt",
 };
 
-export default async function HomePage() {
+type Props = { searchParams: Promise<{ account_deleted?: string }> };
+
+export default async function HomePage({ searchParams }: Props) {
+  const params = await searchParams;
   let debates: Awaited<ReturnType<typeof listDebates>> = [];
   let dbError: string | null = null;
   const session = await getSession();
@@ -35,6 +38,12 @@ export default async function HomePage() {
       <p className="hint">
         Két fél, közös jutalom — a közönség csak folytatást kérhet.
       </p>
+
+      {params.account_deleted === "1" && (
+        <div className="card">
+          <p>A fiókod véglegesen törölve lett. Ugyanazzal az e-mail címmel újra regisztrálhatsz.</p>
+        </div>
+      )}
 
       {user ? (
         <p className="hint">

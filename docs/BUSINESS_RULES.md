@@ -228,6 +228,17 @@ Részletek: [MODERATION.md](MODERATION.md).
 
 ---
 
+## 13. Fióktörlés (GDPR)
+
+- A felhasználó **jelszóval megerősítve** kérheti a fiók végleges törlését.
+- `suspended` fiók **nem** törölhető saját kezdeményezésre.
+- Személyes adatok anonimizálása: lásd [MODERATION.md](MODERATION.md) GDPR szakasz.
+- **Nem publikált** viták (indító): `cancelled`.
+- **Publikált / aktív** viták: megmaradnak; a törölt fél megjelenített neve: **„Törölt fiók”**.
+- Az eredeti e-mail cím **újra regisztrálható** a törlés után.
+
+---
+
 ## Entitás — szabály hivatkozások
 
 | Entitás | Szabályok |

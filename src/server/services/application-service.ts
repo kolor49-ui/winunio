@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { resolvePublicDisplayName } from "@/server/services/account-deletion-service";
 import { transitionDebate } from "@/domain/debate";
 import { transitionDebateApplication } from "@/domain/debate-application";
 import { DomainError } from "@/domain/types";
@@ -180,6 +181,7 @@ export async function listApplicationsForDebate(
       created_at: Date;
       display_name: string | null;
       is_anonymous: boolean;
+      user_status: string;
     }[]
   >`
     SELECT
@@ -191,9 +193,11 @@ export async function listApplicationsForDebate(
       a.invitation_expires_at,
       a.created_at,
       p.display_name,
-      p.is_anonymous
+      p.is_anonymous,
+      u.status::text AS user_status
     FROM debate_applications a
     JOIN public_profiles p ON p.user_id = a.user_id
+    JOIN users u ON u.id = a.user_id
     WHERE a.debate_id = ${debateId}
       AND a.status IN ('pending', 'invited')
     ORDER BY a.created_at ASC
@@ -207,9 +211,11 @@ export async function listApplicationsForDebate(
     invited_at: row.invited_at?.toISOString() ?? null,
     invitation_expires_at: row.invitation_expires_at?.toISOString() ?? null,
     created_at: row.created_at.toISOString(),
-    applicant_label: row.is_anonymous
-      ? "Anonim jelentkező"
-      : (row.display_name ?? "Névtelen"),
+    applicant_label: resolvePublicDisplayName(
+      row.user_status,
+      row.is_anonymous,
+      row.display_name,
+    ),
   }));
 }
 
