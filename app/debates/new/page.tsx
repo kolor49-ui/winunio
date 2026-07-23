@@ -27,13 +27,28 @@ export default function NewDebatePage() {
             displayMode === "named" ? form.get("display_name") : undefined,
         }),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      let data: { debate?: { id: string }; error?: { message?: string } };
+      try {
+        data = JSON.parse(raw) as typeof data;
+      } catch {
+        setError(
+          res.ok
+            ? "Váratlan szerverválasz"
+            : `Szerver hiba (${res.status}) — próbáld újra később`,
+        );
+        return;
+      }
       if (!res.ok) {
         if (res.status === 401) {
           setError("Előbb jelentkezz be.");
           return;
         }
         setError(data.error?.message ?? "Vitaindítás sikertelen");
+        return;
+      }
+      if (!data.debate?.id) {
+        setError("Váratlan szerverválasz");
         return;
       }
       router.push(`/debates/${data.debate.id}`);
