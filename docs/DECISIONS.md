@@ -243,6 +243,62 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 ---
 
+## ADR-029 — AI tartalom-ellenőrzés közzététel előtt (fail-closed)
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva (spec); **Implementáció: Tervezett**  
+**Döntés:** Minden nyilvánosságra szánt résztvevői szöveg AI review-n megy át publikálás előtt. Provider hiba → nincs közzététel.  
+**Indok:** Biztonság és vitakultúra; nem helyettesíti az emberi moderációt.  
+**Elvetett alternatíva:** Csak jelentés-alapú utólagos moderáció.
+
+---
+
+## ADR-030 — Az AI nem fogalmaz a résztvevő helyett
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva (spec); **Implementáció: Tervezett**  
+**Döntés:** Review kimenet = megjelölés + ok + szabály-hivatkozás. Tilos átfogalmazás, szócsere-javaslat, stílusmódosítás.  
+**Indok:** Saját érvelés alapelv; megkülönböztetés álláspont-minősítéstől.
+
+---
+
+## ADR-031 — Beillesztésvédelem a saját érvelés mezőben
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva (spec); **Implementáció: Tervezett**  
+**Döntés:** Fő mező: paste/drop tiltás; idézet és forrás külön mező, ott engedélyezett.  
+**Indok:** Kész szöveg gyors átemelésének megnehezítése — nem teljes kizárás.  
+**Korlát:** Nem szerzőségi bizonyíték; diktálás nem mindig detektálható.
+
+---
+
+## ADR-032 — Helyesírás-ellenőrzés opcionális és jóváhagyás-kötött
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva (spec); **Implementáció: Tervezett**  
+**Döntés:** Csak külön gombra; csak formai hibák; javítás csak explicit elfogadással kerül a mezőbe.  
+**Elvetett alternatíva:** Automatikus autocorrect publikálás előtt.
+
+---
+
+## ADR-033 — Idézet / forrás külön adattípus
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva (spec); **Implementáció: Tervezett**  
+**Döntés:** `reasoning` + opcionális `quote` + `source`; idézethez forrás kötelező; megjelenítés elkülönítve.
+
+---
+
+## ADR-034 — OpenAI (ChatGPT API) tartalom-ellenőrzéshez
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva  
+**Döntés:** Tartalom-ellenőrzés szolgáltatója: **OpenAI Chat Completions API** (`OPENAI_API_KEY`, alap modell: `gpt-4o-mini`).  
+**Indok:** Megbízható magyar nyelvű moderáció, strukturált JSON kimenet.  
+**Implementáció:** `src/server/services/content-review-service.ts`; napló: `content_reviews` tábla.
+
+---
+
 ## Nyitott döntések
 
 | ADR | Kérdés |
@@ -250,6 +306,8 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 | — | Vitázó auth: e-mail+jelszó vs. Passkey kötelező vitázóknál is? (MVP: e-mail + jelszó elég vitázóknak) |
 | — | Argument max. karakterhossz |
 | — | Pontos rate limit számok |
+| — | AI szolgáltató ([CONTENT_EDITOR.md](CONTENT_EDITOR.md)) | **Döntve:** OpenAI — ADR-034 |
+| — | Piszkozat verziók száma és megőrzés |
 
 ---
 
@@ -261,3 +319,5 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 | 009 | 2026-07-22 | Felülírva (024) |
 | 010–023 | 2026-07-22 | Elfogadva |
 | 024–028 | 2026-07-23 | Elfogadva |
+| 029–033 | 2026-07-23 | Elfogadva (spec); implementáció Tervezett |
+| 034 | 2026-07-23 | Elfogadva; implementálva |

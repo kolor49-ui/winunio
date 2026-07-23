@@ -2,16 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  ContentReviewFeedback,
+  extractContentReviewIssues,
+  type ContentReviewIssue,
+} from "../../content-review-feedback";
 
 export default function NewDebatePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
+    null,
+  );
+  const [reviewBlocked, setReviewBlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState<"named" | "anonymous">("named");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setReviewIssues(null);
+    setReviewBlocked(false);
     setLoading(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -28,7 +39,10 @@ export default function NewDebatePage() {
         }),
       });
       const raw = await res.text();
-      let data: { debate?: { id: string }; error?: { message?: string } };
+      let data: {
+        debate?: { id: string };
+        error?: { message?: string; code?: string; details?: unknown };
+      };
       try {
         data = JSON.parse(raw) as typeof data;
       } catch {
@@ -43,6 +57,13 @@ export default function NewDebatePage() {
         if (res.status === 401) {
           setError("Előbb jelentkezz be.");
           return;
+        }
+        const issues = extractContentReviewIssues(
+          data as Parameters<typeof extractContentReviewIssues>[0],
+        );
+        if (issues) {
+          setReviewIssues(issues);
+          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
         }
         setError(data.error?.message ?? "Vitaindítás sikertelen");
         return;
@@ -93,6 +114,12 @@ export default function NewDebatePage() {
             Megjelenített név
             <input name="display_name" required maxLength={80} />
           </label>
+        )}
+        {reviewIssues && (
+          <ContentReviewFeedback
+            issues={reviewIssues}
+            blocked={reviewBlocked}
+          />
         )}
         {error && <p className="error">{error}</p>}
         <button className="btn" type="submit" disabled={loading}>

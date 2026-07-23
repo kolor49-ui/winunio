@@ -44,6 +44,15 @@ const productionValues = {
     local.TURNSTILE_SECRET_KEY ?? "1x0000000000000000000000000000000AA",
 };
 
+if (local.OPENAI_API_KEY) {
+  productionValues.OPENAI_API_KEY = local.OPENAI_API_KEY;
+  productionValues.OPENAI_MODEL = local.OPENAI_MODEL ?? "gpt-4o-mini";
+} else {
+  console.warn(
+    "⚠ OPENAI_API_KEY hiányzik a .env-ből — a tartalom-ellenőrzés productionben nem fog működni.",
+  );
+}
+
 const required = Object.keys(productionValues);
 const missing = required.filter((key) => !productionValues[key]);
 if (missing.length) {

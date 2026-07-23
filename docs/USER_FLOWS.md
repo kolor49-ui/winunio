@@ -214,11 +214,78 @@ Folytatási időszak lejár küszöb nélkül
 
 ---
 
-## UF-12 — Jelentés / moderáció
+## UF-12 — Jelentés / emberi moderáció
+
+**Státusz:** Tervezett (API/UI)
 
 ```
 Report → admin queue → under_review / action
 ```
+
+Az AI tartalom-ellenőrzés **előtte** fut — lásd UF-13.
+
+---
+
+## UF-13 — Tartalom-ellenőrzés és közzététel
+
+**Státusz:** Tervezett
+
+```
+Vitázó megírja szövegét (DebateEditor)
+  → Beküldés ellenőrzésre / közzététel
+  → Szerver: AI content review
+  → approved → közzététel (A azonnal / B / zárógondolat szabály szerint)
+  → revision_required → megjelölt részek + szabály; vitázó javít; újra
+  → blocked → nincs közzététel; eset emberi queue (UF-12)
+  → provider hiba → nincs közzététel; „próbáld később”
+```
+
+| Dimenzió | Viselkedés |
+|----------|------------|
+| AI kimenet | **Nincs** átfogalmazás — csak jelzés |
+| Idézet | Külön mező; review idézet kontextussal |
+| Hiba | Fail-closed — ellenőrizetlen tartalom nem jelenik meg |
+
+---
+
+## UF-14 — Helyesírás-ellenőrzés (opcionális)
+
+**Státusz:** Tervezett
+
+```
+Vitázó → „Helyesírás ellenőrzése” (külön gomb)
+  → Javaslatok listája (eredeti / javítás / hely)
+  → Egyenként elfogad / összes elfogad
+  → Elfogadás nélkül szöveg változatlan
+```
+
+| Dimenzió | Viselkedés |
+|----------|------------|
+| Automatikus indulás | **Tiltott** |
+| Bizonytalan eset | Nincs javaslat |
+| Visszaállítás | Elfogadás előtti verzió megőrizve (UF-15) |
+
+---
+
+## UF-15 — Piszkozat és beillesztésvédelem
+
+**Státusz:** Tervezett
+
+```
+Gépelés a fő mezőben (beillesztés tiltva)
+  → Automatikus piszkozat mentés
+  → Idézet / Forrás mező: beillesztés engedélyezett
+  → Beillesztés a fő mezőbe → üzenet, szöveg nem kerül be
+  → Oldal elhagyása mentetlen változásnál → figyelmeztetés
+```
+
+| Mező | Beillesztés |
+|------|-------------|
+| Saját érvelés | **Tiltva** |
+| Idézet | Engedélyezett |
+| Forrás | Engedélyezett (link) |
+
+Akadálymentesség: ugyanaz a tilalom minden eszközre — [CONTENT_EDITOR.md](CONTENT_EDITOR.md) §7.
 
 ---
 
@@ -244,4 +311,4 @@ flowchart LR
   G -->|üres| N[completed]
 ```
 
-Kapcsolódó: [BUSINESS_RULES.md](BUSINESS_RULES.md), [STATE_MACHINE.md](STATE_MACHINE.md), [API.md](API.md).
+Kapcsolódó: [BUSINESS_RULES.md](BUSINESS_RULES.md), [STATE_MACHINE.md](STATE_MACHINE.md), [API.md](API.md), [CONTENT_EDITOR.md](CONTENT_EDITOR.md).

@@ -21,6 +21,7 @@ A vita **aszinkron**: fordulónként **A megszólal → B válaszol**, fokozatos
 | Közös teljesítés | *„Véleményben ellenfelek, a vita létrehozásában partnerek.”* — mindkét fél a teljes vitáért felel. |
 | Jutalom UI | Küszöb elérése **előtt** nincs jutalom UI — **nincs „0 Ft”** sem. |
 | Minősítés tilos | A platform nem minősíti az álláspontokat, a vitázó képességét vagy a partner kiválasztását. |
+| Saját megfogalmazás | A nyilvános érvelés a résztvevő **saját** szava; az AI jelezhet, de nem fogalmaz helyette — [CONTENT_EDITOR.md](CONTENT_EDITOR.md) (**Tervezett**) |
 
 ## Szereplők
 
@@ -63,6 +64,7 @@ Ellenőrzött fiókkal a vitázó **névvel vagy anonim nyilvános profillal** v
 - Nem ajánl „legjobb” partnert vagy álláspontot.
 - MVP-ben nem fizet ki valódi pénzt.
 - Nem futtat személyre szabott ajánlóalgoritmust.
+- MVP-ben nem generál **vitaösszefoglalót** (a tervezett tartalom-ellenőrzés **nem** összefoglaló).
 
 ## Kapcsolódó dokumentumok
 
@@ -71,3 +73,4 @@ Ellenőrzött fiókkal a vitázó **névvel vagy anonim nyilvános profillal** v
 - [STATE_MACHINE.md](STATE_MACHINE.md) — állapotok
 - [USER_FLOWS.md](USER_FLOWS.md) — folyamatok
 - [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) — vizuális nyelv
+- [CONTENT_EDITOR.md](CONTENT_EDITOR.md) — vitaszerkesztő és tartalom-ellenőrzés (**Tervezett**)

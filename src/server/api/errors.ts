@@ -11,7 +11,13 @@ export function handleRouteError(error: unknown): Response {
   }
   if (error instanceof ApiError) {
     return Response.json(
-      { error: { code: error.code, message: error.message } },
+      {
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
+      },
       { status: error.status },
     );
   }

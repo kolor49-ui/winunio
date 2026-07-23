@@ -134,6 +134,17 @@ Debate ──< Round ──< Argument
 
 **Publikálás:** A `published_at` beállításakor a tartalom nyilvános. A forduló `published` csak ha mindkét oldal (vagy placeholder) megjelent.
 
+### Tervezett bővítés (CONTENT_EDITOR)
+
+**Státusz:** Tervezett — migráció és kód **nincs**.
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `reasoning` | text | Saját érvelés — beillesztés tiltva |
+| `quote` | text \| null | Idézet (beillesztés engedélyezett) |
+| `source` | text \| null | Forrás / link — idézethez kötelező, ha van idézet |
+| *(legacy)* `content` | text | Migráció: `reasoning` + opcionális idézet blokk megjelenítése |
+
 ---
 
 ## ClosingStatement
@@ -150,6 +161,10 @@ Debate ──< Round ──< Argument
 **Korlát:** `UNIQUE(debate_id, participant_id)` — pontosan 2 / vita lezáráskor.
 
 **Szabály:** Beküldés alatt a másik fél **nem** látja. Publikálás **csak** párban, egy tranzakcióban.
+
+### Tervezett bővítés (CONTENT_EDITOR)
+
+**Státusz:** Tervezett — ugyanaz a `reasoning` / `quote` / `source` modell, mint `Argument`-nál.
 
 ---
 
@@ -317,6 +332,50 @@ A vita aktuális jutalma = legutóbbi `DebateReward` rekord. Küszöb előtt nin
 
 ---
 
+## Tervezett entitások (CONTENT_EDITOR)
+
+**Státusz:** Részben implementálva — migráció `000007_content_reviews`.
+
+### ContentReview — **Implementálva**
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `id` | UUID | |
+| `user_id` | User ref | |
+| `context_type` | enum | `argument` \| `closing_statement` \| `initiator_stance` \| `application_stance` |
+| `context_id` | UUID \| null | |
+| `input_text` | text | |
+| `status` | enum | `approved` \| `revision_required` \| `blocked` \| `failed` |
+| `issues` | jsonb | Megjelölés + ok — **nincs** javasolt szöveg |
+| `provider` | text | `openai` |
+| `model` | text \| null | pl. `gpt-4o-mini` |
+| `created_at` | timestamp | |
+
+### ContentDraft — **Tervezett**
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `id` | UUID | |
+| `user_id` | User ref | |
+| `context_type` | enum | `argument` \| `closing_statement` \| `initiator_stance` \| `application_stance` |
+| `context_id` | UUID | round_id / debate_id / application_id |
+| `reasoning` | text | Saját érvelés |
+| `quote` | text \| null | |
+| `source` | text \| null | |
+| `version` | int | Verziószám |
+| `saved_at` | timestamp | |
+
+### SpellCheckSession (opcionális) — **Tervezett**
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `id` | UUID | |
+| `draft_id` | ContentDraft ref | |
+| `suggestions` | jsonb | Eredeti + javasolt + offset |
+| `accepted_at` | timestamp \| null | Csak jóváhagyás után kerül a draftba |
+
+---
+
 ## Indexek / constraint-ek
 
 | Constraint | Szabály |
@@ -326,4 +385,4 @@ A vita aktuális jutalma = legutóbbi `DebateReward` rekord. Küszöb előtt nin
 | Invitation / Application `invitation_expires_at` | 48h |
 | Round `deadline_at` | 72h |
 
-Kapcsolódó: [BUSINESS_RULES.md](BUSINESS_RULES.md), [API.md](API.md), [STATE_MACHINE.md](STATE_MACHINE.md).
+Kapcsolódó: [BUSINESS_RULES.md](BUSINESS_RULES.md), [API.md](API.md), [STATE_MACHINE.md](STATE_MACHINE.md), [CONTENT_EDITOR.md](CONTENT_EDITOR.md).

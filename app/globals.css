@@ -114,6 +114,33 @@ a {
   color: #b42318;
 }
 
+.content-review-feedback {
+  border: 1px solid #f0c674;
+  background: #fffbf0;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.content-review-blocked {
+  border-color: #f5c2c7;
+  background: #fff5f5;
+}
+
+.content-review-title {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.content-review-list {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.content-review-list li {
+  margin-bottom: 0.5rem;
+}
+
 .debate-link {
   text-decoration: none;
   display: block;

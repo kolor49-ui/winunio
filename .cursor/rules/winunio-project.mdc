@@ -11,6 +11,7 @@ Módosítás vagy új funkció tervezése előtt olvasd el:
 - docs/MVP_SCOPE.md
 - docs/BUSINESS_RULES.md
 - docs/DESIGN_SYSTEM.md
+- docs/CONTENT_EDITOR.md (vitaszerkesztő / AI tartalom-ellenőrzés — **Tervezett**, spec-first)
 
 A dokumentumok közül az MVP_SCOPE határozza meg, mi valósítható meg az aktuális fejlesztési szakaszban.
 
@@ -45,6 +46,8 @@ Az alábbi funkciókat ne tervezd meg, ne implementáld, és ne készítsd elő 
 - AI összefoglaló a vitáról;
 - „ki nyerte ezt a kört” vagy argumentum-szavazás;
 - push értesítés versenyjellegű üzenetekkel („X vezet”).
+
+A `docs/CONTENT_EDITOR.md` AI **tartalom-ellenőrzése** nem összefoglaló és nem álláspont-minősítés — külön csomag, jelenleg **Tervezett** (spec-first).
 
 Ne hozz létre ezekhez:
 

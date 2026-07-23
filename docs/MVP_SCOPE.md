@@ -47,6 +47,7 @@ Működő páros vita életciklus: vitaindítás → jelentkezés → meghívás
 | Kriptovaluta, automatikus adományozás | MVP-n kívül |
 | Közönségi kommentek | MVP-n kívül |
 | AI vitaösszefoglaló | MVP-n kívül |
+| **AI tartalom-ellenőrzés / vitaszerkesztő csomag** | **Tervezett** — lásd [CONTENT_EDITOR.md](CONTENT_EDITOR.md); **nem** összefoglaló, **nem** álláspont-minősítés |
 | Külön „függő” és „megerősített” folytatáskérés-számláló | Egyszerűsített MVP modell |
 | Forduló-végén rejtett tartalom + egyidejű leplemelés | Felülírva: fokozatos publikálás (ADR-024) |
 
@@ -63,6 +64,20 @@ Működő páros vita életciklus: vitaindítás → jelentkezés → meghívás
 9. Küszöb előtt nincs jutalom UI.
 10. Folytatási időszak lejárása → `awaiting_closure` → zárógondolatok egyidejű publikálása → `completed`.
 11. Jutalom csak teljes lezáráskor válik **simulated** (kifizethető megjelenítés) állapotúvá.
+
+## Tervezett (nincs implementálva)
+
+| Terület | Státusz | Dokumentum |
+|---------|---------|------------|
+| AI tartalom-ellenőrzés (OpenAI) | **Implementálva** | [CONTENT_EDITOR.md](CONTENT_EDITOR.md) §1–§2 |
+| AI nem fogalmaz helyette | **Implementálva** | §2 |
+| Opcionális helyesírás-ellenőrzés | Tervezett | §3 |
+| Beillesztésvédelem (saját érvelés) | Tervezett | §4 |
+| Piszkozatkezelés | Tervezett | §5 |
+| Idézet / forrás mezők | Tervezett | §6 |
+| Szerkesztő akadálymentesség | Tervezett | §7 |
+
+A csomag **késznek** csak [CONTENT_EDITOR.md §8](CONTENT_EDITOR.md#8-elfogadási-feltételek) automatizált tesztjei után minősül.
 
 ## Kapcsolódó
 

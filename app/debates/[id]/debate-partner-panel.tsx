@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  ContentReviewFeedback,
+  extractContentReviewIssues,
+  type ContentReviewIssue,
+} from "../../content-review-feedback";
 
 type Application = {
   id: string;
@@ -46,6 +51,10 @@ export function DebatePartnerPanel({
   const router = useRouter();
   const [mine, setMine] = useState(myApplication);
   const [error, setError] = useState<string | null>(null);
+  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
+    null,
+  );
+  const [reviewBlocked, setReviewBlocked] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
 
   const isInvitee =
@@ -60,6 +69,8 @@ export function DebatePartnerPanel({
       return;
     }
     setError(null);
+    setReviewIssues(null);
+    setReviewBlocked(false);
     setLoading("apply");
     const form = new FormData(e.currentTarget);
     try {
@@ -70,6 +81,11 @@ export function DebatePartnerPanel({
       });
       const data = await res.json();
       if (!res.ok) {
+        const issues = extractContentReviewIssues(data);
+        if (issues) {
+          setReviewIssues(issues);
+          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
+        }
         setError(data.error?.message ?? "Jelentkezés sikertelen");
         return;
       }
@@ -240,6 +256,12 @@ export function DebatePartnerPanel({
             Rövid álláspontod (B oldal)
             <textarea name="stance" required maxLength={2000} />
           </label>
+          {reviewIssues && (
+            <ContentReviewFeedback
+              issues={reviewIssues}
+              blocked={reviewBlocked}
+            />
+          )}
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit" disabled={loading === "apply"}>
             {loading === "apply" ? "Küldés…" : "Jelentkezés"}

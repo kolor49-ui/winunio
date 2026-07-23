@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  ContentReviewFeedback,
+  extractContentReviewIssues,
+  type ContentReviewIssue,
+} from "../../content-review-feedback";
 
 type ActiveRound = {
   id: string;
@@ -70,6 +75,10 @@ export function DebateRoundPanel({
 }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
+    null,
+  );
+  const [reviewBlocked, setReviewBlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [notifyInfo, setNotifyInfo] = useState<string | null>(null);
@@ -78,6 +87,8 @@ export function DebateRoundPanel({
     e.preventDefault();
     if (!activeRound) return;
     setError(null);
+    setReviewIssues(null);
+    setReviewBlocked(false);
     setLoading(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -88,6 +99,11 @@ export function DebateRoundPanel({
       });
       const data = await res.json();
       if (!res.ok) {
+        const issues = extractContentReviewIssues(data);
+        if (issues) {
+          setReviewIssues(issues);
+          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
+        }
         setError(data.error?.message ?? "Beküldés sikertelen");
         return;
       }
@@ -165,6 +181,12 @@ export function DebateRoundPanel({
                   : "Válaszod B oldalról"}
                 <textarea name="content" required maxLength={2000} />
               </label>
+              {reviewIssues && (
+                <ContentReviewFeedback
+                  issues={reviewIssues}
+                  blocked={reviewBlocked}
+                />
+              )}
               {error && <p className="error">{error}</p>}
               <button className="btn" type="submit" disabled={loading}>
                 {loading ? "Küldés…" : "Beküldés"}

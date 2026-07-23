@@ -2,6 +2,7 @@ import { z } from "zod";
 import { transitionDebate } from "@/domain/debate";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
+import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 
 const closingStatementSchema = z.object({
   content: z.string().min(1).max(2000),
@@ -94,6 +95,13 @@ export async function submitClosingStatement(
 ) {
   const sql = getSql();
   const trimmed = content.trim();
+
+  await assertContentApprovedForPublication({
+    userId,
+    contextType: "closing_statement",
+    contextId: debateId,
+    text: trimmed,
+  });
 
   return sql.begin(async (tx) => {
     const [debate] = await tx<{ id: string; status: string }[]>`

@@ -290,7 +290,21 @@ Részletek: [MODERATION.md](MODERATION.md).
 
 ---
 
-## 14. Fióktörlés (GDPR)
+## 14. Vitaszerkesztő és tartalom-ellenőrzés
+
+**Státusz:** Tervezett — [CONTENT_EDITOR.md](CONTENT_EDITOR.md)
+
+- Minden nyilvánosságra szánt résztvevői szöveg **közzététel előtt** AI tartalom-ellenőrzésen megy át.
+- Az AI **nem** fogalmaz, **nem** ír át, **nem** ad alternatív mondatot — csak jelzi a problémát és a megsértett szabályt.
+- A saját érvelés **csak** a Winunio szerkesztőjében írható — a fő mező **nem** fogad beillesztést.
+- Idézet és forrás **külön** mező; idézethez forrás kötelező; idézet vizuálisan elkülönítve.
+- Helyesírás-ellenőrzés **opcionális**, külön kérésre; javítás csak résztvevői jóváhagyással.
+- AI vagy ellenőrzési hiba esetén a szöveg **nem** jelenhet meg ellenőrizetlenül.
+- A beillesztésvédelem **nem** bizonyítja a szerzőséget; célja a visszaélés megnehezítése.
+
+---
+
+## 15. Fióktörlés (GDPR)
 
 - A felhasználó **jelszóval megerősítve** kérheti a fiók végleges törlését.
 - `suspended` fiók **nem** törölhető saját kezdeményezésre.
@@ -311,7 +325,8 @@ Részletek: [MODERATION.md](MODERATION.md).
 | `RoundResponseNotification` | §5 |
 | Meghívás / `DebateApplication` | §2 |
 | `ContinuationRequest` | §7, §8 |
-| `Round` / `Argument` | §4–6 |
-| `Debate` | §1–3, §6, §11 |
+| `Round` / `Argument` | §4–6, §14 |
+| `Debate` | §1–3, §6, §11, §14 |
+| `ContentReview` / `ContentDraft` | §14 (**Tervezett**) |
 
-Kapcsolódó: [DATA_MODEL.md](DATA_MODEL.md), [STATE_MACHINE.md](STATE_MACHINE.md), [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md).
+Kapcsolódó: [DATA_MODEL.md](DATA_MODEL.md), [STATE_MACHINE.md](STATE_MACHINE.md), [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md), [CONTENT_EDITOR.md](CONTENT_EDITOR.md).

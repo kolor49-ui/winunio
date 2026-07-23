@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  ContentReviewFeedback,
+  extractContentReviewIssues,
+  type ContentReviewIssue,
+} from "../../content-review-feedback";
 
 export type ClosingStatementContext = {
   phase: "collecting" | "published";
@@ -24,11 +29,17 @@ type Props = {
 export function ClosingStatementPanel({ debateId, context }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
+    null,
+  );
+  const [reviewBlocked, setReviewBlocked] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setReviewIssues(null);
+    setReviewBlocked(false);
     setLoading(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -42,6 +53,11 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
       );
       const data = await res.json();
       if (!res.ok) {
+        const issues = extractContentReviewIssues(data);
+        if (issues) {
+          setReviewIssues(issues);
+          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
+        }
         setError(data.error?.message ?? "Beküldés sikertelen");
         return;
       }
@@ -91,6 +107,12 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
             Zárógondolatod
             <textarea name="content" required maxLength={2000} />
           </label>
+          {reviewIssues && (
+            <ContentReviewFeedback
+              issues={reviewIssues}
+              blocked={reviewBlocked}
+            />
+          )}
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit" disabled={loading}>
             {loading ? "Küldés…" : "Zárógondolat beküldése"}

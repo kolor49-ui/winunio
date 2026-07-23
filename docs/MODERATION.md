@@ -29,11 +29,26 @@ Világosan különválasztja a **moderációt** a **minősítéstől**.
 
 ## MVP moderációs folyamat
 
+**Státusz (emberi moderáció):** Tervezett — séma és domain állapotok megvannak; API és UI **nincs**.
+
 ```
 Felhasználó → Report (ok kategória)
            → Admin queue
            → ModerationAction (under_review / remove / suspend / complete)
 ```
+
+### AI tartalom-ellenőrzés (külön réteg)
+
+**Státusz:** Tervezett — lásd [CONTENT_EDITOR.md](CONTENT_EDITOR.md).
+
+| Réteg | Mikor | Ki dönt |
+|-------|-------|---------|
+| **AI tartalom-ellenőrzés** | Nyilvánosságra szánt résztvevői szöveg **közzététel előtt** | Automatikus; `revision_required` / `blocked` |
+| **Emberi moderáció** | Jelentés, súlyos AI-eset, admin | Admin |
+
+Az AI **nem** minősíti az érv erősségét — csak viselkedés / biztonság. Az AI **nem** fogalmaz helyette.
+
+Súlyos AI-eset (`blocked`) továbbítható emberi queue-ba (implementáció: Tervezett).
 
 ### `under_review` hatása
 
@@ -99,4 +114,4 @@ A felhasználó **saját maga** kérheti a fiók végleges törlését (GDPR tö
 - Beállítások: `/account` — **Fiók végleges törlése** + jelszó + figyelmeztetés.
 - Siker után kijelentkezés; ugyanazzal az e-mail címmel **újra regisztrálhat**.
 
-Kapcsolódó: [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md), [BUSINESS_RULES.md](BUSINESS_RULES.md) §13, [DATA_MODEL.md](DATA_MODEL.md), [API.md](API.md).
+Kapcsolódó: [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md), [BUSINESS_RULES.md](BUSINESS_RULES.md) §13–§14, [DATA_MODEL.md](DATA_MODEL.md), [API.md](API.md), [CONTENT_EDITOR.md](CONTENT_EDITOR.md).

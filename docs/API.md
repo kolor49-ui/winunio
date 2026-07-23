@@ -121,7 +121,9 @@ Fordulók listája. **Fokozatos publikálás:** A már publikált argumentumok l
 | | |
 |---|---|
 | **Jogosultság** | Vitázó, saját forduló `open` |
+| **Bemenet** | `reasoning`, opcionális `quote`, `source` (**Tervezett**); jelenleg: `content` |
 | **Üzleti szabály** | Sorrend: **A először**, majd B (A már publikálva); max 1 / résztvevő / forduló; A publikálódik beküldéskor |
+| **Tartalom-ellenőrzés** | **Tervezett** — közzététel előtt AI review; fail-closed — [CONTENT_EDITOR.md](CONTENT_EDITOR.md) |
 | **Idempotencia** | Frissítés tiltott beküldés után (MVP); A nem módosítható B válasza után |
 
 ### `POST /api/v1/rounds/:id/response-notifications`
@@ -141,7 +143,42 @@ Fordulók listája. **Fokozatos publikálás:** A már publikált argumentumok l
 | | |
 |---|---|
 | **Jogosultság** | Vitázó; vita `awaiting_closure` |
+| **Bemenet** | `reasoning`, opcionális `quote`, `source` (**Tervezett**); jelenleg: `content` |
 | **Üzleti szabály** | Rejtett a partner elől; mindkét beküldés után **egyidejű** publikálás; vita → `completed` |
+| **Tartalom-ellenőrzés** | **Tervezett** — [CONTENT_EDITOR.md](CONTENT_EDITOR.md) |
+
+---
+
+## Tervezett — Vitaszerkesztő és tartalom-ellenőrzés
+
+**Státusz:** Részben implementálva — lásd [CONTENT_EDITOR.md](CONTENT_EDITOR.md).
+
+### `POST /api/v1/content-reviews` — **Implementálva**
+
+| | |
+|---|---|
+| **Cél** | Szöveg ellenőrzése közzététel előtt |
+| **Bemenet** | `context_type`, `context_id`, `reasoning`, `quote`, `source` |
+| **Válasz** | `approved` \| `revision_required` (issues[]) \| `blocked` |
+| **Szabály** | AI **nem** ad átfogalmazást; provider hiba → **503**, nincs közzététel |
+
+### `POST /api/v1/content-reviews/:id/spell-check`
+
+| | |
+|---|---|
+| **Cél** | Opcionális helyesírás — **csak** külön kérésre |
+| **Válasz** | Javaslatok (eredeti + javítás + offset); elfogadás külön végponton |
+
+### `PUT /api/v1/content-drafts/:contextType/:contextId`
+
+| | |
+|---|---|
+| **Cél** | Automatikus piszkozat mentés / visszaállítás |
+| **Üzleti szabály** | Fiókhoz kötött; verzió history |
+
+### Publish útvonalak
+
+A `POST …/arguments`, `POST …/closing-statements`, `POST …/debates`, `POST …/applications` **Implementálva**: közzététel előtt OpenAI tartalom-ellenőrzés; fail-closed.
 
 ---
 
@@ -219,4 +256,4 @@ WebAuthn regisztráció és assertion.
 
 Redis/Upstash — végpontonként konfigurálható. Folytatáskérés: szigorúbb limit.
 
-Kapcsolódó: [DATA_MODEL.md](DATA_MODEL.md), [USER_FLOWS.md](USER_FLOWS.md), [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md).
+Kapcsolódó: [DATA_MODEL.md](DATA_MODEL.md), [USER_FLOWS.md](USER_FLOWS.md), [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md), [CONTENT_EDITOR.md](CONTENT_EDITOR.md).

@@ -4,6 +4,7 @@ import { transitionRound } from "@/domain/round";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
 import { debateNeedsAwaitingClosure } from "@/server/services/closing-statement-service";
+import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 import { sendBResponseNotifications } from "@/server/services/notification-service";
 
 const submitArgumentSchema = z.object({
@@ -21,6 +22,13 @@ export async function submitArgument(
 ) {
   const sql = getSql();
   const trimmed = content.trim();
+
+  await assertContentApprovedForPublication({
+    userId,
+    contextType: "argument",
+    contextId: roundId,
+    text: trimmed,
+  });
 
   const result = await sql.begin(async (tx) => {
     const [round] = await tx<

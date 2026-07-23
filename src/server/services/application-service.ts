@@ -5,6 +5,7 @@ import { transitionDebateApplication } from "@/domain/debate-application";
 import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
+import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 
 const INVITATION_HOURS = 48;
 const ROUND_DEADLINE_HOURS = 72;
@@ -36,6 +37,13 @@ export async function applyToDebate(
 ) {
   const sql = getSql();
   const trimmed = stance.trim();
+
+  await assertContentApprovedForPublication({
+    userId,
+    contextType: "application_stance",
+    contextId: debateId,
+    text: trimmed,
+  });
 
   return sql.begin(async (tx) => {
     const [debate] = await tx<

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getSql } from "@/server/db";
+import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 
 const createDebateSchema = z.object({
   question: z.string().min(1).max(160),
@@ -24,6 +25,12 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
 
   const isAnonymous = input.display_mode === "anonymous";
   const displayName = isAnonymous ? null : (input.display_name ?? null);
+
+  await assertContentApprovedForPublication({
+    userId,
+    contextType: "initiator_stance",
+    text: input.initiator_stance.trim(),
+  });
 
   return sql.begin(async (tx) => {
     await tx`

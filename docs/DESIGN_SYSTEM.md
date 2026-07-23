@@ -106,6 +106,9 @@ Passkey lépés copy:
 | `ClosingStatementForm` | Zárásra vár — rejtett partner szöveg |
 | `ContinuationRequestFlow` | Turnstile + challenge + Passkey + telefon gate |
 | `DebateRewardReveal` | Függő összeg küszöb után; kifizethető megjelenítés lezáráskor |
+| `DebateEditor` | **Tervezett** — saját érvelés + idézet + forrás; paste tiltás; piszkozat |
+| `ContentReviewFeedback` | **Tervezett** — megjelölt problémák, szabály-hivatkozás; **nincs** AI-szöveg |
+| `SpellCheckPanel` | **Tervezett** — opcionális; egyenkénti / összes elfogadás |
 
 **Szándékosan nincs:** `LikeButton`, `VotePoll`, `WinnerBadge`, `VsBadge`, `Leaderboard`, `FollowButton`.
 
@@ -116,5 +119,20 @@ Passkey lépés copy:
 - Elsődleges nyelv: **magyar** (MVP).
 - WCAG 2.1 AA cél — kontraszt A/B színeknél ellenőrizendő.
 - Hibauzenetek: közérthető, nem technikai.
+
+### Vitaszerkesztő (Tervezett)
+
+| Elem | Szabály |
+|------|---------|
+| Saját érvelés | Normál szöveg; nincs idézet-stílus |
+| Idézet blokk | Vizuálisan elkülönítve (pl. bal szegély, halvány háttér); „Idézet” felirat |
+| Forrás | Kisebb, másodlagos tipográfia; link stílus |
+| Beillesztés tiltás | `role="alert"` rövid üzenet: *„A saját érvelést a Winunio szerkesztőjében kell megírnod…”* |
+| Review visszajelzés | Problémás span kiemelés; **nincs** javasolt szöveg doboz |
+| Piszkozat állapot | aria-live: „Mentve” / „Mentés…” |
+
+Kapcsolódó: [CONTENT_EDITOR.md](CONTENT_EDITOR.md).
+
+---
 
 Kapcsolódó: [PRODUCT.md](PRODUCT.md), [BUSINESS_RULES.md](BUSINESS_RULES.md), [DECISIONS.md](DECISIONS.md) ADR-004.
