@@ -87,35 +87,65 @@ Partner értesítés → Elfogadom / Elutasítom
 ```
 Meghívás accepted
   → Debate active
-  → Round #1 open
+  → Round #1 open (awaiting_a)
   → 72h határidő indul
   → NINCS folytatáskérés
 ```
 
-Vitázók: zárolt beküldés, egymás válaszát nem látják `open` alatt.
+**A** (vitaindító) adja az első megszólalást. **B** csak A publikált megszólalása után válaszolhat.
 
 ---
 
-## UF-06 — Forduló beküldés és publikálás
+## UF-06 — Forduló: fokozatos publikálás
 
 ```
-Vitázó → válasz beküldése (zárolt)
-  → mindkét fél beküldött VAGY 72h lejárt
-  → egyidejű publikálás
+A → megszólalás beküldése
+  → A tartalom AZONNAL nyilvános
+  → „B válaszára várunk” (közönség)
+
+B → A elolvasása → válasz beküldése
+  → B tartalom nyilvános
+  → forduló published (ha teljes)
+  → folytatáskérés nyílik (ha teljes, kétoldalú)
 ```
+
+| Lépés | UX |
+|-------|-----|
+| A publikálva, B hiányzik | A kártya látható + várakozás jelzés |
+| B publikálva | Teljes forduló; folytatáskérés (ha §6 A) |
+
+**Értesítés:** a néző kérhet értesítést B válaszára (UF-06a).
 
 | Timeout ág | UX |
 |------------|-----|
-| Mindkét fél | published → folytatáskérés nyílik |
-| Egy fél | Részleges + semleges üzenet → completed |
+| A + B megjelent | Teljes forduló → folytatáskérés |
+| Csak egy fél | Részleges + semleges üzenet → awaiting_closure vagy completed |
 | Senki | „Érdemi tartalom nélkül lezárult” → completed |
+
+---
+
+## UF-06a — Értesítés B válaszára
+
+```
+Vita olvasása (A már publikálva, B még nem)
+  → „Értesítést kérek B válaszáról”
+  → [e-mail / push — implementációfüggő]
+  → B válasza megjelenik
+  → értesítés kiküldve
+```
+
+| Dimenzió | Viselkedés |
+|----------|------------|
+| Scope | Egy vitára / fordulóra kötött — **nem** követőrendszer |
+| Jogosultság | Bejelentkezett vagy e-mail megadás (implementáció) |
+| Hiba | Már kért / B már válaszolt |
 
 ---
 
 ## UF-07 — Folytatáskérés (közönség)
 
 ```
-Vita olvasása (published forduló után)
+Vita olvasása (teljes published forduló után)
   → KÉREM A FOLYTATÁST
   → [első alkalom: telefon OTP]
   → Turnstile
@@ -127,7 +157,7 @@ Vita olvasása (published forduló után)
 
 | Dimenzió | Viselkedés |
 |----------|------------|
-| Hiba | Már kért / nem published / rate limit / Passkey fail |
+| Hiba | Már kért / nem teljes published / rate limit / Passkey fail |
 | Idempotens | Ismételt kattintás → ugyanaz a rekord, számláló nem nő |
 | Jogosultság | Bejelentkezett + verified e-mail + telefon (első) |
 
@@ -137,10 +167,10 @@ Vita olvasása (published forduló után)
 
 ```
 continuation_count >= küszöb
-  → atomikusan: következő forduló open + DebateReward + active
+  → atomikusan: következő forduló open (awaiting_a) + DebateReward pending + active
 ```
 
-UI: „Még X kérés szükséges” → 0-nál forduló megnyílik.
+UI: „Még X kérés szükséges” → 0-nál forduló megnyílik; jutalom **függőben** jelenik meg.
 
 ---
 
@@ -149,19 +179,42 @@ UI: „Még X kérés szükséges” → 0-nál forduló megnyílik.
 | Állapot | UI |
 |---------|-----|
 | Küszöb előtt | Semmi |
-| Első küszöb után | Teljes összeg mindkét vitázónál + tesztüzem felirat |
+| Küszöb után, vita folyamatban | Teljes összeg + **függőben** |
+| Vita completed + zárógondolatok | Teljes összeg + tesztüzem (kifizethető / szimulált) |
+| Befejezetlen vita | Függő összeg **nem** válik kifizethetővé |
 
 ---
 
-## UF-10 — Be nem lépett látogató
+## UF-10 — Vita lezárása (zárásra vár)
 
-- Vitát **olvashat** (nyilvános published tartalom).
+```
+Folytatási időszak lejár küszöb nélkül
+  VAGY timeout / moderáció miatti lezárás
+  → awaiting_closure
+  → mindkét vitázó: zárógondolat (rejtett egymás elől)
+  → mindketten benyújtotta
+  → zárógondolatok EGYSZERRE publikálódnak
+  → completed
+  → jutalom kifizethetőség ellenőrzése
+```
+
+| Dimenzió | Viselkedés |
+|----------|------------|
+| Hiányzó zárógondolat | Vita befejezetlen; jutalom nem kifizethető |
+| Egyidejűség | **Csak** zárógondolatoknál |
+
+---
+
+## UF-11 — Be nem lépett látogató
+
+- Vitát **olvashat** (nyilvános, már publikált tartalom — akár részleges forduló is).
 - Folytatást **nem** kérhet — bejelentkezés szükséges.
+- Értesítést kérhet B válaszára (UF-06a — implementációfüggő).
 - Jelentkezni / vitát indítani nem tud.
 
 ---
 
-## UF-11 — Jelentés / moderáció
+## UF-12 — Jelentés / moderáció
 
 ```
 Report → admin queue → under_review / action
@@ -176,16 +229,19 @@ flowchart LR
   A[Vitaindítás] --> B[Jelentkezés]
   B --> C[Meghívás 48h]
   C --> D{Elfogadva?}
-  D -->|igen| E[1. forduló auto]
+  D -->|igen| E[1. forduló: A publikál]
   D -->|nem| B
-  E --> F[Beküldés zárolt]
-  F --> G{Lezárás}
-  G -->|kétoldalú| H[Folytatáskérések]
+  E --> F[B válasz publikál]
+  F --> G{Lezárás típusa}
+  G -->|teljes| H[Folytatáskérések]
   H --> I{Küszöb?}
-  I -->|igen| J[Következő forduló + Reward]
-  I -->|nem| H
-  J --> F
-  G -->|timeout| K[completed]
+  I -->|igen| J[Következő forduló + Reward pending]
+  I -->|nem| K[awaiting_closure]
+  J --> E
+  G -->|timeout részleges| K
+  K --> L[Zárógondolatok]
+  L --> M[completed]
+  G -->|üres| N[completed]
 ```
 
 Kapcsolódó: [BUSINESS_RULES.md](BUSINESS_RULES.md), [STATE_MACHINE.md](STATE_MACHINE.md), [API.md](API.md).

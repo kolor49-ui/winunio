@@ -7,7 +7,19 @@ type ActiveRound = {
   id: string;
   round_number: number;
   deadline_at: string;
-  my_submission: { content: string; submitted_at: string } | null;
+  phase: "awaiting_a" | "awaiting_b";
+  published_sides: Array<{
+    side: string;
+    content: string;
+    is_system_placeholder: boolean;
+    published_at: string;
+  }>;
+  my_submission: {
+    content: string;
+    submitted_at: string;
+    published_at: string | null;
+  } | null;
+  can_submit: boolean;
 };
 
 type PublishedRound = {
@@ -23,19 +35,44 @@ type PublishedRound = {
 type Props = {
   debateStatus: string;
   participantSide: string | null;
+  viewerUserId: string | null;
   activeRound: ActiveRound | null;
   publishedRounds: PublishedRound[];
 };
 
+function SideBlock({
+  side,
+  content,
+}: {
+  side: string;
+  content: string;
+}) {
+  return (
+    <div className="round-side-block">
+      <p>
+        <span
+          className={`side-badge ${side === "A" ? "side-a" : "side-b"}`}
+        >
+          {side}
+        </span>
+      </p>
+      <p>{content}</p>
+    </div>
+  );
+}
+
 export function DebateRoundPanel({
   debateStatus,
   participantSide,
+  viewerUserId,
   activeRound,
   publishedRounds,
 }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyInfo, setNotifyInfo] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,6 +99,29 @@ export function DebateRoundPanel({
     }
   }
 
+  async function requestBNotification() {
+    if (!activeRound || !viewerUserId) return;
+    setNotifyLoading(true);
+    setNotifyInfo(null);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/rounds/${activeRound.id}/response-notifications`,
+        { method: "POST" },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error?.message ?? "Értesítés kérése sikertelen");
+        return;
+      }
+      setNotifyInfo("Értesítünk, amikor B válasza megjelenik.");
+    } catch {
+      setError("Hálózati hiba");
+    } finally {
+      setNotifyLoading(false);
+    }
+  }
+
   return (
     <>
       {publishedRounds.map((round) => (
@@ -72,64 +132,93 @@ export function DebateRoundPanel({
             {new Date(round.published_at).toLocaleString("hu-HU")}
           </p>
           {round.sides.map((side) => (
-            <div key={side.side} className="round-side-block">
-              <p>
-                <span
-                  className={`side-badge ${side.side === "A" ? "side-a" : "side-b"}`}
-                >
-                  {side.side}
-                </span>
-              </p>
-              <p>{side.content}</p>
-            </div>
+            <SideBlock
+              key={side.side}
+              side={side.side}
+              content={side.content}
+            />
           ))}
         </div>
       ))}
 
-      {debateStatus === "active" && activeRound && participantSide && (
+      {debateStatus === "active" && activeRound && (
         <div className="card">
-          <h2>{activeRound.round_number}. forduló — válaszod</h2>
+          <h2>{activeRound.round_number}. forduló</h2>
           <p className="meta">
             Határidő:{" "}
             {new Date(activeRound.deadline_at).toLocaleString("hu-HU")}
           </p>
-          <p className="hint">
-            Zárolt forduló: a másik fél válasza csak lezáráskor jelenik meg.
-          </p>
 
-          {activeRound.my_submission ? (
-            <>
-              <p>
-                <span
-                  className={`side-badge ${participantSide === "A" ? "side-a" : "side-b"}`}
-                >
-                  {participantSide}
-                </span>{" "}
-                beküldve
-              </p>
-              <p>{activeRound.my_submission.content}</p>
-              <p className="hint">Várakozás a másik fél válaszára…</p>
-            </>
-          ) : (
+          {activeRound.published_sides.map((side) => (
+            <SideBlock key={side.side} side={side.side} content={side.content} />
+          ))}
+
+          {activeRound.phase === "awaiting_b" && (
+            <p className="hint">B válaszára várunk.</p>
+          )}
+
+          {participantSide && activeRound.can_submit && (
             <form className="form" onSubmit={submit}>
               <label>
-                Válaszod ({participantSide} oldal)
+                {participantSide === "A"
+                  ? "Megszólalásod (A oldal)"
+                  : "Válaszod B oldalról"}
                 <textarea name="content" required maxLength={2000} />
               </label>
               {error && <p className="error">{error}</p>}
               <button className="btn" type="submit" disabled={loading}>
-                {loading ? "Küldés…" : "Válasz beküldése"}
+                {loading ? "Küldés…" : "Beküldés"}
               </button>
             </form>
           )}
-        </div>
-      )}
 
-      {debateStatus === "active" && activeRound && !participantSide && (
-        <div className="card">
-          <p className="hint">
-            Aktív forduló folyamatban — csak a vitázók küldhetnek választ.
-          </p>
+          {participantSide &&
+            activeRound.my_submission &&
+            activeRound.phase === "awaiting_b" &&
+            participantSide === "A" && (
+              <p className="hint">Megszólalásod megjelent — B válaszára várunk.</p>
+            )}
+
+          {participantSide &&
+            activeRound.my_submission &&
+            !activeRound.can_submit &&
+            participantSide === "B" &&
+            activeRound.phase === "awaiting_a" && (
+              <p className="hint">Várakozás A megszólalására…</p>
+            )}
+
+          {!participantSide && activeRound.phase === "awaiting_b" && (
+            <>
+              <p className="hint">
+                A megszólalás megjelent — B válaszára várunk.
+              </p>
+              {viewerUserId ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={notifyLoading}
+                  onClick={() => void requestBNotification()}
+                >
+                  {notifyLoading
+                    ? "Kérés…"
+                    : "Értesítést kérek B válaszáról"}
+                </button>
+              ) : (
+                <p className="hint">
+                  <a href="/login">Jelentkezz be</a> az értesítés kéréséhez.
+                </p>
+              )}
+              {notifyInfo && <p className="hint">{notifyInfo}</p>}
+            </>
+          )}
+
+          {!participantSide && activeRound.phase === "awaiting_a" && (
+            <p className="hint">A vitázók között folyik a forduló.</p>
+          )}
+
+          {error && !activeRound.can_submit && (
+            <p className="error">{error}</p>
+          )}
         </div>
       )}
     </>

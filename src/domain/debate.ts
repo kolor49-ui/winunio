@@ -9,9 +9,11 @@ export type DebateEvent =
   | { type: "INVITATION_EXPIRED" }
   | { type: "ROUND_PUBLISHED_BOTH_SIDES" }
   | { type: "ROUND_TIMEOUT_ONE_SIDE" }
+  | { type: "ROUND_TIMEOUT_ONE_SIDE_FINAL" }
   | { type: "ROUND_TIMEOUT_NO_RESPONSE" }
   | { type: "CONTINUATION_THRESHOLD_MET" }
   | { type: "CLOSE_WITHOUT_THRESHOLD" }
+  | { type: "CLOSING_STATEMENTS_PUBLISHED" }
   | { type: "MODERATION_UNDER_REVIEW" }
   | { type: "MODERATION_RESOLVED" }
   | { type: "ADMIN_CLOSE" };
@@ -28,7 +30,8 @@ export type DebateEffect =
   | { type: "CREATE_AND_OPEN_ROUND"; roundNumber: number }
   | { type: "UPDATE_DEBATE_REWARD" }
   | { type: "CLOSE_CONTINUATION_PERIOD" }
-  | { type: "SUSPEND_WRITING_AND_CONTINUATION" };
+  | { type: "SUSPEND_WRITING_AND_CONTINUATION" }
+  | { type: "FINALIZE_DEBATE_REWARD" };
 
 export interface DebateState {
   status: DebateStatus;
@@ -49,7 +52,7 @@ export function transitionDebate(
 
   if (event.type === "ADMIN_CLOSE" && status !== "completed" && status !== "cancelled") {
     return {
-      state: { status: "completed" },
+      state: { status: "awaiting_closure" },
       effects: [],
     };
   }
@@ -108,6 +111,8 @@ export function transitionDebate(
             effects: [{ type: "OPEN_CONTINUATION_PERIOD" }],
           };
         case "ROUND_TIMEOUT_ONE_SIDE":
+          return { state: { status: "awaiting_closure" }, effects: [] };
+        case "ROUND_TIMEOUT_ONE_SIDE_FINAL":
         case "ROUND_TIMEOUT_NO_RESPONSE":
           return { state: { status: "completed" }, effects: [] };
         case "MODERATION_UNDER_REVIEW":
@@ -136,12 +141,32 @@ export function transitionDebate(
             ],
           };
         case "CLOSE_WITHOUT_THRESHOLD":
-          return { state: { status: "completed" }, effects: [] };
+          return { state: { status: "awaiting_closure" }, effects: [] };
         case "MODERATION_UNDER_REVIEW":
           return {
             state: {
               status: "under_review",
               statusBeforeReview: "waiting_for_continuation",
+            },
+            effects: [{ type: "SUSPEND_WRITING_AND_CONTINUATION" }],
+          };
+        default:
+          break;
+      }
+      break;
+
+    case "awaiting_closure":
+      switch (event.type) {
+        case "CLOSING_STATEMENTS_PUBLISHED":
+          return {
+            state: { status: "completed" },
+            effects: [{ type: "FINALIZE_DEBATE_REWARD" }],
+          };
+        case "MODERATION_UNDER_REVIEW":
+          return {
+            state: {
+              status: "under_review",
+              statusBeforeReview: "awaiting_closure",
             },
             effects: [{ type: "SUSPEND_WRITING_AND_CONTINUATION" }],
           };
@@ -158,7 +183,7 @@ export function transitionDebate(
         };
       }
       if (event.type === "ADMIN_CLOSE") {
-        return { state: { status: "completed" }, effects: [] };
+        return { state: { status: "awaiting_closure" }, effects: [] };
       }
       break;
 

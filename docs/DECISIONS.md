@@ -78,9 +78,55 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 ## ADR-009 — Async fordulómodell (nem élő vita)
 
 **Dátum:** 2026-07-22  
+**Státusz:** **Felülírva** — lásd ADR-024  
+**Eredeti döntés:** Zárolt beküldés, 72h határidő, egyidejű publikálás — nem real-time stream.  
+**Új irány (2026-07-23):** Fokozatos publikálás: A azonnal nyilvános, B utána; egyidejű közzététel csak zárógondolatoknál.
+
+---
+
+## ADR-024 — Fokozatos forduló-publikálás (A → B)
+
+**Dátum:** 2026-07-23  
 **Státusz:** Elfogadva  
-**Döntés:** Zárolt beküldés, 72h határidő, egyidejű publikálás — nem real-time stream.  
-**Újravizsgálat:** Ha lesz élő vita funkció.
+**Döntés:** A megszólalás beküldésekor azonnal nyilvános; B csak A publikált tartalmára válaszol; a forduló `published` csak mindkét oldal megjelenése után.  
+**Indok:** Természetes, egymásra reagáló vita; A megszólalása kíváncsiságot kelt, B válasza visszahozza a nézőket.  
+**Elvetett alternatíva:** Forduló-végén rejtett tartalom + egyidejű leplemelés (régi zárolt modell).
+
+---
+
+## ADR-025 — Zárógondolatok: egyidejű publikálás csak a vitavégén
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva  
+**Döntés:** `awaiting_closure` állapot; mindkét fél kötelező zárógondolata rejtett beküldés alatt; publikálás párosan, egy tranzakcióban.  
+**Indok:** Lezárás tisztességes, nincs utolsó válaszadási lehetőség a zárógondolatok után.
+
+---
+
+## ADR-026 — Jutalom függő → kifizethető csak teljes lezáráskor
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva  
+**Döntés:** Küszöb után `DebateReward.status = pending`; `simulated` (MVP megjelenítés) csak ha minden forduló teljesült és mindkét zárógondolat megjelent.  
+**Indok:** *„Véleményben ellenfelek, a vita létrehozásában partnerek.”*
+
+---
+
+## ADR-027 — `awaiting_closure` állapot
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva  
+**Döntés:** Folytatási időszak lejárta küszöb nélkül (és más érdemi lezárások) → `awaiting_closure`, nem azonnal `completed`.  
+**Elvetett alternatíva:** Küszöb nélküli lejárat azonnali `completed` státusszal.
+
+---
+
+## ADR-028 — B-válasz értesítés (nem követőrendszer)
+
+**Dátum:** 2026-07-23  
+**Státusz:** Elfogadva  
+**Döntés:** Néző kérhet értesítést B válaszára egy adott fordulóhoz (`RoundResponseNotification`); ez **nem** követőrendszer.  
+**MVP-n kívül marad:** profilkövetés, általános értesítési feed.
 
 ---
 
@@ -211,4 +257,7 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 | ADR | Dátum | Státusz |
 |-----|-------|---------|
-| 001–023 | 2026-07-22 | Elfogadva |
+| 001–008 | 2026-07-22 | Elfogadva |
+| 009 | 2026-07-22 | Felülírva (024) |
+| 010–023 | 2026-07-22 | Elfogadva |
+| 024–028 | 2026-07-23 | Elfogadva |

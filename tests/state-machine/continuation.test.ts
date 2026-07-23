@@ -95,7 +95,7 @@ describe("Continuation requests", () => {
       reward: {
         unlockedByCompletedRoundNumber: 1,
         amountPerParticipant: 1000,
-        status: "simulated",
+        status: "pending",
       },
     });
   });

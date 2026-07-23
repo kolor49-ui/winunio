@@ -27,6 +27,12 @@ describe("Background job domain effects", () => {
     expect(
       transitionDebate({ status: "active" }, { type: "ROUND_TIMEOUT_ONE_SIDE" })
         .state.status,
+    ).toBe("awaiting_closure");
+    expect(
+      transitionDebate(
+        { status: "active" },
+        { type: "ROUND_TIMEOUT_ONE_SIDE_FINAL" },
+      ).state.status,
     ).toBe("completed");
     expect(
       transitionDebate({ status: "active" }, { type: "ROUND_TIMEOUT_NO_RESPONSE" })

@@ -27,7 +27,7 @@ describe("Happy path integration", () => {
     expect(roundStatus).toBe("open");
 
     const roundClose = transitionRound(roundStatus, {
-      type: "BOTH_PARTICIPANTS_SUBMITTED",
+      type: "B_PUBLISHED",
     });
     roundStatus = roundClose.status;
     expect(roundStatus).toBe("published");
@@ -88,7 +88,7 @@ describe("Happy path integration", () => {
     expect(reward?.amountPerParticipant).toBe(1000);
   });
 
-  it("partial timeout ends debate without continuation period", () => {
+  it("partial timeout with prior context → awaiting_closure", () => {
     let debate: DebateState = { status: "active" };
 
     const round = transitionRound("open", { type: "TIMEOUT_ONE_SUBMITTED" });
@@ -97,6 +97,14 @@ describe("Happy path integration", () => {
     debate = transitionDebate(debate, {
       type: "ROUND_TIMEOUT_ONE_SIDE",
     }).state;
+    expect(debate.status).toBe("awaiting_closure");
+  });
+
+  it("first-round partial timeout → completed", () => {
+    const debate = transitionDebate(
+      { status: "active" },
+      { type: "ROUND_TIMEOUT_ONE_SIDE_FINAL" },
+    ).state;
     expect(debate.status).toBe("completed");
   });
 });

@@ -5,6 +5,7 @@ import {
   DEBATE_EMPTY_TIMEOUT_MESSAGE,
   ROUND_MISSING_RESPONSE_MESSAGE,
 } from "@/server/constants/debate-messages";
+import { debateNeedsAwaitingClosure } from "@/server/services/closing-statement-service";
 import { sendEmail, roundDeadlineReminderEmailContent } from "@/server/email/send-email";
 import { getSql } from "@/server/db";
 
@@ -150,13 +151,13 @@ async function closeRoundDeadline(roundId: string): Promise<boolean> {
       if (!debate || debate.status !== "active") return false;
 
       const participants = await tx<
-        { id: string; side: string; argument_id: string | null; content: string | null }[]
+        { id: string; side: string; argument_id: string | null; published_at: Date | null }[]
       >`
         SELECT
           dp.id,
           dp.side::text AS side,
           a.id AS argument_id,
-          a.content
+          a.published_at
         FROM debate_participants dp
         LEFT JOIN arguments a
           ON a.participant_id = dp.id AND a.round_id = ${roundId}
@@ -164,8 +165,8 @@ async function closeRoundDeadline(roundId: string): Promise<boolean> {
         ORDER BY dp.side ASC
       `;
 
-      const submissions = participants.filter((p) => p.argument_id !== null);
-      const submissionCount = submissions.length;
+      const publishedSubs = participants.filter((p) => p.published_at != null);
+      const submissionCount = publishedSubs.length;
       const now = new Date();
 
       if (submissionCount >= 2) {
@@ -179,7 +180,7 @@ async function closeRoundDeadline(roundId: string): Promise<boolean> {
         `;
         await tx`
           UPDATE arguments
-          SET published_at = ${now}
+          SET published_at = COALESCE(published_at, ${now})
           WHERE round_id = ${roundId}
         `;
         await tx`
@@ -192,14 +193,28 @@ async function closeRoundDeadline(roundId: string): Promise<boolean> {
 
       if (submissionCount === 1) {
         transitionRound("open", { type: "TIMEOUT_ONE_SUBMITTED" });
-        transitionDebate({ status: "active" }, { type: "ROUND_TIMEOUT_ONE_SIDE" });
 
-        const missing = participants.find((p) => p.argument_id === null);
+        const missing = participants.find((p) => p.published_at == null);
         if (!missing) return false;
+
+        const needsClosure = await debateNeedsAwaitingClosure(
+          tx as unknown as ReturnType<typeof getSql>,
+          round.debate_id,
+          roundId,
+        );
+
+        if (needsClosure) {
+          transitionDebate({ status: "active" }, { type: "ROUND_TIMEOUT_ONE_SIDE" });
+        } else {
+          transitionDebate(
+            { status: "active" },
+            { type: "ROUND_TIMEOUT_ONE_SIDE_FINAL" },
+          );
+        }
 
         await tx`
           UPDATE arguments
-          SET published_at = ${now}
+          SET published_at = COALESCE(published_at, ${now})
           WHERE round_id = ${roundId}
         `;
         await tx`
@@ -217,11 +232,22 @@ async function closeRoundDeadline(roundId: string): Promise<boolean> {
           SET status = 'published'::round_status, published_at = ${now}
           WHERE id = ${roundId}
         `;
-        await tx`
-          UPDATE debates
-          SET status = 'completed'::debate_status
-          WHERE id = ${round.debate_id}
-        `;
+
+        if (needsClosure) {
+          await tx`
+            UPDATE debates
+            SET
+              status = 'awaiting_closure'::debate_status,
+              closure_started_at = COALESCE(closure_started_at, ${now})
+            WHERE id = ${round.debate_id}
+          `;
+        } else {
+          await tx`
+            UPDATE debates
+            SET status = 'completed'::debate_status
+            WHERE id = ${round.debate_id}
+          `;
+        }
         return true;
       }
 
@@ -258,6 +284,7 @@ export async function sendDueRoundReminders(): Promise<number> {
       deadline_at: Date;
       question: string;
       email: string;
+      side: string;
     }[]
   >`
     SELECT
@@ -266,7 +293,8 @@ export async function sendDueRoundReminders(): Promise<number> {
       r.round_number,
       r.deadline_at,
       d.question,
-      u.email
+      u.email,
+      dp.side::text AS side
     FROM rounds r
     JOIN debates d ON d.id = r.debate_id
     JOIN debate_participants dp ON dp.debate_id = d.id
@@ -276,6 +304,29 @@ export async function sendDueRoundReminders(): Promise<number> {
       AND r.opened_at <= now() - (${REMINDER_HOURS} * interval '1 hour')
       AND d.status = 'active'::debate_status
       AND u.status = 'active'::user_status
+      AND (
+        (NOT EXISTS (
+          SELECT 1 FROM arguments a
+          JOIN debate_participants dp_a ON dp_a.id = a.participant_id
+          WHERE a.round_id = r.id
+            AND dp_a.side = 'A'::participant_side
+            AND a.published_at IS NOT NULL
+        ) AND dp.side = 'A'::participant_side)
+        OR
+        (EXISTS (
+          SELECT 1 FROM arguments a
+          JOIN debate_participants dp_a ON dp_a.id = a.participant_id
+          WHERE a.round_id = r.id
+            AND dp_a.side = 'A'::participant_side
+            AND a.published_at IS NOT NULL
+        ) AND NOT EXISTS (
+          SELECT 1 FROM arguments a
+          JOIN debate_participants dp_b ON dp_b.id = a.participant_id
+          WHERE a.round_id = r.id
+            AND dp_b.side = 'B'::participant_side
+            AND a.published_at IS NOT NULL
+        ) AND dp.side = 'B'::participant_side)
+      )
   `;
 
   const roundsToMark = new Set<string>();

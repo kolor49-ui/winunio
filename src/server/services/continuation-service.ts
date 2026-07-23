@@ -614,7 +614,7 @@ export async function submitContinuationRequest(
               ${completedRoundId},
               ${rule.id},
               ${thresholdEffect.reward.amountPerParticipant},
-              'simulated'::debate_reward_status
+              'pending'::debate_reward_status
             )
             ON CONFLICT (debate_id, unlocked_by_completed_round_id) DO NOTHING
           `;

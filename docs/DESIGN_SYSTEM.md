@@ -32,12 +32,35 @@ Vizuális nyelv: nyugodt, szerkesztett, egyszerű, **nem versengő**, komoly ala
 
 ---
 
+## Forduló megjelenítés
+
+| Fázis | UI |
+|-------|-----|
+| A publikálva, B hiányzik | A kártya + „B válaszára várunk” |
+| B publikálva | Teljes forduló (A + B) |
+| Értesítés | „Értesítést kérek B válaszáról” — grafitszürke másodlagos gomb |
+
+**Fontos:** A és B hozzászólása **nem** jelenik meg egyszerre a fordulóban. Az egyidejű megjelenés **csak** a zárógondolatoknál.
+
+---
+
+## Zárógondolat UI
+
+| Fázis | UI |
+|-------|-----|
+| `awaiting_closure` | Mindkét vitázónak beküldőmező (a partner szövege rejtett) |
+| Mindkét beküldve | Két zárógondolat **egyidejű** megjelenése |
+| Hiányzó partner | „Várakozás a partner zárógondolatára” |
+
+---
+
 ## Jutalom megjelenítés
 
 | Fázis | UI |
 |-------|-----|
 | Küszöb előtt | **Semmi** jutalom blokk — nincs „0 Ft”, nincs progress összeggel |
-| Küszöb után | `DebateReward` **teljes összege**, mindkét vitázónál **azonos** |
+| Küszöb után, vita folyamatban | `DebateReward` **teljes összege** + **„Függőben”** jelzés |
+| Vita `completed` + feltételek teljesültek | Teljes összeg + tesztüzem felirat (kifizethető / szimulált) |
 
 **Tiltott:** növekményes számláló, „eddig X Ft” felirat, `RewardProgressBar`, `ZeroRewardPlaceholder`.
 
@@ -78,9 +101,11 @@ Passkey lépés copy:
 | `DebatePair` | Két vitázó, A bal / B jobb, egyenrangú |
 | `ApplicationWaitlist` | Jelentkezők listája, nincs rangsor/pontszám |
 | `InvitationBanner` | 48h countdown, accept/reject |
-| `RoundStatus` | Aktív forduló, timeout — jutalom nélkül küszöb előtt |
+| `RoundStatus` | Aktív forduló fázisok (`awaiting_a` / `awaiting_b`), timeout — jutalom nélkül küszöb előtt |
+| `RoundAwaitingB` | A publikálva; várakozás + értesítés kérés gomb |
+| `ClosingStatementForm` | Zárásra vár — rejtett partner szöveg |
 | `ContinuationRequestFlow` | Turnstile + challenge + Passkey + telefon gate |
-| `DebateRewardReveal` | Csak első `DebateReward` után; teljes összeg |
+| `DebateRewardReveal` | Függő összeg küszöb után; kifizethető megjelenítés lezáráskor |
 
 **Szándékosan nincs:** `LikeButton`, `VotePoll`, `WinnerBadge`, `VsBadge`, `Leaderboard`, `FollowButton`.
 

@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { transitionDebate } from "@/domain/debate";
 import { transitionRound } from "@/domain/round";
-import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
+import { debateNeedsAwaitingClosure } from "@/server/services/closing-statement-service";
+import { sendBResponseNotifications } from "@/server/services/notification-service";
 
 const submitArgumentSchema = z.object({
   content: z.string().min(1).max(2000),
@@ -21,7 +22,7 @@ export async function submitArgument(
   const sql = getSql();
   const trimmed = content.trim();
 
-  return sql.begin(async (tx) => {
+  const result = await sql.begin(async (tx) => {
     const [round] = await tx<
       {
         id: string;
@@ -89,36 +90,53 @@ export async function submitArgument(
       );
     }
 
+    if (participant.side === "B") {
+      const [aPublished] = await tx<{ id: string }[]>`
+        SELECT a.id
+        FROM arguments a
+        JOIN debate_participants dp ON dp.id = a.participant_id
+        WHERE a.round_id = ${roundId}
+          AND dp.side = 'A'::participant_side
+          AND a.published_at IS NOT NULL
+          AND a.is_system_placeholder = false
+        LIMIT 1
+      `;
+      if (!aPublished) {
+        throw new ApiError(
+          409,
+          "AWAITING_A",
+          "Előbb A megszólalásának meg kell jelennie",
+        );
+      }
+    }
+
+    const now = new Date();
     const [inserted] = await tx<
       { id: string; submitted_at: Date }[]
     >`
-      INSERT INTO arguments (round_id, participant_id, content)
-      VALUES (${roundId}, ${participant.id}, ${trimmed})
+      INSERT INTO arguments (round_id, participant_id, content, published_at)
+      VALUES (
+        ${roundId},
+        ${participant.id},
+        ${trimmed},
+        ${now}
+      )
       RETURNING id, submitted_at
     `;
 
-    const [countRow] = await tx<{ cnt: number }[]>`
-      SELECT COUNT(*)::int AS cnt FROM arguments WHERE round_id = ${roundId}
-    `;
-
-    const submissionCount = countRow?.cnt ?? 0;
     let roundPublished = false;
     let debateStatus = debate.status;
 
-    if (submissionCount >= 2) {
-      transitionRound("open", { type: "BOTH_PARTICIPANTS_SUBMITTED" });
+    if (participant.side === "A") {
+      transitionRound("open", { type: "A_PUBLISHED" });
+    } else {
+      transitionRound("open", { type: "B_PUBLISHED" });
       transitionDebate({ status: "active" }, { type: "ROUND_PUBLISHED_BOTH_SIDES" });
 
-      const now = new Date();
       await tx`
         UPDATE rounds
         SET status = 'published', published_at = ${now}
         WHERE id = ${roundId}
-      `;
-      await tx`
-        UPDATE arguments
-        SET published_at = ${now}
-        WHERE round_id = ${roundId}
       `;
       await tx`
         UPDATE debates
@@ -129,21 +147,37 @@ export async function submitArgument(
       debateStatus = "waiting_for_continuation";
     }
 
+    const [countRow] = await tx<{ cnt: number }[]>`
+      SELECT COUNT(*)::int AS cnt FROM arguments WHERE round_id = ${roundId}
+    `;
+
     return {
       argument: {
         id: inserted.id,
         side: participant.side,
         submitted_at: inserted.submitted_at.toISOString(),
+        published_at: now.toISOString(),
       },
       round: {
         id: roundId,
         round_number: round.round_number,
         published: roundPublished,
+        phase: roundPublished ? ("complete" as const) : participant.side === "A" ? ("awaiting_b" as const) : ("awaiting_b" as const),
       },
       debate_status: debateStatus,
-      submissions_in_round: submissionCount,
+      submissions_in_round: countRow?.cnt ?? 0,
+      notify_b_response: participant.side === "B",
     };
   });
+
+  if (result.notify_b_response) {
+    void sendBResponseNotifications(roundId).catch((error) => {
+      console.error("[round] B response notifications failed:", error);
+    });
+  }
+
+  const { notify_b_response: _, ...response } = result;
+  return response;
 }
 
 export async function getViewerRoundContext(
@@ -173,26 +207,98 @@ export async function getViewerRoundContext(
     LIMIT 1
   `;
 
-  let myActiveSubmission: {
-    content: string;
-    submitted_at: string;
+  let activeRoundContext: {
+    id: string;
+    round_number: number;
+    deadline_at: string;
+    phase: "awaiting_a" | "awaiting_b";
+    published_sides: Array<{
+      side: string;
+      content: string;
+      is_system_placeholder: boolean;
+      published_at: string;
+    }>;
+    my_submission: {
+      content: string;
+      submitted_at: string;
+      published_at: string | null;
+    } | null;
+    can_submit: boolean;
   } | null = null;
 
-  if (activeRound && participant) {
-    const [arg] = await sql<
-      { content: string; submitted_at: Date }[]
+  if (activeRound) {
+    const publishedInRound = await sql<
+      {
+        side: string;
+        content: string;
+        is_system_placeholder: boolean;
+        published_at: Date;
+        participant_id: string;
+      }[]
     >`
-      SELECT content, submitted_at
-      FROM arguments
-      WHERE round_id = ${activeRound.id} AND participant_id = ${participant.id}
-      LIMIT 1
+      SELECT
+        dp.side::text AS side,
+        a.content,
+        a.is_system_placeholder,
+        a.published_at,
+        a.participant_id
+      FROM arguments a
+      JOIN debate_participants dp ON dp.id = a.participant_id
+      WHERE a.round_id = ${activeRound.id}
+        AND a.published_at IS NOT NULL
+      ORDER BY dp.side ASC
     `;
-    if (arg) {
-      myActiveSubmission = {
-        content: arg.content,
-        submitted_at: arg.submitted_at.toISOString(),
-      };
+
+    const aPublished = publishedInRound.some(
+      (row) => row.side === "A" && !row.is_system_placeholder,
+    );
+    const phase: "awaiting_a" | "awaiting_b" = aPublished
+      ? "awaiting_b"
+      : "awaiting_a";
+
+    let mySubmission: {
+      content: string;
+      submitted_at: string;
+      published_at: string | null;
+    } | null = null;
+
+    if (participant) {
+      const [arg] = await sql<
+        { content: string; submitted_at: Date; published_at: Date | null }[]
+      >`
+        SELECT content, submitted_at, published_at
+        FROM arguments
+        WHERE round_id = ${activeRound.id} AND participant_id = ${participant.id}
+        LIMIT 1
+      `;
+      if (arg) {
+        mySubmission = {
+          content: arg.content,
+          submitted_at: arg.submitted_at.toISOString(),
+          published_at: arg.published_at?.toISOString() ?? null,
+        };
+      }
     }
+
+    const canSubmit =
+      Boolean(participant) &&
+      !mySubmission &&
+      (participant!.side === "A" || phase === "awaiting_b");
+
+    activeRoundContext = {
+      id: activeRound.id,
+      round_number: activeRound.round_number,
+      deadline_at: activeRound.deadline_at.toISOString(),
+      phase,
+      published_sides: publishedInRound.map((row) => ({
+        side: row.side,
+        content: row.content,
+        is_system_placeholder: row.is_system_placeholder,
+        published_at: row.published_at.toISOString(),
+      })),
+      my_submission: mySubmission,
+      can_submit: canSubmit,
+    };
   }
 
   const publishedRounds = await sql<
@@ -256,14 +362,7 @@ export async function getViewerRoundContext(
 
   return {
     participant_side: participant?.side ?? null,
-    active_round: activeRound
-      ? {
-          id: activeRound.id,
-          round_number: activeRound.round_number,
-          deadline_at: activeRound.deadline_at.toISOString(),
-          my_submission: myActiveSubmission,
-        }
-      : null,
+    active_round: activeRoundContext,
     published_rounds: [...publishedByRound.values()],
   };
 }

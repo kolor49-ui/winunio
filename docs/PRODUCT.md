@@ -4,7 +4,7 @@
 
 A Winunio **páros vitaplatform**: két ember vitázik egymással egy kérdés körül. A közönség nem ítélkezik felettük, nem szavaz rájuk — csak bizonyos feltételek mellett **újabb fordulót kérhet**.
 
-A vita **aszinkron**: fordulónként zárolt beküldés, majd egyidejű publikálás. Nem élő stream, nem chat-szerű ping-pong.
+A vita **aszinkron**: fordulónként **A megszólal → B válaszol**, fokozatos publikálással. Nem élő stream, nem chat-szerű ping-pong. Az egyidejű közzététel **kizárólag** a vita végén, a két zárógondolatnál történik.
 
 ## Alapelvek
 
@@ -17,7 +17,8 @@ A vita **aszinkron**: fordulónként zárolt beküldés, majd egyidejű publiká
 | Egyenlő jutalom | Mindkét vitázó **azonos** jutalmat kap. MVP: szimulált, nincs kifizetés. |
 | Első forduló | Az 1. forduló a partner elfogadása után **automatikusan** indul; folytatáskérés nem kell hozzá. |
 | Küszöbök | Folytatáskérések száma fordulónként: **25 → 50 → 100 → 250 → 500**, majd **duplázódik** (`RoundUnlockRule`). |
-| Jutalom modell | `DebateReward`: a **teljes összeg** a küszöb elérésekor jár, nem növekmény. |
+| Jutalom modell | `DebateReward`: a **teljes összeg** a küszöb elérésekor **függőben** jelenik meg; **kifizethető** (MVP: szimulált) csak a vita szabályos lezárásakor. |
+| Közös teljesítés | *„Véleményben ellenfelek, a vita létrehozásában partnerek.”* — mindkét fél a teljes vitáért felel. |
 | Jutalom UI | Küszöb elérése **előtt** nincs jutalom UI — **nincs „0 Ft”** sem. |
 | Minősítés tilos | A platform nem minősíti az álláspontokat, a vitázó képességét vagy a partner kiválasztását. |
 
@@ -39,15 +40,17 @@ A vita **aszinkron**: fordulónként zárolt beküldés, majd egyidejű publiká
 
 ### Közönség (Audience)
 
-- Olvashatja a vitát.
+- Olvashatja a vitát — akár **részleges fordulót** is (A megszólalása B válasza előtt).
+- **Értesítést kérhet** B válaszának megérkezéséről (egy vitára / fordulóra kötött — nem követőrendszer).
 - **Egy** folytatáskérést adhat le: **egy adott lezárt fordulóra**, **egy fiókból**, **egyszer**.
 - A folytatáskérés nem A vagy B támogatása.
 
 ### Rendszer
 
-- Fordulók **zárolt modellben** futnak, **72 órás** válaszadási határidővel.
-- 48 óránál emlékeztető; timeout háttérjobban.
+- Fordulók **aszinkron, fokozatos publikálással** futnak: A azonnal nyilvános, B utána; **72 órás** határidő.
+- 48 óránál emlékeztető a soron következő beküldésre kötelezett vitázónak; timeout háttérjobban.
 - Meghívások **48 óra** után lejárnak.
+- Vita lezárása: **`awaiting_closure`** → kötelező zárógondolatok (egyidejű publikálás) → **`completed`**.
 
 ## Anonimitás
 

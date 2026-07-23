@@ -139,7 +139,7 @@ A pontos szolgáltató később cserélhető; a **biztonsági követelmény** ne
 1. Fiók létezik, nem suspended
 2. E-mail verified
 3. Telefon verified (első folytatáskérésnél kötelező)
-4. Vita waiting_for_continuation; forduló published, kétoldalú
+4. Vita `waiting_for_continuation`; forduló teljes, kétoldalú `published`
 5. Még nincs kérés ebből a fiókból erre a completed_round_id-re
 6. Rate limit OK
 7. Challenge issued, nem expired, nem consumed

@@ -114,15 +114,34 @@ Jelentkezés visszavonása → `withdrawn`.
 
 ### `GET /api/v1/debates/:id/rounds`
 
-Fordulók listája (published tartalom nyilvános).
+Fordulók listája. **Fokozatos publikálás:** A már publikált argumentumok látszanak; B hiányában „awaiting_b” meta.
 
 ### `POST /api/v1/rounds/:id/arguments`
 
 | | |
 |---|---|
 | **Jogosultság** | Vitázó, saját forduló `open` |
-| **Üzleti szabály** | Zárolt modell; max 1 / résztvevő / forduló |
-| **Idempotencia** | Frissítés tiltott beküldés után (MVP) |
+| **Üzleti szabály** | Sorrend: **A először**, majd B (A már publikálva); max 1 / résztvevő / forduló; A publikálódik beküldéskor |
+| **Idempotencia** | Frissítés tiltott beküldés után (MVP); A nem módosítható B válasza után |
+
+### `POST /api/v1/rounds/:id/response-notifications`
+
+| | |
+|---|---|
+| **Jogosultság** | Bejelentkezett (vagy e-mail — implementáció) |
+| **Üzleti szabály** | Csak `awaiting_b` fázisban; egy kérés / forduló / felhasználó; **nem** követőrendszer |
+| **Mellékhatás** | Értesítés B válasz publikálásakor |
+
+---
+
+## Zárógondolatok
+
+### `POST /api/v1/debates/:id/closing-statements`
+
+| | |
+|---|---|
+| **Jogosultság** | Vitázó; vita `awaiting_closure` |
+| **Üzleti szabály** | Rejtett a partner elől; mindkét beküldés után **egyidejű** publikálás; vita → `completed` |
 
 ---
 

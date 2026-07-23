@@ -54,10 +54,18 @@ describe("Debate state machine", () => {
     expect(result.effects).toContainEqual({ type: "OPEN_CONTINUATION_PERIOD" });
   });
 
-  it("partial timeout → completed (no continuation)", () => {
+  it("partial timeout → awaiting_closure when one side responded", () => {
     const one = transitionDebate(
       { status: "active" },
       { type: "ROUND_TIMEOUT_ONE_SIDE" },
+    );
+    expect(one.state.status).toBe("awaiting_closure");
+  });
+
+  it("partial timeout on first round → completed", () => {
+    const one = transitionDebate(
+      { status: "active" },
+      { type: "ROUND_TIMEOUT_ONE_SIDE_FINAL" },
     );
     const none = transitionDebate(
       { status: "active" },
@@ -65,6 +73,23 @@ describe("Debate state machine", () => {
     );
     expect(one.state.status).toBe("completed");
     expect(none.state.status).toBe("completed");
+  });
+
+  it("close without threshold → awaiting_closure", () => {
+    const result = transitionDebate(
+      { status: "waiting_for_continuation" },
+      { type: "CLOSE_WITHOUT_THRESHOLD" },
+    );
+    expect(result.state.status).toBe("awaiting_closure");
+  });
+
+  it("closing statements published → completed with reward finalize", () => {
+    const result = transitionDebate(
+      { status: "awaiting_closure" },
+      { type: "CLOSING_STATEMENTS_PUBLISHED" },
+    );
+    expect(result.state.status).toBe("completed");
+    expect(result.effects).toContainEqual({ type: "FINALIZE_DEBATE_REWARD" });
   });
 
   it("threshold met → active with reward and next round effects", () => {

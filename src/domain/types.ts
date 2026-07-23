@@ -3,6 +3,7 @@ export type DebateStatus =
   | "invitation_pending"
   | "active"
   | "waiting_for_continuation"
+  | "awaiting_closure"
   | "completed"
   | "cancelled"
   | "under_review";
@@ -24,7 +25,7 @@ export type ContinuationChallengeStatus =
   | "invalidated"
   | "expired";
 
-export type DebateRewardStatus = "simulated";
+export type DebateRewardStatus = "pending" | "simulated";
 
 export interface RoundUnlockRule {
   completedRoundNumber: number;

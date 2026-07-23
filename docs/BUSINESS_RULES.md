@@ -47,54 +47,76 @@ Az 1. fordulóhoz **nem** szükséges folytatáskérés és **nem** tartozik fol
 ## 4. Fordulók — általános
 
 - Egy fordulóban mindkét fél **egy** hozzászólást tehet közzé.
-- A következő forduló **zárolt állapotból** indul.
-- A forduló a szükséges folytatáskérés elérésekor nyílik meg (2. fordulótól).
+- A fordulón belüli sorrend **mindig**: **A megszólal → B válaszol**.
+- Az **1. fordulóban** A a vitaindító kiinduló megszólalását adja; B közvetlenül arra reagál.
+- A **2. és további fordulókban** A B **előző fordulóbeli** válaszára reagál; B ezután A **aktuális** megszólalására válaszol.
+- A következő forduló a szükséges folytatáskérés elérésekor nyílik meg (2. fordulótól).
 - A küszöb **nem** A vagy B támogatását méri.
 - Egy fiók csak **egyszer** számíthat bele ugyanabba a forduló-küszöbbe (egy lezárt fordulóra egy kérés).
 
+**Alapelv:** *„Véleményben ellenfelek, a vita létrehozásában partnerek.”*
+
 ---
 
-## 5. Fordulótartalom beküldése és publikálása
+## 5. Forduló sorrendje és fokozatos publikálás
 
-Az MVP **zárolt fordulómodellt** használ.
+A vita **aszinkron**, de **nem** rejtett, forduló-végén egyidejű „leplemelés”. A cél természetes, egymásra reagáló vita: A megszólalása nyitott kíváncsiságot teremt; B válasza visszahozza a nézőket.
 
-- A résztvevők beküldött tartalma a forduló lezárásáig **nem nyilvános**.
-- A résztvevők a lezárás előtt **nem láthatják** egymás aktuális fordulóhoz beküldött tartalmát.
+### 5.1. Publikálás lépései
 
-A forduló akkor zárul le, amikor:
+1. **A** megírja a megszólalását → a tartalom **azonnal nyilvánosan** megjelenik.
+2. **B** elolvassa A megszólalását, majd **közvetlenül arra reagál**.
+3. Amíg B válasza **nem érkezett meg**, a közönség **látja A megszólalását**, és azt jelzi, hogy **B válaszára várunk**.
+4. A néző **kérhet értesítést** B válaszának megérkezéséről (egy vitára / fordulóra kötött kérés — **nem** követőrendszer).
+5. **B** válasza beküldése után **nyilvánosan megjelenik**; az értesítést kérő nézők **értesítést kaphatnak**.
+6. A forduló **csak** A megszólalásának **és** B válaszának megjelenése után számít **lezártnak** és **`published`** állapotúnak.
+7. **Folytatást** kizárólag **lezárt, teljes** (kétoldalú, nem placeholder) forduló után lehet kérni.
+8. Küszöb teljesülése után az **(N+1). forduló** nyílik: A reagál B előző válaszára, majd B válaszol A új megszólalására.
 
-- **mindkét** résztvevő beküldte a tartalmát; vagy
-- **lejárt** a dokumentált válaszadási határidő (**72 óra**).
+### 5.2. Mit lát a vitázó `open` forduló alatt
 
-A forduló lezárásakor a rendszer **egyidejűleg** publikálja az összes szabályosan beküldött tartalmat.
+| Szereplő | Látja |
+|----------|--------|
+| **A** | Saját beküldött (és már publikált) megszólalását; B válaszát **csak** annak megjelenése után |
+| **B** | A **már publikált** A megszólalást (reagálnia kell rá); saját válaszát beküldés után azonnal nyilvánosan |
+| **Közönség** | A publikált A tartalmat; B hiányában „B válaszára várunk” állapotot |
 
-**Emlékeztető:** **48 óra** elteltével emlékeztető érkezik; **72 óra** után a beküldési lehetőség lejár (háttérjob).
+**Fontos:** A két hozzászólás **nem** egyszerre készül és **nem** egyszerre jelenik meg. Az egyidejű közzététel **kizárólag** a vita végén, a két kötelező zárógondolatnál marad meg (lásd §11).
+
+### 5.3. Módosíthatóság
+
+- Beküldés után a tartalom **nem** szerkeszthető (MVP).
+- A **már nyilvánosságra hozott** A megszólalás **nem módosítható** B válaszának ismeretében (azaz B beküldése / válaszának megjelenése után).
+- B válasza szintén **nem** módosítható publikálás után.
+
+### 5.4. Határidő és emlékeztető
+
+- Válaszadási határidő: **72 óra** a forduló megnyitásától.
+- **48 óra** elteltével emlékeztető a soron következő beküldésre kötelezett vitázónak.
+- **72 óra** után a beküldési lehetőség lejár (háttérjob).
 
 ---
 
 ## 6. Forduló lezárása — három eset
 
-### A) Mindkét résztvevő válaszolt
+### A) Mindkét résztvevő válaszolt (teljes forduló)
 
-- mindkét tartalom **egyszerre** megjelenik;
-- a forduló **`published`** állapotba kerül;
+- A megszólalások **fokozatosan** jelentek meg (§5); a forduló **`published`** csak B válasza után;
 - megnyílik a **folytatáskérési időszak** (a vita **`waiting_for_continuation`** állapotba kerül).
 
-### B) Csak az egyik résztvevő válaszolt
+### B) Csak az egyik résztvevő válaszolt (timeout)
 
-- a beküldött tartalom a határidő lejártakor megjelenik;
-- a hiányzó oldalon semleges rendszerüzenet jelenik meg:
+- A **már publikált** tartalom megmarad;
+- a hiányzó oldalon a határidő lejártakor semleges rendszerüzenet jelenik meg:
 
   > Ehhez a fordulóhoz nem érkezett válasz a határidőn belül.
 
-- a vita **`completed`** állapotba kerül;
-- **nem** nyílik folytatáskérési időszak;
-- nincs győztes, vesztes vagy nyilvános minősítés;
-- a korábban elért jutalmi szint **megmarad** (ha volt).
+- a forduló **`published`**, de **nem** minősül teljes, kétoldalú fordulónak folytatáskérés szempontjából;
+- a vita **`awaiting_closure`** állapotba kerül (lásd §11), ha van érdemi, korábbi teljes forduló vagy függő jutalom; ellenkező esetben **`completed`**.
 
 ### C) Egyik résztvevő sem válaszolt
 
-- a forduló tartalom nélkül lezárul;
+- a forduló tartalom nélkül lezárul (`closed_without_content`);
 - a fordulóhoz **nem** jelenik meg üres A/B tartalomkártya;
 - a vita **`completed`** állapotba kerül;
 - nyilvános szöveg:
@@ -104,13 +126,13 @@ A forduló lezárásakor a rendszer **egyidejűleg** publikálja az összes szab
 - **nem** nyílik folytatáskérési időszak;
 - **nem** számolódik jutalom.
 
-**Megjegyzés:** Timeout miatt lezárt, megnyitott de be nem fejezett forduló **nem** minősül `published` fordulónak folytatáskérés szempontjából.
+**Megjegyzés:** Timeout miatt lezárt, megnyitott de be nem fejezett forduló **nem** minősül teljes `published` fordulónak folytatáskérés szempontjából.
 
 ---
 
 ## 7. Folytatáskérési időszak
 
-Folytatáskérés **csak** olyan lezárt forduló után adható le, amelyben **mindkét résztvevő szabályos tartalma megjelent** (A eset).
+Folytatáskérés **csak** olyan lezárt forduló után adható le, amelyben **mindkét résztvevő szabályos, nem placeholder tartalma megjelent** (§6 A eset).
 
 Az **N. forduló** után leadott folytatáskérések az **(N+1). forduló** megnyitására vonatkoznak.
 
@@ -125,7 +147,7 @@ A felhasználónak **nem** kell fordulószámot választania.
 - Nincs külön „függő” és „megerősített” számláló.
 - A nyilvános számláló = a küszöbhöz számító érték.
 - Rögzítési feltételek: [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md).
-- Egy kérés csak akkor számít, ha: bejelentkezett, ellenőrzött (e-mail, telefon első alkalommal), még nem kért ugyanennél a lezárt fordulónál, nem sért sebességkorlátot, a vita megfelelő állapotban van, a forduló **`published`**.
+- Egy kérés csak akkor számít, ha: bejelentkezett, ellenőrzött (e-mail, telefon első alkalommal), még nem kért ugyanennél a lezárt fordulónál, nem sért sebességkorlátot, a vita megfelelő állapotban van, a forduló **teljes, kétoldalú `published`**.
 
 UI minta:
 
@@ -140,11 +162,11 @@ A szükséges számú **érvényes** folytatáskérés elérésekor **egyetlen a
 1. a folytatáskérési időszak lezárul;
 2. az **(N+1). forduló** létrejön;
 3. az **(N+1). forduló** automatikusan megnyílik;
-4. mindkét résztvevő **új válaszadási határideje** elindul;
-5. a `DebateReward` az elért szintre frissül;
+4. **A** válaszadása indul (B **nem** küldhet, amíg A megszólalása nincs publikálva);
+5. a `DebateReward` **függő** állapotba kerül / frissül (§9);
 6. a vita **`active`** állapotba kerül.
 
-A kérések számlálása **minden published forduló után újraindul**. A korábbi fordulók kérései **nem** számítanak bele a következő forduló küszöbébe.
+A kérések számlálása **minden teljes published forduló után újraindul**. A korábbi fordulók kérései **nem** számítanak bele a következő forduló küszöbébe.
 
 ### Küszöb és jutalom (`RoundUnlockRule`)
 
@@ -162,15 +184,31 @@ A konkrét számok **konfigurálhatók**, nem kerülnek forráskódba beégetés
 
 ---
 
-## 9. Jutalom számítása (MVP)
+## 9. Jutalom számítása és kifizethetőség (MVP)
 
 - A jutalmi szint és a következő forduló küszöbe **ugyanahhoz** a `RoundUnlockRule` rekordhoz tartozik.
-- A `DebateReward` akkor frissül, amikor a lezárt forduló utáni érvényes kérések száma eléri a `required_continuation_requests` értéket.
-- `reward_amount_per_participant` = **aktuális teljes** jutalom, **nem** növekmény.
+- Küszöb elérésekor `reward_amount_per_participant` = **aktuális teljes** jutalom, **nem** növekmény.
 - Mindkét résztvevőnél **azonos** összeg.
-- `status` az MVP-ben kizárólag: **`simulated`**.
-- A vita `completed` állapotában a jutalom **nem** számolódik újra.
 - **1. forduló előtt** jutalmi sáv **nem** jelenik meg.
+
+### Függő vs. kifizethető (szimulált MVP)
+
+A két résztvevő a vita teljes időtartama alatt **egymástól függ**. A jutalom **nem** az egyes hozzászólásokért, hanem a **közösen, szabályosan befejezett vitáért** jár.
+
+| Állapot | Jelentés | UI (MVP) |
+|---------|----------|----------|
+| **Nincs rekord** | Küszöb még nem teljesült | Semmi jutalom blokk |
+| **`pending`** | Küszöb teljesült; összeg **függőben**, még nem kifizethető | Teljes összeg + „függőben” jelzés |
+| **`simulated`** | Minden teljesítési feltétel megvan; **kifizethető** (MVP: szimulált, nincs valódi kifizetés) | Teljes összeg + tesztüzem felirat |
+
+**Kifizethetővé** (`simulated`) kizárólag akkor válik a jutalom, ha **egyidejűleg**:
+
+1. minden **megkezdett** forduló szabályosan befejeződött;
+2. mindkét résztvevő benyújtotta a **kötelező zárógondolatát**;
+3. a két zárógondolat **egyidejűleg** megjelent;
+4. a vita **`completed`** állapotba került.
+
+Ha **bármelyik** résztvevő nem teljesíti a kötelező válaszát vagy zárógondolatát, a vita **befejezetlen** marad, és **egyik** résztvevőnek **sem** jár kifizetés — a függő összeg **nem** válik kifizethetővé.
 
 Felirat minden jutalmi megjelenítésnél:
 
@@ -180,8 +218,9 @@ Felirat minden jutalmi megjelenítésnél:
 
 Ha egy **már megnyitott** következő forduló timeout miatt nem fejeződik be kétoldalúan:
 
-- a korábban elért jutalmi szint **megmarad**;
-- **új** jutalmi szint **nem** érhető el, mert befejezett új forduló nélkül nem indulhat új folytatáskérési szakasz.
+- a korábban elért **függő** jutalmi szint **megmarad**;
+- **új** jutalmi szint **nem** érhető el, mert befejezett új forduló nélkül nem indulhat új folytatáskérési szakasz;
+- a jutalom továbbra is **nem** kifizethető, amíg a vita nincs szabályosan lezárva (§11).
 
 ---
 
@@ -193,14 +232,37 @@ A küszöböt elérő kérés feldolgozásakor **egyetlen adatbázis-tranzakció
 2. újraszámolni az érvényes kérések számát;
 3. ellenőrizni a küszöböt;
 4. létrehozni a következő fordulót;
-5. frissíteni a `DebateReward` rekordot;
+5. frissíteni / létrehozni a `DebateReward` rekordot **`pending`** állapotban;
 6. a vitát megfelelő állapotba állítani (`active`, új fordulóval).
 
 Így két egyszerre érkező kérés **nem** nyithat két fordulót, és **nem** hozhat létre kétszeres jutalmat.
 
 ---
 
-## 11. Főoldali listák
+## 11. Vita lezárása — zárásra vár és zárógondolatok
+
+### Mikor kerül a vita „zárásra vár” állapotba
+
+Ha a folytatáskérési időszak **lejár** anélkül, hogy teljesülne a szükséges küszöb, vagy a vita **más szabály szerint** érdemi folyamatban véget ér (pl. timeout egy megnyitott fordulóban, moderáció), a vita **nem** lesz azonnal **`completed`**.
+
+Ilyenkor **`awaiting_closure`** („zárásra vár”) állapotba kerül — **kivéve** az §6 C) üres, érdemi tartalom nélküli lezárást.
+
+### Zárógondolatok
+
+Mindkét résztvevőnek **kötelező zárógondolatot** írnia a vita végleges lezárásához.
+
+| Szabály | Leírás |
+|---------|--------|
+| Elkészítés | Egymástól **függetlenül** készülnek |
+| Láthatóság beküldés alatt | A másik fél **nem látja** a partner zárógondolatát |
+| Publikálás | **Csak** akkor jelennek meg, amikor **mindketten** benyújtották |
+| Egyidejűség | **Kizárólag** itt van egyidejű közzététel — utána nincs válaszadási lehetőség |
+
+Mindkét zárógondolat megjelenése után a vita **`completed`** állapotba kerül; a jutalom kifizethetősége §9 szerint értékelődik újra.
+
+---
+
+## 12. Főoldali listák
 
 ### Új viták
 
@@ -218,7 +280,7 @@ Ez **nem**:
 
 ---
 
-## 12. Moderáció (üzleti határ)
+## 13. Moderáció (üzleti határ)
 
 A platform **vizsgálhat**: jogellenes tartalom, fenyegetés, személyes adat, zaklatás, spam, technikai visszaélés.
 
@@ -228,7 +290,7 @@ Részletek: [MODERATION.md](MODERATION.md).
 
 ---
 
-## 13. Fióktörlés (GDPR)
+## 14. Fióktörlés (GDPR)
 
 - A felhasználó **jelszóval megerősítve** kérheti a fiók végleges törlését.
 - `suspended` fiók **nem** törölhető saját kezdeményezésre.
@@ -245,9 +307,11 @@ Részletek: [MODERATION.md](MODERATION.md).
 |---------|-----------|
 | `RoundUnlockRule` | §8 |
 | `DebateReward` | §9 |
+| `ClosingStatement` | §11 |
+| `RoundResponseNotification` | §5 |
 | Meghívás / `DebateApplication` | §2 |
 | `ContinuationRequest` | §7, §8 |
-| `Round` | §5–6 |
-| `Debate` | §1–3, §6 |
+| `Round` / `Argument` | §4–6 |
+| `Debate` | §1–3, §6, §11 |
 
 Kapcsolódó: [DATA_MODEL.md](DATA_MODEL.md), [STATE_MACHINE.md](STATE_MACHINE.md), [ABUSE_PREVENTION.md](ABUSE_PREVENTION.md).

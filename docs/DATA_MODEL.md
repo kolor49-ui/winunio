@@ -17,7 +17,9 @@ User ──────────────┬──< PublicProfile
 
 Debate ──< Round ──< Argument
     │         │
+    │         └── RoundResponseNotification
     │         └── ContinuationRequest (completed_round_id)
+    ├── ClosingStatement
     ├── DebateReward
     └── Report → ModerationAction
 ```
@@ -61,8 +63,9 @@ Debate ──< Round ──< Argument
 | `status` | enum | Lásd STATE_MACHINE |
 | `created_at` | timestamp | |
 | `published_at` | timestamp \| null | |
+| `closure_started_at` | timestamp \| null | `awaiting_closure` kezdete |
 
-**Állapotok:** `draft` \| `waiting_for_partner` \| `invitation_pending` \| `active` \| `waiting_for_continuation` \| `completed` \| `cancelled` \| `under_review`
+**Állapotok:** `draft` \| `waiting_for_partner` \| `invitation_pending` \| `active` \| `waiting_for_continuation` \| `awaiting_closure` \| `completed` \| `cancelled` \| `under_review`
 
 **Szabályok:** Nincs `winner_id`, `loser_id`, `likes_count`.
 
@@ -124,10 +127,45 @@ Debate ──< Round ──< Argument
 | `participant_id` | DebateParticipant ref | |
 | `content` | text | |
 | `submitted_at` | timestamp | |
-| `published_at` | timestamp \| null | Forduló lezárásakor |
+| `published_at` | timestamp \| null | **Egyedi** publikálás ideje (A azonnal, B később) |
 | `is_system_placeholder` | boolean | Timeout hiányzó oldal |
 
 **Korlát:** Max 1 argument / résztvevő / forduló.
+
+**Publikálás:** A `published_at` beállításakor a tartalom nyilvános. A forduló `published` csak ha mindkét oldal (vagy placeholder) megjelent.
+
+---
+
+## ClosingStatement
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `id` | UUID | |
+| `debate_id` | Debate ref | |
+| `participant_id` | DebateParticipant ref | |
+| `content` | text | |
+| `submitted_at` | timestamp | |
+| `published_at` | timestamp \| null | Mindkét fél beküldése után **egyidejűleg** |
+
+**Korlát:** `UNIQUE(debate_id, participant_id)` — pontosan 2 / vita lezáráskor.
+
+**Szabály:** Beküldés alatt a másik fél **nem** látja. Publikálás **csak** párban, egy tranzakcióban.
+
+---
+
+## RoundResponseNotification
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `id` | UUID | |
+| `round_id` | Round ref | |
+| `user_id` | User ref \| null | Bejelentkezett kérő |
+| `email` | string \| null | Vendég kérés (opcionális) |
+| `notify_on` | enum | `b_response` |
+| `sent_at` | timestamp \| null | |
+| `created_at` | timestamp | |
+
+**Szabály:** Egy vitára / fordulóra kötött értesítés — **nem** követőrendszer.
 
 ---
 
@@ -195,8 +233,13 @@ Egyetlen konfigurációs entitás a küszöbhöz és jutalomhoz (ADR-013).
 | `unlocked_by_completed_round_id` | Round ref | |
 | `round_unlock_rule_id` | RoundUnlockRule ref | |
 | `amount_per_participant` | decimal | Teljes összeg, nem növekmény |
-| `status` | enum | MVP: `simulated` |
+| `status` | enum | `pending` \| `simulated` |
 | `calculated_at` | timestamp | Küszöb elérésekor |
+
+**Állapotok:**
+
+- `pending` — küszöb teljesült; összeg függőben, még nem kifizethető
+- `simulated` — vita szabályosan lezárult; MVP megjelenítés (nincs valódi kifizetés)
 
 **Korlátok:**
 

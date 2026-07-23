@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClosingStatementPanel } from "./closing-statement-panel";
 import { ContinuationPanel } from "./continuation-panel";
 import { DebatePartnerPanel } from "./debate-partner-panel";
 import { DebateRoundPanel } from "./debate-round-panel";
@@ -8,6 +9,7 @@ import {
   getMyApplicationForDebate,
   listApplicationsForDebate,
 } from "@/server/services/application-service";
+import { getClosingStatementContext } from "@/server/services/closing-statement-service";
 import { getContinuationStatus } from "@/server/services/continuation-service";
 import { getViewerRoundContext } from "@/server/services/round-service";
 import { getTurnstileSiteKey } from "@/server/turnstile";
@@ -21,6 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
   invitation_pending: "Meghívás folyamatban",
   active: "Aktív vita",
   waiting_for_continuation: "Folytatásra vár",
+  awaiting_closure: "Zárásra vár",
   completed: "Lezárva",
   cancelled: "Visszavonva",
   under_review: "Felülvizsgálat alatt",
@@ -64,6 +67,11 @@ export default async function DebatePage({ params }: Props) {
       ? await getContinuationStatus(id, session?.userId ?? null)
       : null;
 
+  const closingContext =
+    debate.status === "awaiting_closure" || debate.status === "completed"
+      ? await getClosingStatementContext(id, session?.userId ?? null)
+      : null;
+
   const turnstileSiteKey = getTurnstileSiteKey() ?? "";
 
   return (
@@ -103,6 +111,7 @@ export default async function DebatePage({ params }: Props) {
       <DebateRoundPanel
         debateStatus={debate.status}
         participantSide={roundContext.participant_side}
+        viewerUserId={session?.userId ?? null}
         activeRound={roundContext.active_round}
         publishedRounds={roundContext.published_rounds}
       />
@@ -115,16 +124,26 @@ export default async function DebatePage({ params }: Props) {
         />
       )}
 
+      {closingContext && debate.status === "awaiting_closure" && (
+        <ClosingStatementPanel debateId={debate.id} context={closingContext} />
+      )}
+
+      {closingContext?.phase === "published" && debate.status === "completed" && (
+        <ClosingStatementPanel debateId={debate.id} context={closingContext} />
+      )}
+
       {debate.reward && (
         <div className="card">
           <p>
-            Jutalom (szimulált):{" "}
+            Jutalom{" "}
+            {debate.reward.status === "pending" ? "(függőben)" : "(szimulált)"}:{" "}
             {debate.reward.amount_per_participant.toLocaleString("hu-HU")} Ft /
             résztvevő
           </p>
           <p className="hint">
-            Tesztüzem – a megjelenített összeg szimuláció, nem kerül
-            kifizetésre.
+            {debate.reward.status === "pending"
+              ? "A jutalom függőben van — kifizethetővé csak a vita szabályos lezárásakor válik."
+              : "Tesztüzem – a megjelenített összeg szimuláció, nem kerül kifizetésre."}
           </p>
         </div>
       )}

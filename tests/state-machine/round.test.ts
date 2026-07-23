@@ -5,14 +5,19 @@ import {
 } from "../../src/domain/round.js";
 
 describe("Round state machine", () => {
-  it("both submitted → published, eligible for continuation", () => {
-    const result = transitionRound("open", {
-      type: "BOTH_PARTICIPANTS_SUBMITTED",
-    });
+  it("A published → stays open, not eligible for continuation", () => {
+    const result = transitionRound("open", { type: "A_PUBLISHED" });
+    expect(result.status).toBe("open");
+    expect(result.eligibleForContinuation).toBe(false);
+    expect(result.effects).toContainEqual({ type: "PUBLISH_A_IMMEDIATELY" });
+  });
+
+  it("B published → published, eligible for continuation", () => {
+    const result = transitionRound("open", { type: "B_PUBLISHED" });
     expect(result.status).toBe("published");
     expect(result.eligibleForContinuation).toBe(true);
     expect(result.effects).toContainEqual({
-      type: "PUBLISH_ALL_CONTENT_SIMULTANEOUSLY",
+      type: "PUBLISH_B_AND_COMPLETE_ROUND",
     });
   });
 
@@ -22,12 +27,12 @@ describe("Round state machine", () => {
     expect(result.eligibleForContinuation).toBe(true);
   });
 
-  it("timeout one side → published but debate completes, no continuation", () => {
+  it("timeout one side → published but not eligible, needs closure", () => {
     const result = transitionRound("open", { type: "TIMEOUT_ONE_SUBMITTED" });
     expect(result.status).toBe("published");
     expect(result.eligibleForContinuation).toBe(false);
     expect(result.effects).toContainEqual({
-      type: "DEBATE_COMPLETED",
+      type: "DEBATE_NEEDS_CLOSURE",
       reason: "partial_timeout",
     });
     expect(result.effects).toContainEqual({ type: "NO_CONTINUATION_PERIOD" });
@@ -48,7 +53,7 @@ describe("Round state machine", () => {
 
   it("cannot transition from published", () => {
     expect(() =>
-      transitionRound("published", { type: "BOTH_PARTICIPANTS_SUBMITTED" }),
+      transitionRound("published", { type: "B_PUBLISHED" }),
     ).toThrow(/only allowed from open/);
   });
 });

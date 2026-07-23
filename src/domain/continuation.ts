@@ -139,7 +139,7 @@ export function recordContinuationRequest(
   const reward: DebateReward = {
     unlockedByCompletedRoundNumber: completedRoundNumber,
     amountPerParticipant: rule.rewardAmountPerParticipant,
-    status: "simulated",
+    status: "pending",
   };
 
   return {
