@@ -105,6 +105,32 @@ export function passwordResetEmailContent(resetUrl: string) {
   return { subject, text, html };
 }
 
+export function roundDeadlineReminderEmailContent(input: {
+  question: string;
+  roundNumber: number;
+  deadlineAt: string;
+}) {
+  const deadlineLabel = new Date(input.deadlineAt).toLocaleString("hu-HU");
+  const subject = `Winunio — ${input.roundNumber}. forduló határidő emlékeztető`;
+  const text = [
+    "Szia!",
+    "",
+    `A „${input.question}” vitában a ${input.roundNumber}. forduló válaszadási határideje közeledik.`,
+    `Határidő: ${deadlineLabel}`,
+    "",
+    "Jelentkezz be a Winunio-ra, és küldd be a válaszod időben.",
+  ].join("\n");
+
+  const html = `
+    <p>Szia!</p>
+    <p>A <strong>${input.question}</strong> vitában a ${input.roundNumber}. forduló válaszadási határideje közeledik.</p>
+    <p>Határidő: <strong>${deadlineLabel}</strong></p>
+    <p>Jelentkezz be a Winunio-ra, és küldd be a válaszod időben.</p>
+  `.trim();
+
+  return { subject, text, html };
+}
+
 export function formatResendError(error: unknown): string {
   if (!(error instanceof Error)) return "Ismeretlen e-mail hiba";
   const msg = error.message;

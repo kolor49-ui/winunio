@@ -7,6 +7,7 @@
 | `DATABASE_URL` | Neon connection string, **sslmode=require** |
 | `AUTH_SECRET` | `openssl rand -base64 32` (min. 32 karakter) |
 | `NEXT_PUBLIC_APP_URL` | `https://winunio.vercel.app` (a te production URL-ed) |
+| `CRON_SECRET` | `openssl rand -base64 32` — Vercel Cron hitelesítéshez |
 
 Mind: **Production** + **Preview**.
 
@@ -41,3 +42,4 @@ Válasz: `{"status":"ok","database":"connected"}`
 | `DATABASE_URL is not set` | Env Vercelen + redeploy |
 | relation "debates" does not exist | `bash scripts/run-migrations.sh` Neon URL-lel |
 | Auth hiba | `AUTH_SECRET` min. 32 karakter |
+| Cron 401 | `CRON_SECRET` beállítva + redeploy; Vercel automatikusan küldi `Authorization: Bearer …` |

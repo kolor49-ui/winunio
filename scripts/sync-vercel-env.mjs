@@ -24,12 +24,20 @@ function parseEnvFile(path) {
 
 const local = parseEnvFile(resolve(process.cwd(), ".env"));
 
+if (!local.CRON_SECRET) {
+  console.error(
+    "❌ CRON_SECRET hiányzik a .env-ből. Add hozzá: openssl rand -base64 32",
+  );
+  process.exit(1);
+}
+
 const productionValues = {
   DATABASE_URL: local.DATABASE_URL,
   AUTH_SECRET: local.AUTH_SECRET,
   NEXT_PUBLIC_APP_URL: "https://www.winunio.com",
   RESEND_API_KEY: local.RESEND_API_KEY,
   EMAIL_FROM: "Winunio <noreply@winunio.com>",
+  CRON_SECRET: local.CRON_SECRET,
 };
 
 const required = Object.keys(productionValues);
