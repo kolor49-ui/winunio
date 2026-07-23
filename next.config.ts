@@ -7,6 +7,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: root,
+  serverExternalPackages: ["resend"],
 };
 
 export default nextConfig;

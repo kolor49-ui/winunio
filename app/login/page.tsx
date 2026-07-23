@@ -60,6 +60,9 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="hint">
+        <Link href="/forgot-password">Elfelejtett jelszó</Link>
+      </p>
+      <p className="hint">
         Nincs fiókod? <Link href="/register">Regisztráció</Link>
       </p>
     </>

@@ -17,6 +17,11 @@ export async function SiteHeader() {
           <Link href="/debates/new">Vitát indítok</Link>
           {user ? (
             <>
+              {!user.email_verified && (
+                <Link href="/verify-email" className="nav-verify">
+                  E-mail megerősítés
+                </Link>
+              )}
               <span className="nav-user" title="Bejelentkezve">
                 {user.email}
               </span>

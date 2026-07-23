@@ -99,6 +99,11 @@ a {
   color: var(--color-text);
 }
 
+.nav-logout-error {
+  font-size: 0.75rem;
+  color: #b42318;
+}
+
 .debate-link {
   text-decoration: none;
   display: block;

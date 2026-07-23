@@ -29,7 +29,8 @@ export default function RegisterPage() {
         setError(data.error?.message ?? "Regisztráció sikertelen");
         return;
       }
-      router.push("/debates/new");
+      const sent = data.verification_email_sent ? "1" : "0";
+      router.push(`/verify-email?sent=${sent}`);
       router.refresh();
     } catch {
       setError("Hálózati hiba");
