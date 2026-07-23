@@ -60,7 +60,7 @@ a {
 
 .logo-mark {
   flex-shrink: 0;
-  border-radius: 50%;
+  display: block;
 }
 
 .nav-links {

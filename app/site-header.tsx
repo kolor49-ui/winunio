@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
 import { getSession } from "@/server/api/http";
@@ -12,12 +11,11 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="container">
         <Link href="/" className="logo">
-          <Image
-            src="/logo.png"
+          <img
+            src="/logo.svg"
             alt=""
             width={36}
             height={36}
-            priority
             className="logo-mark"
           />
           <span>Winunio</span>
