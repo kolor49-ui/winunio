@@ -9,12 +9,39 @@ function VerifyEmailContent() {
   const router = useRouter();
   const token = searchParams.get("token");
   const sent = searchParams.get("sent");
+  const emailError = searchParams.get("error");
+  const [productionSandbox, setProductionSandbox] = useState<boolean | null>(
+    null,
+  );
   const [status, setStatus] = useState<
     "idle" | "verifying" | "verified" | "error"
   >(token ? "verifying" : "idle");
   const [message, setMessage] = useState<string | null>(null);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/v1/health/readiness");
+        const data = await res.json();
+        if (cancelled) return;
+        setProductionSandbox(
+          Boolean(
+            data.email_sandbox &&
+              typeof data.app_url === "string" &&
+              data.app_url.includes("winunio.com"),
+          ),
+        );
+      } catch {
+        if (!cancelled) setProductionSandbox(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -95,12 +122,19 @@ function VerifyEmailContent() {
           <p className="error">
             A fiók létrejött, de a megerősítő levelet nem sikerült elküldeni.
           </p>
-          <p className="hint">
-            Sandbox tesztnél a Winunio regisztrációs e-mail címed legyen{" "}
-            <strong>ugyanaz</strong>, amivel a Resend fiókot regisztráltad.
-            Ez csak teszt korlát — élesben (winunio.com domain) bárki
-            regisztrálhat.
-          </p>
+          {emailError ? (
+            <p className="hint">{emailError}</p>
+          ) : productionSandbox ? (
+            <p className="hint">
+              Az éles oldalon még nincs beállítva a winunio.com e-mail domain a
+              Resenden. Addig csak a Resend-fiók e-mail címére megy levél.
+            </p>
+          ) : (
+            <p className="hint">
+              Sandbox tesztnél a regisztrációs e-mail címed legyen ugyanaz,
+              amivel a Resend fiókot regisztráltad.
+            </p>
+          )}
           <button
             className="btn"
             type="button"

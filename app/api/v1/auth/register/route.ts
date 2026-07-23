@@ -11,9 +11,27 @@ import {
 } from "@/server/services/auth-service";
 import { sendVerificationEmailForUser } from "@/server/services/email-auth-service";
 import { formatResendError } from "@/server/email/send-email";
+import {
+  assertPublicEmailSendingAllowed,
+  sandboxRegistrationMessage,
+} from "@/server/email/email-sending-readiness";
 
 export async function POST(request: Request) {
   try {
+    try {
+      assertPublicEmailSendingAllowed();
+    } catch {
+      return Response.json(
+        {
+          error: {
+            code: "EMAIL_SANDBOX",
+            message: sandboxRegistrationMessage(),
+          },
+        },
+        { status: 503 },
+      );
+    }
+
     const body = await request.json();
     const input = parseRegisterBody(body);
     const user = await registerUser(input);

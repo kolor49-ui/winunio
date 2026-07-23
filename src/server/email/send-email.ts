@@ -109,7 +109,7 @@ export function formatResendError(error: unknown): string {
   if (!(error instanceof Error)) return "Ismeretlen e-mail hiba";
   const msg = error.message;
   if (msg.includes("only send testing emails")) {
-    return "Sandbox: csak a Resend-fiókod e-mail címére megy a levél. Regisztrálj azzal a címmel.";
+    return "Sandbox: csak a Resend-fiókod e-mail címére megy a levél. Éles oldalon verified winunio.com domain kell.";
   }
   if (msg.includes("invalid") || msg.includes("401")) {
     return "Érvénytelen Resend API kulcs — ellenőrizd a .env fájlt, majd indítsd újra a szervert.";

@@ -21,6 +21,14 @@ console.log("Adatbázis:", data.database);
 console.log("App URL:", data.app_url ?? "(nincs)");
 console.log("Email FROM:", data.email_from);
 console.log(
+  "E-mail mód:",
+  data.email_public
+    ? "éles (bármely címre mehet)"
+    : data.email_sandbox
+      ? "sandbox (csak Resend-fiók címére)"
+      : "ismeretlen",
+);
+console.log(
   "Resend kulcs:",
   data.resend_api_key_set
     ? `beállítva (${data.resend_api_key_length} karakter)`
