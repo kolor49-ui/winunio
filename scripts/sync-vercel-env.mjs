@@ -38,6 +38,10 @@ const productionValues = {
   RESEND_API_KEY: local.RESEND_API_KEY,
   EMAIL_FROM: "Winunio <noreply@winunio.com>",
   CRON_SECRET: local.CRON_SECRET,
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY:
+    local.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA",
+  TURNSTILE_SECRET_KEY:
+    local.TURNSTILE_SECRET_KEY ?? "1x0000000000000000000000000000000AA",
 };
 
 const required = Object.keys(productionValues);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContinuationPanel } from "./continuation-panel";
 import { DebatePartnerPanel } from "./debate-partner-panel";
 import { DebateRoundPanel } from "./debate-round-panel";
 import { getSession } from "@/server/api/http";
@@ -7,7 +8,9 @@ import {
   getMyApplicationForDebate,
   listApplicationsForDebate,
 } from "@/server/services/application-service";
+import { getContinuationStatus } from "@/server/services/continuation-service";
 import { getViewerRoundContext } from "@/server/services/round-service";
+import { getTurnstileSiteKey } from "@/server/turnstile";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -56,6 +59,13 @@ export default async function DebatePage({ params }: Props) {
     session?.userId ?? null,
   );
 
+  const continuationStatus =
+    debate.status === "waiting_for_continuation"
+      ? await getContinuationStatus(id, session?.userId ?? null)
+      : null;
+
+  const turnstileSiteKey = getTurnstileSiteKey() ?? "";
+
   return (
     <>
       <h1>{debate.question}</h1>
@@ -97,14 +107,12 @@ export default async function DebatePage({ params }: Props) {
         publishedRounds={roundContext.published_rounds}
       />
 
-      {debate.status === "waiting_for_continuation" && (
-        <div className="card">
-          <p>
-            {debate.continuation_request_count} folytatáskérés (aktuális
-            forduló)
-          </p>
-          <p className="hint">A gomb és Passkey flow későbbi lépés.</p>
-        </div>
+      {continuationStatus && (
+        <ContinuationPanel
+          initialStatus={continuationStatus}
+          viewerUserId={session?.userId ?? null}
+          turnstileSiteKey={turnstileSiteKey}
+        />
       )}
 
       {debate.reward && (
