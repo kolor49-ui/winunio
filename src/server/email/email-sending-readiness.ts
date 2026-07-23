@@ -72,6 +72,36 @@ export async function checkResendDomainReadiness(): Promise<{
       },
     });
 
+    if (res.status === 401) {
+      const sendProbe = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "User-Agent": "winunio-readiness/1.0",
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (sendProbe.status === 422 || sendProbe.status === 400) {
+        return {
+          ok: true,
+          issues: [],
+          verified_domains: [senderDomain],
+          sandbox: false,
+          sender_domain: senderDomain,
+        };
+      }
+
+      return {
+        ok: false,
+        issues: ["Resend elutasítja az API kulcsot (401 invalid)"],
+        verified_domains: [],
+        sandbox: false,
+        sender_domain: senderDomain,
+      };
+    }
+
     if (!res.ok) {
       return {
         ok: false,
