@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { Resend } from "resend";
+import { readEnv } from "@/server/env";
 
 type SendEmailInput = {
   to: string;
@@ -8,31 +7,6 @@ type SendEmailInput = {
   html: string;
   text: string;
 };
-
-function readEnv(name: string): string | null {
-  // Dev: a .env fájl az igazság forrása — Next.js néha rossz process.env értéket ad.
-  if (process.env.NODE_ENV === "development") {
-    try {
-      const envFile = readFileSync(resolve(process.cwd(), ".env"), "utf8");
-      const line = envFile
-        .split("\n")
-        .find((entry) => entry.startsWith(`${name}=`));
-      if (line) {
-        const fromFile = line
-          .slice(name.length + 1)
-          .trim()
-          .replace(/^["']|["']$/g, "");
-        if (fromFile) return fromFile;
-      }
-    } catch {
-      // fallback process.env alá
-    }
-  }
-
-  const raw = process.env[name];
-  if (!raw) return null;
-  return raw.trim().replace(/^["']|["']$/g, "");
-}
 
 function getResendClient(): Resend | null {
   const apiKey = readEnv("RESEND_API_KEY");
