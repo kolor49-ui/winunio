@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/server/api/http";
-import { listDebates, listUserDebates } from "@/server/services/debate-service";
+import { listDebates } from "@/server/services/debate-service";
 import { getUserById } from "@/server/services/auth-service";
-import { MyDebatesList } from "./my-debates-list";
 
 export const dynamic = "force-dynamic";
 
@@ -33,15 +32,6 @@ export default async function HomePage({ searchParams }: Props) {
     }
   }
 
-  let myDebates: Awaited<ReturnType<typeof listUserDebates>> = [];
-  if (session) {
-    try {
-      myDebates = await listUserDebates(session.userId);
-    } catch (error) {
-      console.error("HomePage my debates load failed:", error);
-    }
-  }
-
   try {
     debates = await listDebates("new");
   } catch (error) {
@@ -64,12 +54,11 @@ export default async function HomePage({ searchParams }: Props) {
       )}
 
       {user ? (
-        <>
-          <p className="hint">
-            Bejelentkezve: <strong>{user.email}</strong>
-          </p>
-          <MyDebatesList debates={myDebates} id="vitaim" showEmpty />
-        </>
+        <p className="hint">
+          <Link href="/vitaim">Vitáim</Link>
+          {" · "}
+          Bejelentkezve: <strong>{user.email}</strong>
+        </p>
       ) : (
         <p className="hint">
           <Link href="/login">Jelentkezz be</Link>, ha partnernek szeretnél

@@ -10,13 +10,66 @@ type Props = {
   debates: UserDebateListItem[];
   id?: string;
   showEmpty?: boolean;
+  /** Dedicated /vitaim page — no nested card title. */
+  standalone?: boolean;
 };
 
-export function MyDebatesList({ debates, id, showEmpty = false }: Props) {
+export function MyDebatesList({
+  debates,
+  id,
+  showEmpty = false,
+  standalone = false,
+}: Props) {
   const sorted = sortUserDebates(debates);
 
   if (sorted.length === 0 && !showEmpty) {
     return null;
+  }
+
+  const listBody =
+    sorted.length === 0 ? (
+      <p className="meta">
+        Még nincs ilyen vitád.{" "}
+        <Link href="/debates/new">Vitát indítok</Link> vagy jelentkezz a nyitott
+        vitákra a főoldalon.
+      </p>
+    ) : (
+      <ul className="admin-list">
+        {sorted.map((debate) => {
+          const needsAction =
+            debate.application_status === "invited" ||
+            (debate.involvement === "participant" && debate.status === "active");
+
+          return (
+            <li key={debate.id} className={needsAction ? "my-debate-action" : ""}>
+              <p>
+                <Link href={`/debates/${debate.id}`}>
+                  <strong>{debate.question}</strong>
+                </Link>
+              </p>
+              <p className="meta">
+                {debate.category} · {formatUserDebateStatus(debate)} ·{" "}
+                {formatUserDebateRole(debate)}
+              </p>
+              {debate.application_status === "invited" && (
+                <p className="hint">Meghívásod van — nyisd meg és fogadd el.</p>
+              )}
+              {debate.involvement === "participant" && debate.status === "active" && (
+                <p className="hint">Aktív forduló — nyisd meg a vitát.</p>
+              )}
+              <p className="hint">Megnyitás →</p>
+            </li>
+          );
+        })}
+      </ul>
+    );
+
+  if (standalone) {
+    return (
+      <section className="card" id={id}>
+        {listBody}
+      </section>
+    );
   }
 
   return (
@@ -26,42 +79,7 @@ export function MyDebatesList({ debates, id, showEmpty = false }: Props) {
         Viták, amelyeket indítottál, amelyekben részt veszel, vagy amelyekre
         jelentkeztél.
       </p>
-      {sorted.length === 0 ? (
-        <p className="meta">
-          Még nincs ilyen vitád.{" "}
-          <Link href="/debates/new">Vitát indítok</Link> vagy jelentkezz az
-          alábbi nyitott vitákra.
-        </p>
-      ) : (
-        <ul className="admin-list">
-          {sorted.map((debate) => {
-            const needsAction =
-              debate.application_status === "invited" ||
-              (debate.involvement === "participant" && debate.status === "active");
-
-            return (
-              <li key={debate.id} className={needsAction ? "my-debate-action" : ""}>
-                <p>
-                  <Link href={`/debates/${debate.id}`}>
-                    <strong>{debate.question}</strong>
-                  </Link>
-                </p>
-                <p className="meta">
-                  {debate.category} · {formatUserDebateStatus(debate)} ·{" "}
-                  {formatUserDebateRole(debate)}
-                </p>
-                {debate.application_status === "invited" && (
-                  <p className="hint">Meghívásod van — nyisd meg és fogadd el.</p>
-                )}
-                {debate.involvement === "participant" && debate.status === "active" && (
-                  <p className="hint">Aktív forduló — nyisd meg a vitát.</p>
-                )}
-                <p className="hint">Megnyitás →</p>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {listBody}
     </section>
   );
 }

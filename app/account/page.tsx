@@ -1,11 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MyDebatesList } from "../my-debates-list";
 import { AccountDeleteForm } from "./account-delete-form";
 import { InstallAppButton } from "../install-app-button";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
-import { listUserDebates } from "@/server/services/debate-service";
 
 export const dynamic = "force-dynamic";
 
@@ -25,21 +22,12 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  let myDebates: Awaited<ReturnType<typeof listUserDebates>> = [];
-  try {
-    myDebates = await listUserDebates(session.userId);
-  } catch (error) {
-    console.error("[account] debates load failed:", error);
-  }
-
   return (
     <>
       <h1>Fiók</h1>
       <p className="hint">
         Bejelentkezve: <strong>{user.email}</strong>
       </p>
-
-      <MyDebatesList debates={myDebates} id="vitaim" showEmpty />
 
       <section className="card">
         <h2>Telepítés</h2>

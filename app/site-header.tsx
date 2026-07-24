@@ -31,7 +31,7 @@ export async function SiteHeader() {
           <Link href="/debates/new">Vitát indítok</Link>
           {user ? (
             <>
-              <Link href="/account#vitaim">Vitáim</Link>
+              <Link href="/vitaim">Vitáim</Link>
               <Link href="/account">Fiók</Link>
               {user.is_admin && (
                 <>
