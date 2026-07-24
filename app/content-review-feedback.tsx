@@ -46,6 +46,85 @@ export function extractContentReviewStatus(
   return data.error?.details?.status ?? null;
 }
 
+export type FieldReviewBlock = {
+  fieldLabel: string;
+  status: ContentReviewStatus;
+  issues: ContentReviewIssue[];
+  reviewId: string;
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  personal_attack: "személyeskedés",
+  profanity: "trágárság",
+  insult: "sértés",
+  harassment: "zaklatás",
+  threat: "fenyegetés",
+  hate: "gyűlöletkeltés",
+  revision_required: "viselkedésszabály-sértés",
+};
+
+export function formatIssueCategory(category: string): string {
+  const key = category.toLowerCase().trim();
+  return CATEGORY_LABELS[key] ?? category.replaceAll("_", " ");
+}
+
+function IssueList({ issues }: { issues: ContentReviewIssue[] }) {
+  if (issues.length === 0) return null;
+  return (
+    <ul className="content-review-list">
+      {issues.map((issue, index) => (
+        <li key={`${issue.start}-${issue.end}-${index}`}>
+          <p>
+            <strong>„{issue.excerpt}”</strong>
+          </p>
+          <p className="meta">
+            Probléma: {formatIssueCategory(issue.category)} —{" "}
+            {issue.rule_reference} — {issue.explanation}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function MultiFieldContentReviewFeedback({
+  fieldBlocks,
+  overallStatus,
+}: {
+  fieldBlocks: FieldReviewBlock[];
+  overallStatus: ContentReviewStatus;
+}) {
+  const resolvedStatus = overallStatus;
+
+  return (
+    <div
+      className={`content-review-feedback ${
+        resolvedStatus === "under_review"
+          ? "content-review-under-review"
+          : ""
+      }`}
+      role="alert"
+    >
+      <p className="content-review-title">
+        {resolvedStatus === "under_review"
+          ? "A szöveg emberi felülvizsgálatot igényel. Addig nem jelenik meg nyilvánosan."
+          : "A szöveg jelenleg nem tehető közzé."}
+      </p>
+      {fieldBlocks.map((block) => (
+        <div key={block.reviewId} className="content-review-field-block">
+          <p className="meta">
+            <strong>{block.fieldLabel}</strong>
+          </p>
+          <IssueList issues={block.issues} />
+        </div>
+      ))}
+      <p className="hint">
+        Az AI megjelöli a kifogásolt részt, de nem fogalmaz helyetted.
+      </p>
+    </div>
+  );
+}
+
 export function ContentReviewFeedback({
   issues,
   status,
@@ -106,26 +185,15 @@ export function ContentReviewFeedback({
     );
   }
 
-  if (issues.length === 0) return null;
-
   return (
     <div className="content-review-feedback" role="alert">
       <p className="content-review-title">
         A szöveg jelenleg nem tehető közzé.
-        {issues[0]?.category ? ` Probléma: ${issues[0].category}.` : ""}
+        {issues[0]?.category
+          ? ` Probléma: ${formatIssueCategory(issues[0].category)}.`
+          : ""}
       </p>
-      <ul className="content-review-list">
-        {issues.map((issue, index) => (
-          <li key={`${issue.start}-${issue.end}-${index}`}>
-            <p>
-              <strong>„{issue.excerpt}”</strong>
-            </p>
-            <p className="meta">
-              {issue.rule_reference} — {issue.explanation}
-            </p>
-          </li>
-        ))}
-      </ul>
+      <IssueList issues={issues} />
       <p className="hint">
         Az AI megjelöli a kifogásolt részt, de nem fogalmaz helyetted.
       </p>
@@ -196,6 +264,25 @@ export async function reviewTextBeforePublish(input: {
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.error?.message ?? "Ellenőrzés sikertelen");
+  }
+  return data;
+}
+
+export async function requestHumanReview(input: {
+  contentReviewIds: string[];
+  note?: string;
+}): Promise<{ message: string }> {
+  const res = await fetch("/api/v1/content-reviews/request-human-review", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content_review_ids: input.contentReviewIds,
+      note: input.note,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error?.message ?? "Felülvizsgálat kérése sikertelen");
   }
   return data;
 }

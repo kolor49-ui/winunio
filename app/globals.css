@@ -192,6 +192,17 @@ a {
   padding: 0.35rem 0.65rem;
 }
 
+.content-review-field-block {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.content-review-field-block:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;

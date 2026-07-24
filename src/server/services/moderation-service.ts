@@ -1,6 +1,7 @@
 import { transitionDebate } from "@/domain/debate";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
+import { computeContentHash } from "@/server/services/content-hash";
 import {
   CONTENT_POLICY_VERSION,
   type ContentReviewIssue,
@@ -463,6 +464,100 @@ export async function assertAdmin(userId: string): Promise<void> {
 export async function requireAdminUser(userId: string) {
   await assertAdmin(userId);
   return userId;
+}
+
+export async function requestHumanReviewForContentReviews(input: {
+  userId: string;
+  contentReviewIds: string[];
+  note?: string | null;
+}) {
+  const sql = getSql();
+  if (input.contentReviewIds.length === 0) {
+    throw new ApiError(422, "VALIDATION_ERROR", "Legalább egy ellenőrzés szükséges");
+  }
+
+  const uniqueIds = [...new Set(input.contentReviewIds)];
+  const cases: string[] = [];
+
+  await sql.begin(async (tx) => {
+    for (const reviewId of uniqueIds) {
+      const [review] = await tx<
+        {
+          id: string;
+          user_id: string;
+          input_text: string;
+          content_hash: string | null;
+          status: string;
+          issues: ContentReviewIssue[];
+          moderation_case_id: string | null;
+        }[]
+      >`
+        SELECT id, user_id, input_text, content_hash, status::text, issues, moderation_case_id
+        FROM content_reviews
+        WHERE id = ${reviewId}
+        FOR UPDATE
+      `;
+
+      if (!review || review.user_id !== input.userId) {
+        throw new ApiError(422, "INVALID_REVIEW", "Érvénytelen ellenőrzési azonosító");
+      }
+
+      if (
+        review.status !== "revision_required" &&
+        review.status !== "under_review"
+      ) {
+        throw new ApiError(
+          409,
+          "REVIEW_NOT_APPEALABLE",
+          "Ehhez az ellenőrzéshez nem kérhető felülvizsgálat",
+        );
+      }
+
+      if (review.moderation_case_id) {
+        cases.push(review.moderation_case_id);
+        continue;
+      }
+
+      const [caseRow] = await tx<{ id: string }[]>`
+        INSERT INTO moderation_cases (
+          source,
+          status,
+          requester_id,
+          content_review_id,
+          reported_text,
+          content_hash,
+          policy_version,
+          ai_issues
+        )
+        VALUES (
+          'user_appeal',
+          'open',
+          ${input.userId},
+          ${review.id},
+          ${review.input_text},
+          ${review.content_hash ?? computeContentHash(review.input_text)},
+          ${CONTENT_POLICY_VERSION},
+          ${JSON.stringify(review.issues)}::jsonb
+        )
+        RETURNING id
+      `;
+
+      await tx`
+        UPDATE content_reviews
+        SET status = 'under_review'::content_review_status,
+            moderation_case_id = ${caseRow.id}
+        WHERE id = ${review.id}
+      `;
+
+      cases.push(caseRow.id);
+    }
+  });
+
+  return {
+    moderation_case_ids: cases,
+    message:
+      "Felülvizsgálati kérelmed rögzítve. Adminisztrátor dönt — addig a szöveg nem jelenik meg nyilvánosan.",
+  };
 }
 
 export async function hideArgument(input: {

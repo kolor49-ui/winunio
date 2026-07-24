@@ -1,0 +1,1 @@
+-- Enum value cannot be removed safely.

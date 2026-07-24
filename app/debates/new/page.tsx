@@ -7,11 +7,14 @@ import {
   ContentReviewFeedback,
   extractContentReviewIssues,
   extractContentReviewStatus,
+  MultiFieldContentReviewFeedback,
+  requestHumanReview,
   requestSpellCheck,
   reviewTextBeforePublish,
   SpellCheckDiff,
   type ContentReviewIssue,
   type ContentReviewStatus,
+  type FieldReviewBlock,
   type SpellCheckSuggestion,
 } from "../../content-review-feedback";
 
@@ -32,67 +35,57 @@ async function reviewDebateTexts(input: {
   | { ok: true; pending: PendingReviews }
   | {
       ok: false;
-      status: ContentReviewStatus;
-      issues: ContentReviewIssue[];
-      field: "Vitakérdés" | "Kiinduló álláspont" | "Vitakérdés és kiinduló álláspont";
+      status: "revision_required" | "under_review" | "advisory_language";
+      fieldBlocks: FieldReviewBlock[];
     }
 > {
-  const questionReview = await reviewTextBeforePublish({
-    text: input.question,
-    contextType: "debate_question",
-  });
+  const [questionReview, stanceReview] = await Promise.all([
+    reviewTextBeforePublish({
+      text: input.question,
+      contextType: "debate_question",
+    }),
+    reviewTextBeforePublish({
+      text: input.stance,
+      contextType: "initiator_stance",
+    }),
+  ]);
 
-  if (
-    questionReview.status === "revision_required" ||
-    questionReview.status === "under_review"
-  ) {
-    return {
-      ok: false,
+  const fields: FieldReviewBlock[] = [
+    {
+      fieldLabel: "Vitakérdés",
       status: questionReview.status,
       issues: questionReview.issues,
-      field: "Vitakérdés",
-    };
-  }
-
-  const stanceReview = await reviewTextBeforePublish({
-    text: input.stance,
-    contextType: "initiator_stance",
-  });
-
-  if (
-    stanceReview.status === "revision_required" ||
-    stanceReview.status === "under_review"
-  ) {
-    return {
-      ok: false,
+      reviewId: questionReview.review_id,
+    },
+    {
+      fieldLabel: "Kiinduló álláspont",
       status: stanceReview.status,
       issues: stanceReview.issues,
-      field: "Kiinduló álláspont",
+      reviewId: stanceReview.review_id,
+    },
+  ];
+
+  const blocking = fields.filter(
+    (field) =>
+      field.status === "revision_required" || field.status === "under_review",
+  );
+
+  if (blocking.length > 0) {
+    return {
+      ok: false,
+      status: blocking.some((field) => field.status === "under_review")
+        ? "under_review"
+        : "revision_required",
+      fieldBlocks: blocking,
     };
   }
 
-  if (
-    questionReview.status === "advisory_language" ||
-    stanceReview.status === "advisory_language"
-  ) {
+  const advisory = fields.filter((field) => field.status === "advisory_language");
+  if (advisory.length > 0) {
     return {
       ok: false,
       status: "advisory_language",
-      issues: [
-        ...(questionReview.status === "advisory_language"
-          ? questionReview.issues
-          : []),
-        ...(stanceReview.status === "advisory_language"
-          ? stanceReview.issues
-          : []),
-      ],
-      field:
-        questionReview.status === "advisory_language" &&
-        stanceReview.status === "advisory_language"
-          ? "Vitakérdés és kiinduló álláspont"
-          : questionReview.status === "advisory_language"
-            ? "Vitakérdés"
-            : "Kiinduló álláspont",
+      fieldBlocks: advisory,
     };
   }
 
@@ -114,7 +107,10 @@ export default function NewDebatePage() {
   const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
     null,
   );
-  const [reviewField, setReviewField] = useState<string | null>(null);
+  const [fieldBlocks, setFieldBlocks] = useState<FieldReviewBlock[] | null>(
+    null,
+  );
+  const [humanReviewDone, setHumanReviewDone] = useState(false);
   const [questionText, setQuestionText] = useState("");
   const [stanceText, setStanceText] = useState("");
   const [spellSuggestions, setSpellSuggestions] =
@@ -132,7 +128,8 @@ export default function NewDebatePage() {
   function clearReviewState() {
     setReviewIssues(null);
     setReviewStatus(null);
-    setReviewField(null);
+    setFieldBlocks(null);
+    setHumanReviewDone(false);
     setSpellSuggestions(null);
   }
 
@@ -211,13 +208,15 @@ export default function NewDebatePage() {
     try {
       const result = await reviewDebateTexts({ question, stance });
       if (!result.ok) {
-        setReviewIssues(result.issues);
+        setFieldBlocks(result.fieldBlocks);
         setReviewStatus(result.status);
-        setReviewField(result.field);
+        setReviewIssues(
+          result.fieldBlocks.flatMap((block) => block.issues),
+        );
         if (result.status === "under_review") {
           setError("A szöveg emberi felülvizsgálatot igényel.");
         } else if (result.status === "revision_required") {
-          setError(`A(z) ${result.field} jelenleg nem tehető közzé.`);
+          setError("Egy vagy több mező jelenleg nem tehető közzé.");
         }
         return;
       }
@@ -239,9 +238,11 @@ export default function NewDebatePage() {
       const stance = stanceText.trim();
       const result = await reviewDebateTexts({ question, stance });
       if (!result.ok) {
-        setReviewIssues(result.issues);
+        setFieldBlocks(result.fieldBlocks);
         setReviewStatus(result.status);
-        setReviewField(result.field);
+        setReviewIssues(
+          result.fieldBlocks.flatMap((block) => block.issues),
+        );
         setError("A szöveg továbbra sem tehető közzé.");
         return;
       }
@@ -308,9 +309,11 @@ export default function NewDebatePage() {
         stance: correctedStance,
       });
       if (!result.ok) {
-        setReviewIssues(result.issues);
+        setFieldBlocks(result.fieldBlocks);
         setReviewStatus(result.status);
-        setReviewField(result.field);
+        setReviewIssues(
+          result.fieldBlocks.flatMap((block) => block.issues),
+        );
         setError("A javított szöveg továbbra sem tehető közzé.");
         return;
       }
@@ -326,7 +329,34 @@ export default function NewDebatePage() {
     }
   }
 
+  async function submitHumanReviewRequest() {
+    if (!fieldBlocks?.length) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await requestHumanReview({
+        contentReviewIds: fieldBlocks.map((block) => block.reviewId),
+      });
+      setHumanReviewDone(true);
+      setReviewStatus("under_review");
+      setError(null);
+      setReviewIssues(null);
+      alert(result.message);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Felülvizsgálat kérése sikertelen",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const showAdvisoryActions = reviewStatus === "advisory_language";
+  const showBlockingActions =
+    (reviewStatus === "revision_required" || reviewStatus === "under_review") &&
+    fieldBlocks &&
+    fieldBlocks.length > 0 &&
+    !humanReviewDone;
 
   return (
     <>
@@ -385,11 +415,55 @@ export default function NewDebatePage() {
           Kijelentem, hogy a közzétett szöveg a saját megfogalmazásom, és
           felelősséget vállalok az állításaimért.
         </p>
-        {reviewField && reviewStatus !== "approved" && (
-          <p className="meta">Érintett mező: {reviewField}</p>
+        {fieldBlocks &&
+          fieldBlocks.length > 0 &&
+          (reviewStatus === "revision_required" ||
+            reviewStatus === "under_review") && (
+            <MultiFieldContentReviewFeedback
+              fieldBlocks={fieldBlocks}
+              overallStatus={reviewStatus}
+            />
+          )}
+        {reviewIssues &&
+          reviewStatus === "advisory_language" &&
+          fieldBlocks &&
+          fieldBlocks.length > 0 && (
+            <>
+              {fieldBlocks.map((block) => (
+                <div key={block.reviewId}>
+                  <p className="meta">{block.fieldLabel}</p>
+                  <ContentReviewFeedback
+                    issues={block.issues}
+                    status="advisory_language"
+                  />
+                </div>
+              ))}
+            </>
+          )}
+        {showBlockingActions && (
+          <div className="content-review-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={clearReviewState}
+            >
+              Vissza a szerkesztéshez
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={loading}
+              onClick={submitHumanReviewRequest}
+            >
+              {loading ? "Küldés…" : "Felülvizsgálat kérése"}
+            </button>
+          </div>
         )}
-        {reviewIssues && reviewStatus && (
-          <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
+        {humanReviewDone && (
+          <p className="hint">
+            Felülvizsgálati kérelmed rögzítve. Adminisztrátor dönt — addig a vita
+            nem jelenik meg nyilvánosan.
+          </p>
         )}
         {showAdvisoryActions && (
           <div className="content-review-actions">
@@ -469,7 +543,7 @@ export default function NewDebatePage() {
           </div>
         )}
         {error && <p className="error">{error}</p>}
-        {!showAdvisoryActions && (
+        {!showAdvisoryActions && !showBlockingActions && !humanReviewDone && (
           <button className="btn" type="submit" disabled={loading}>
             {loading ? "Folyamatban…" : "Vita létrehozása"}
           </button>
