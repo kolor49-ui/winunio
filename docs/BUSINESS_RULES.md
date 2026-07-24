@@ -301,6 +301,7 @@ Részletek: [MODERATION.md](MODERATION.md).
 - Helyesírás-ellenőrzés **opcionális**, külön kérésre; javítás csak résztvevői jóváhagyással.
 - AI vagy ellenőrzési hiba esetén a szöveg **nem** jelenhet meg ellenőrizetlenül.
 - A beillesztésvédelem **nem** bizonyítja a szerzőséget; célja a visszaélés megnehezítése.
+- **Helyesírás** nem blokkolja a közzétételt: a résztvevő dönti el, javít-e vagy javítás nélkül küldi be — ez az ő felelőssége. Helyesírási segítség csak külön, opcionális funkció (§3, Tervezett).
 
 ---
 

@@ -80,6 +80,7 @@ Ha az AI-ellenőrzés **nem fut le** (timeout, provider hiba, konfiguráció hi�
 
 - **Nem** álláspont-minősítés vagy érv-erősség pontozás — lásd [MODERATION.md](MODERATION.md) „A platform nem minősíti”.
 - **Nem** vitaösszefoglaló generálás — MVP-n kívül ([MVP_SCOPE.md](MVP_SCOPE.md)).
+- **Nem** helyesírás-ellenőrzés — elütés, ékezet, „zavaros” szöveg elütés miatt **nem** blokkol közzétételt. A javítás vagy javítás nélküli beküldés a **résztvevő döntése és felelőssége**. Helyesírási javaslat csak a külön §3 funkcióban (Tervezett).
 
 ---
 
