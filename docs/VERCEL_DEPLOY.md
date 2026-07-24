@@ -26,7 +26,19 @@ bash scripts/run-migrations.sh
 
 ## 4. Deploy / Redeploy
 
-Git push → auto deploy, vagy Vercel → **Redeploy**.
+**Ajánlott:** `git push origin main` → Vercel automatikus production deploy (ha a projekt GitHubhoz van kötve).
+
+Ha a push **HTTP 400** hibával elhasal (nagy commit history):
+
+```bash
+git -c http.postBuffer=524288000 push origin main
+```
+
+Alternatíva: SSH remote (`git@github.com:kolor49-ui/winunio.git`).
+
+Manuális deploy (GitHub nélkül): `npx vercel deploy --prod --yes`
+
+Vagy Vercel → **Redeploy**.
 
 ## 5. Ellenőrzés
 
