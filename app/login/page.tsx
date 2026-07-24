@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +16,7 @@ export default function LoginPage() {
       const res = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({
           email: form.get("email"),
           password: form.get("password"),
@@ -28,8 +27,8 @@ export default function LoginPage() {
         setError(data.error?.message ?? "Bejelentkezés sikertelen");
         return;
       }
-      router.push("/");
-      router.refresh();
+      // Teljes oldal újratöltés — így a session cookie biztosan érvényesül
+      window.location.href = "/";
     } catch {
       setError("Hálózati hiba");
     } finally {

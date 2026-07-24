@@ -148,6 +148,71 @@ export async function listDebates(sort: "new" | "popular" = "new") {
   return rows.map(formatDebateListItem);
 }
 
+export type UserDebateListItem = {
+  id: string;
+  question: string;
+  category: string;
+  status: string;
+  created_at: string;
+  involvement: "initiator" | "participant" | "applicant";
+  side: "A" | "B" | null;
+  application_status: string | null;
+};
+
+export async function listUserDebates(userId: string): Promise<UserDebateListItem[]> {
+  const sql = getSql();
+
+  const rows = await sql<
+    {
+      id: string;
+      question: string;
+      category: string;
+      status: string;
+      created_at: Date;
+      involvement: "initiator" | "participant" | "applicant";
+      side: "A" | "B" | null;
+      application_status: string | null;
+    }[]
+  >`
+    SELECT
+      d.id,
+      d.question,
+      d.category,
+      d.status::text AS status,
+      d.created_at,
+      CASE
+        WHEN d.initiator_id = ${userId} THEN 'initiator'
+        WHEN dp.user_id IS NOT NULL THEN 'participant'
+        ELSE 'applicant'
+      END AS involvement,
+      dp.side::text AS side,
+      da.status::text AS application_status
+    FROM debates d
+    LEFT JOIN debate_participants dp
+      ON dp.debate_id = d.id AND dp.user_id = ${userId}
+    LEFT JOIN debate_applications da
+      ON da.debate_id = d.id AND da.user_id = ${userId}
+    WHERE d.status NOT IN ('cancelled', 'draft')
+      AND (
+        d.initiator_id = ${userId}
+        OR dp.user_id IS NOT NULL
+        OR da.user_id IS NOT NULL
+      )
+    ORDER BY d.created_at DESC
+  `;
+
+  return rows.map((row) => ({
+    id: row.id,
+    question: row.question,
+    category: row.category,
+    status: row.status,
+    created_at: row.created_at.toISOString(),
+    involvement: row.involvement,
+    side: row.side,
+    application_status: row.application_status,
+  }));
+}
+
 function formatDebateListItem(row: {
   id: string;
   question: string;

@@ -9,10 +9,13 @@ type BeforeInstallPromptEvent = Event & {
 
 export function PwaSetup() {
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // SW optional for basic browsing
-    });
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    const timer = window.setTimeout(() => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // SW optional for basic browsing
+      });
+    }, 1500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return null;

@@ -90,10 +90,10 @@ export default async function DebatePage({ params }: Props) {
         <ReportButton debateId={debate.id} />
       </div>
 
-      {debate.partner_stance && debate.status !== "active" && (
+      {debate.partner_stance && (
         <div className="card">
           <p>
-            <span className="side-badge side-b">B</span> partner álláspontja
+            <span className="side-badge side-b">B</span> kiinduló álláspont
           </p>
           <p>{debate.partner_stance}</p>
         </div>

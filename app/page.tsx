@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getSession } from "@/server/api/http";
-import { listDebates } from "@/server/services/debate-service";
+import { listDebates, listUserDebates } from "@/server/services/debate-service";
 import { getUserById } from "@/server/services/auth-service";
+import { MyDebatesList } from "./my-debates-list";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ const STATUS_LABELS: Record<string, string> = {
   invitation_pending: "Meghívás folyamatban",
   active: "Aktív vita",
   waiting_for_continuation: "Folytatásra vár",
+  awaiting_closure: "Zárásra vár",
   completed: "Lezárva",
   cancelled: "Visszavonva",
   under_review: "Felülvizsgálat alatt",
@@ -22,7 +24,23 @@ export default async function HomePage({ searchParams }: Props) {
   let debates: Awaited<ReturnType<typeof listDebates>> = [];
   let dbError: string | null = null;
   const session = await getSession();
-  const user = session ? await getUserById(session.userId) : null;
+  let user: Awaited<ReturnType<typeof getUserById>> = null;
+  if (session) {
+    try {
+      user = await getUserById(session.userId);
+    } catch (error) {
+      console.error("HomePage user load failed:", error);
+    }
+  }
+
+  let myDebates: Awaited<ReturnType<typeof listUserDebates>> = [];
+  if (session) {
+    try {
+      myDebates = await listUserDebates(session.userId);
+    } catch (error) {
+      console.error("HomePage my debates load failed:", error);
+    }
+  }
 
   try {
     debates = await listDebates("new");
@@ -46,10 +64,12 @@ export default async function HomePage({ searchParams }: Props) {
       )}
 
       {user ? (
-        <p className="hint">
-          Bejelentkezve: <strong>{user.email}</strong> — kattints egy vitára a
-          jelentkezéshez vagy kezeléshez.
-        </p>
+        <>
+          <p className="hint">
+            Bejelentkezve: <strong>{user.email}</strong>
+          </p>
+          <MyDebatesList debates={myDebates} id="vitaim" showEmpty />
+        </>
       ) : (
         <p className="hint">
           <Link href="/login">Jelentkezz be</Link>, ha partnernek szeretnél
@@ -74,7 +94,9 @@ export default async function HomePage({ searchParams }: Props) {
           <Link href="/debates/new">Indítsd az elsőt →</Link>
         </div>
       ) : !dbError ? (
-        debates.map((d) => (
+        <>
+          {user && debates.length > 0 && <h2 className="section-title">Nyitott viták</h2>}
+          {debates.map((d) => (
           <Link
             key={d.id}
             href={`/debates/${d.id}`}
@@ -88,7 +110,8 @@ export default async function HomePage({ searchParams }: Props) {
               <p className="hint">Megnyitás →</p>
             </article>
           </Link>
-        ))
+          ))}
+        </>
       ) : null}
     </>
   );

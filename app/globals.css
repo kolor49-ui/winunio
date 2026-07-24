@@ -264,6 +264,16 @@ a {
   font-size: 1.125rem;
 }
 
+.section-title {
+  margin: 2rem 0 1rem;
+  font-size: 1.25rem;
+}
+
+.my-debate-action {
+  border-left: 3px solid var(--color-a);
+  padding-left: 0.75rem;
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

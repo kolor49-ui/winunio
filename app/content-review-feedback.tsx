@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  formatIssueCategory,
+  formatRuleReference,
+} from "./review-labels";
+
 export type ContentReviewIssue = {
   excerpt: string;
   start: number;
@@ -53,44 +58,7 @@ export type FieldReviewBlock = {
   reviewId: string;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  personal_attack: "személyeskedés",
-  profanity: "trágárság",
-  insult: "sértés",
-  harassment: "zaklatás",
-  threat: "fenyegetés",
-  hate: "gyűlöletkeltés",
-  revision_required: "viselkedésszabály-sértés",
-};
-
-export function formatIssueCategory(category: string): string {
-  const key = category.toLowerCase().trim();
-  return CATEGORY_LABELS[key] ?? category.replaceAll("_", " ");
-}
-
-const RULE_DOC_LABELS: Record<string, string> = {
-  CONTENT_EDITOR: "Tartalom-ellenőrzési szabályzat",
-  BUSINESS_RULES: "Viselkedésszabályzat",
-  MODERATION: "Moderációs szabályzat",
-  ABUSE_PREVENTION: "Visszaélés-megelőzési szabályzat",
-};
-
-export function formatRuleReference(ruleReference: string): string {
-  const trimmed = ruleReference.trim();
-  if (!trimmed) return "Platformszabály";
-
-  const match = trimmed.match(/^([A-Za-z_]+)\s*§\s*(\d+)\s*$/);
-  if (match) {
-    const docKey = match[1].toUpperCase();
-    const section = match[2];
-    const docLabel = RULE_DOC_LABELS[docKey];
-    if (docLabel) {
-      return `${docLabel}, ${section}. pont`;
-    }
-  }
-
-  return trimmed.replaceAll("_", " ");
-}
+export { formatIssueCategory, formatRuleReference };
 
 function formatIssueMeta(issue: ContentReviewIssue): string {
   return [
