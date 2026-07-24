@@ -8,6 +8,8 @@
 | `AUTH_SECRET` | `openssl rand -base64 32` (min. 32 karakter) |
 | `NEXT_PUBLIC_APP_URL` | `https://winunio.vercel.app` (a te production URL-ed) |
 | `CRON_SECRET` | `openssl rand -base64 32` — Vercel Cron hitelesítéshez |
+| `OPENAI_API_KEY` | OpenAI → [API Keys](https://platform.openai.com/api-keys) — `sk-…` |
+| `OPENAI_MODEL` | Alapértelmezés: `gpt-4o-mini` (tartalom-ellenőrzés) |
 
 Mind: **Production** + **Preview**.
 
@@ -32,7 +34,21 @@ Git push → auto deploy, vagy Vercel → **Redeploy**.
 https://TE-DOMAIN.vercel.app/api/v1/health
 ```
 
-Válasz: `{"status":"ok","database":"connected"}`
+Válasz: `{"status":"ok","database":"connected", "content_review": { "ready": true, ... }}`
+
+OpenAI külön:
+
+```
+https://TE-DOMAIN.vercel.app/api/v1/health/content-review
+```
+
+Lokálisan a kulcs tesztelése:
+
+```bash
+# .env: OPENAI_API_KEY=sk-...
+node scripts/test-openai.mjs
+node scripts/sync-vercel-env.mjs   # Vercel env + redeploy
+```
 
 ## Gyakori hibák
 
@@ -43,3 +59,5 @@ Válasz: `{"status":"ok","database":"connected"}`
 | relation "debates" does not exist | `bash scripts/run-migrations.sh` Neon URL-lel |
 | Auth hiba | `AUTH_SECRET` min. 32 karakter |
 | Cron 401 | `CRON_SECRET` beállítva + redeploy; Vercel automatikusan küldi `Authorization: Bearer …` |
+| „Az ellenőrzés most nem érhető el” | `OPENAI_API_KEY` hiányzik Vercelen → add hozzá + redeploy |
+| OpenAI 401 | Érvénytelen vagy visszavont kulcs |

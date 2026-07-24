@@ -2,6 +2,8 @@ import { checkDatabaseConnection } from "@/server/health";
 import {
   checkAppUrlReadiness,
   checkEmailEnvReadiness,
+  checkOpenAiApiReadiness,
+  checkOpenAiEnvReadiness,
   checkResendApiReadiness,
 } from "@/server/env-readiness";
 import {
@@ -48,5 +50,18 @@ export async function getRegistrationReadiness() {
         ? sandboxRegistrationMessage()
         : "Teszt küldő (onboarding@resend.dev): levél csak a Resend-fiók e-mail címére megy."
       : null,
+  };
+}
+
+export async function getContentReviewReadiness() {
+  const env = checkOpenAiEnvReadiness();
+  const api = env.ok ? await checkOpenAiApiReadiness() : { ...env, model: null };
+
+  return {
+    ready: api.ok,
+    provider: "openai",
+    model: api.model ?? readEnv("OPENAI_MODEL") ?? "gpt-4o-mini",
+    api_key_set: Boolean(readEnv("OPENAI_API_KEY")),
+    issues: api.issues,
   };
 }

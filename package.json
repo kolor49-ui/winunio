@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "bash scripts/run-migrations.sh"
+    "db:migrate": "bash scripts/run-migrations.sh",
+    "test:openai": "node scripts/test-openai.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",

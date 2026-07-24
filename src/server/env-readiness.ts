@@ -79,3 +79,67 @@ export async function checkResendApiReadiness(): Promise<ReadinessCheck> {
     return { ok: false, issues: ["Resend API nem elérhető"] };
   }
 }
+
+export function checkOpenAiEnvReadiness(): ReadinessCheck {
+  const issues: string[] = [];
+  const apiKey = readEnv("OPENAI_API_KEY");
+  const model = readEnv("OPENAI_MODEL") ?? "gpt-4o-mini";
+
+  if (!apiKey) {
+    issues.push("OPENAI_API_KEY nincs beállítva");
+  } else if (!apiKey.startsWith("sk-")) {
+    issues.push("OPENAI_API_KEY formátum hibás (sk-… várható)");
+  }
+
+  if (!model.trim()) {
+    issues.push("OPENAI_MODEL üres");
+  }
+
+  return { ok: issues.length === 0, issues };
+}
+
+export async function checkOpenAiApiReadiness(): Promise<
+  ReadinessCheck & { model: string | null }
+> {
+  const envCheck = checkOpenAiEnvReadiness();
+  const model = readEnv("OPENAI_MODEL") ?? "gpt-4o-mini";
+  if (!envCheck.ok) {
+    return { ...envCheck, model: model || null };
+  }
+
+  const apiKey = readEnv("OPENAI_API_KEY")!;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/models", {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "User-Agent": "winunio-readiness/1.0",
+      },
+    });
+
+    if (res.status === 401) {
+      return {
+        ok: false,
+        issues: ["OpenAI elutasítja az API kulcsot (401 invalid)"],
+        model,
+      };
+    }
+
+    if (!res.ok) {
+      const body = await res.text();
+      return {
+        ok: false,
+        issues: [`OpenAI API hiba: ${res.status} ${body.slice(0, 120)}`],
+        model,
+      };
+    }
+
+    return { ok: true, issues: [], model };
+  } catch {
+    return {
+      ok: false,
+      issues: ["OpenAI API nem elérhető"],
+      model,
+    };
+  }
+}
