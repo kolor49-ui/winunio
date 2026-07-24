@@ -325,18 +325,3 @@ export function DebateRoundPanel({
     </>
   );
 }
-
-/** Whether the sticky audience bar should offer B-response notification. */
-export function shouldShowNotifyBar(
-  debateStatus: string,
-  participantSide: string | null,
-  activeRound: ActiveRound | null,
-): boolean {
-  return (
-    debateStatus === "active" &&
-    participantSide === null &&
-    activeRound?.phase === "awaiting_b"
-  );
-}
-
-export type { ActiveRound };

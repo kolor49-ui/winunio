@@ -4,8 +4,8 @@ import { ClosingStatementPanel } from "./closing-statement-panel";
 import { DebatePartnerPanel } from "./debate-partner-panel";
 import {
   DebateRoundPanel,
-  shouldShowNotifyBar,
 } from "./debate-round-panel";
+import { shouldShowNotifyBar } from "./debate-audience";
 import { ReportButton } from "../../report-button";
 import { DebatePair, DebatePairSide } from "../debate-pair";
 import { getSession } from "@/server/api/http";
