@@ -3,6 +3,7 @@ import { ClosingStatementPanel } from "./closing-statement-panel";
 import { ContinuationPanel } from "./continuation-panel";
 import { DebatePartnerPanel } from "./debate-partner-panel";
 import { DebateRoundPanel } from "./debate-round-panel";
+import { ReportButton } from "../../report-button";
 import { getSession } from "@/server/api/http";
 import { getDebateById } from "@/server/services/debate-service";
 import {
@@ -86,6 +87,7 @@ export default async function DebatePage({ params }: Props) {
           <span className="side-badge side-a">A</span> kiinduló álláspont
         </p>
         <p>{debate.initiator_stance}</p>
+        <ReportButton debateId={debate.id} />
       </div>
 
       {debate.partner_stance && debate.status !== "active" && (
@@ -109,6 +111,7 @@ export default async function DebatePage({ params }: Props) {
       />
 
       <DebateRoundPanel
+        debateId={debate.id}
         debateStatus={debate.status}
         participantSide={roundContext.participant_side}
         viewerUserId={session?.userId ?? null}

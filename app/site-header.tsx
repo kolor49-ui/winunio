@@ -25,6 +25,9 @@ export async function SiteHeader() {
           {user ? (
             <>
               <Link href="/account">Fiók</Link>
+              {user.is_admin && (
+                <Link href="/admin/moderation">Moderáció</Link>
+              )}
               {!user.email_verified && (
                 <Link href="/verify-email" className="nav-verify">
                   E-mail megerősítés

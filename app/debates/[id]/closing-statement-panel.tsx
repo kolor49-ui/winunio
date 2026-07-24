@@ -5,7 +5,9 @@ import { useState } from "react";
 import {
   ContentReviewFeedback,
   extractContentReviewIssues,
+  extractContentReviewStatus,
   type ContentReviewIssue,
+  type ContentReviewStatus,
 } from "../../content-review-feedback";
 
 export type ClosingStatementContext = {
@@ -32,14 +34,16 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
   const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
     null,
   );
-  const [reviewBlocked, setReviewBlocked] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setReviewIssues(null);
-    setReviewBlocked(false);
+    setReviewStatus(null);
     setLoading(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -56,7 +60,9 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
         const issues = extractContentReviewIssues(data);
         if (issues) {
           setReviewIssues(issues);
-          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
+          setReviewStatus(
+            extractContentReviewStatus(data) ?? "revision_required",
+          );
         }
         setError(data.error?.message ?? "Beküldés sikertelen");
         return;
@@ -107,11 +113,8 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
             Zárógondolatod
             <textarea name="content" required maxLength={2000} />
           </label>
-          {reviewIssues && (
-            <ContentReviewFeedback
-              issues={reviewIssues}
-              blocked={reviewBlocked}
-            />
+          {reviewIssues && reviewStatus && (
+            <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
           )}
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit" disabled={loading}>

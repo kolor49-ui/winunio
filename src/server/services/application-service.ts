@@ -12,6 +12,7 @@ const ROUND_DEADLINE_HOURS = 72;
 
 const applySchema = z.object({
   stance: z.string().min(1).max(2000),
+  content_review_id: z.string().uuid().optional(),
 });
 
 export function parseApplyBody(body: unknown) {
@@ -34,6 +35,7 @@ export async function applyToDebate(
   debateId: string,
   userId: string,
   stance: string,
+  contentReviewId?: string,
 ) {
   const sql = getSql();
   const trimmed = stance.trim();
@@ -43,6 +45,8 @@ export async function applyToDebate(
     contextType: "application_stance",
     contextId: debateId,
     text: trimmed,
+    contentReviewId,
+    debateId,
   });
 
   return sql.begin(async (tx) => {

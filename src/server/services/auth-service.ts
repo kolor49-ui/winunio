@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getSql } from "@/server/db";
 import { hashPassword } from "@/server/auth/password";
+import { ensureBootstrapAdmin } from "@/server/services/bootstrap-admin-service";
 
 const registerSchema = z.object({
   email: z.string().email().max(320),
@@ -20,8 +21,8 @@ export async function registerUser(input: RegisterInput) {
   const email = input.email.toLowerCase().trim();
 
   try {
-    return await sql.begin(async (tx) => {
-      const [user] = await tx<{ id: string; email: string; created_at: Date }[]>`
+    const user = await sql.begin(async (tx) => {
+      const [row] = await tx<{ id: string; email: string; created_at: Date }[]>`
         INSERT INTO users (email, password_hash)
         VALUES (${email}, ${passwordHash})
         RETURNING id, email, created_at
@@ -30,18 +31,21 @@ export async function registerUser(input: RegisterInput) {
       await tx`
         INSERT INTO public_profiles (user_id, display_name, is_anonymous)
         VALUES (
-          ${user.id},
+          ${row.id},
           ${input.display_name ?? null},
           ${input.display_name ? false : true}
         )
       `;
 
       return {
-        id: user.id,
-        email: user.email,
-        created_at: user.created_at.toISOString(),
+        id: row.id,
+        email: row.email,
+        created_at: row.created_at.toISOString(),
       };
     });
+
+    await ensureBootstrapAdmin(user.id, user.email);
+    return user;
   } catch (err: unknown) {
     if (
       err &&
@@ -84,6 +88,8 @@ export async function authenticateUser(email: string, password: string) {
   const ok = await verifyPassword(password, user.password_hash);
   if (!ok) return null;
 
+  await ensureBootstrapAdmin(user.id, user.email);
+
   return { id: user.id, email: user.email };
 }
 
@@ -95,15 +101,18 @@ export async function getUserById(userId: string) {
       email: string;
       email_verified_at: Date | null;
       phone_verified_at: Date | null;
+      is_admin: boolean;
       created_at: Date;
     }[]
   >`
-    SELECT id, email, email_verified_at, phone_verified_at, created_at
+    SELECT id, email, email_verified_at, phone_verified_at, is_admin, created_at
     FROM users
     WHERE id = ${userId} AND status = 'active'
     LIMIT 1
   `;
   if (!user) return null;
+
+  await ensureBootstrapAdmin(user.id, user.email);
 
   const [profile] = await sql<
     { display_name: string | null; is_anonymous: boolean }[]
@@ -114,11 +123,16 @@ export async function getUserById(userId: string) {
     LIMIT 1
   `;
 
+  const [fresh] = await sql<{ is_admin: boolean }[]>`
+    SELECT is_admin FROM users WHERE id = ${userId} LIMIT 1
+  `;
+
   return {
     id: user.id,
     email: user.email,
     email_verified: user.email_verified_at !== null,
     phone_verified: user.phone_verified_at !== null,
+    is_admin: fresh?.is_admin ?? false,
     display_name: profile?.display_name ?? null,
     is_anonymous: profile?.is_anonymous ?? true,
     created_at: user.created_at.toISOString(),

@@ -66,15 +66,16 @@ Winunio/
 3. ~~Állapotgép tesztek a `STATE_MACHINE.md` alapján.~~ → `npm test`
 4. ~~Next.js scaffold + auth + első API végpontok.~~ → `npm run dev`
 
-## App futtatás
+## App futtatás (3 lépés)
 
 ```bash
-cp .env.example .env   # DATABASE_URL + AUTH_SECRET
-npm run db:migrate     # ha még nem futott a 000003
+cp .env.example .env    # DATABASE_URL, AUTH_SECRET, WINUNIO_BOOTSTRAP_ADMIN_EMAIL
 npm install
-npm run dev
+npm run dev             # migráció automatikus + szerver :3001
 ```
 
-Nyisd meg: http://localhost:3000
+Nyisd meg: http://localhost:3001
 
-API: `/api/v1/health`, `/api/v1/auth/*`, `/api/v1/debates`
+**Admin:** add hozzá a `.env`-hez a saját e-mailedet (`WINUNIO_BOOTSTRAP_ADMIN_EMAIL=`), jelentkezz be — a fejlécben megjelenik a **Moderáció** link. Külön SQL vagy `psql` **nem kell**.
+
+Deploy (Vercel): a migráció a build során automatikusan lefut; állítsd be ugyanazt az env változót a Vercel Dashboardon.

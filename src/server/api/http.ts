@@ -5,6 +5,7 @@ import {
   type SessionPayload,
 } from "@/server/auth/session";
 import { getSql } from "@/server/db";
+import { ensureBootstrapAdmin } from "@/server/services/bootstrap-admin-service";
 
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
@@ -34,6 +35,9 @@ export async function requireActiveUser(session: SessionPayload) {
   if (!user || user.status !== "active") {
     throw new ApiError(401, "UNAUTHORIZED", "Érvénytelen munkamenet");
   }
+
+  await ensureBootstrapAdmin(user.id, user.email);
+
   return user;
 }
 

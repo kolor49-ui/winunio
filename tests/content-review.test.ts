@@ -3,14 +3,23 @@ import { ApiError } from "@/server/api/http";
 import {
   callOpenAiContentReview,
   contentReviewResultSchema,
-  throwIfContentNotApproved,
+  throwIfContentNotPublishable,
 } from "@/server/services/content-review-service";
 
 describe("content-review-service", () => {
-  describe("throwIfContentNotApproved", () => {
+  describe("throwIfContentNotPublishable", () => {
     it("passes when approved", () => {
       expect(() =>
-        throwIfContentNotApproved({ status: "approved", issues: [] }),
+        throwIfContentNotPublishable({ status: "approved", issues: [] }),
+      ).not.toThrow();
+    });
+
+    it("passes when advisory_language", () => {
+      expect(() =>
+        throwIfContentNotPublishable({
+          status: "advisory_language",
+          issues: [],
+        }),
       ).not.toThrow();
     });
 
@@ -25,7 +34,7 @@ describe("content-review-service", () => {
       };
 
       try {
-        throwIfContentNotApproved({
+        throwIfContentNotPublishable({
           status: "revision_required",
           issues: [issue],
         });
@@ -44,10 +53,10 @@ describe("content-review-service", () => {
       }
     });
 
-    it("throws blocked for severe violations", () => {
+    it("throws under_review for uncertain or severe cases", () => {
       try {
-        throwIfContentNotApproved({
-          status: "blocked",
+        throwIfContentNotPublishable({
+          status: "under_review",
           issues: [
             {
               excerpt: "Megöllek",
@@ -62,7 +71,7 @@ describe("content-review-service", () => {
         expect.fail("should throw");
       } catch (error) {
         expect(error).toBeInstanceOf(ApiError);
-        expect((error as ApiError).code).toBe("CONTENT_BLOCKED");
+        expect((error as ApiError).code).toBe("CONTENT_UNDER_REVIEW");
       }
     });
   });

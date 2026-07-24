@@ -5,8 +5,11 @@ import { useState } from "react";
 import {
   ContentReviewFeedback,
   extractContentReviewIssues,
+  extractContentReviewStatus,
   type ContentReviewIssue,
+  type ContentReviewStatus,
 } from "../../content-review-feedback";
+import { ReportButton } from "../../report-button";
 
 type ActiveRound = {
   id: string;
@@ -18,6 +21,7 @@ type ActiveRound = {
     content: string;
     is_system_placeholder: boolean;
     published_at: string;
+    argument_id: string;
   }>;
   my_submission: {
     content: string;
@@ -34,10 +38,12 @@ type PublishedRound = {
     side: string;
     content: string;
     is_system_placeholder: boolean;
+    argument_id: string;
   }>;
 };
 
 type Props = {
+  debateId: string;
   debateStatus: string;
   participantSide: string | null;
   viewerUserId: string | null;
@@ -48,9 +54,13 @@ type Props = {
 function SideBlock({
   side,
   content,
+  argumentId,
+  debateId,
 }: {
   side: string;
   content: string;
+  argumentId?: string;
+  debateId?: string;
 }) {
   return (
     <div className="round-side-block">
@@ -62,11 +72,15 @@ function SideBlock({
         </span>
       </p>
       <p>{content}</p>
+      {!content.startsWith("[Eltávolítva") && argumentId && (
+        <ReportButton debateId={debateId} argumentId={argumentId} />
+      )}
     </div>
   );
 }
 
 export function DebateRoundPanel({
+  debateId,
   debateStatus,
   participantSide,
   viewerUserId,
@@ -78,7 +92,9 @@ export function DebateRoundPanel({
   const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
     null,
   );
-  const [reviewBlocked, setReviewBlocked] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [notifyInfo, setNotifyInfo] = useState<string | null>(null);
@@ -88,7 +104,7 @@ export function DebateRoundPanel({
     if (!activeRound) return;
     setError(null);
     setReviewIssues(null);
-    setReviewBlocked(false);
+    setReviewStatus(null);
     setLoading(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -102,7 +118,9 @@ export function DebateRoundPanel({
         const issues = extractContentReviewIssues(data);
         if (issues) {
           setReviewIssues(issues);
-          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
+          setReviewStatus(
+            extractContentReviewStatus(data) ?? "revision_required",
+          );
         }
         setError(data.error?.message ?? "Beküldés sikertelen");
         return;
@@ -152,6 +170,8 @@ export function DebateRoundPanel({
               key={side.side}
               side={side.side}
               content={side.content}
+              argumentId={side.argument_id}
+              debateId={debateId}
             />
           ))}
         </div>
@@ -166,7 +186,13 @@ export function DebateRoundPanel({
           </p>
 
           {activeRound.published_sides.map((side) => (
-            <SideBlock key={side.side} side={side.side} content={side.content} />
+            <SideBlock
+              key={side.side}
+              side={side.side}
+              content={side.content}
+              argumentId={side.argument_id}
+              debateId={debateId}
+            />
           ))}
 
           {activeRound.phase === "awaiting_b" && (
@@ -181,10 +207,10 @@ export function DebateRoundPanel({
                   : "Válaszod B oldalról"}
                 <textarea name="content" required maxLength={2000} />
               </label>
-              {reviewIssues && (
+              {reviewIssues && reviewStatus && (
                 <ContentReviewFeedback
                   issues={reviewIssues}
-                  blocked={reviewBlocked}
+                  status={reviewStatus}
                 />
               )}
               {error && <p className="error">{error}</p>}

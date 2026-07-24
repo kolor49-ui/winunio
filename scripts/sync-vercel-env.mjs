@@ -53,6 +53,11 @@ if (local.OPENAI_API_KEY) {
   );
 }
 
+if (local.WINUNIO_BOOTSTRAP_ADMIN_EMAIL) {
+  productionValues.WINUNIO_BOOTSTRAP_ADMIN_EMAIL =
+    local.WINUNIO_BOOTSTRAP_ADMIN_EMAIL;
+}
+
 const required = Object.keys(productionValues);
 const missing = required.filter((key) => !productionValues[key]);
 if (missing.length) {

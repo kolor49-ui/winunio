@@ -6,6 +6,7 @@ import { assertContentApprovedForPublication } from "@/server/services/content-r
 
 const closingStatementSchema = z.object({
   content: z.string().min(1).max(2000),
+  content_review_id: z.string().uuid().optional(),
 });
 
 export function parseClosingStatementBody(body: unknown) {
@@ -92,6 +93,7 @@ export async function submitClosingStatement(
   debateId: string,
   userId: string,
   content: string,
+  contentReviewId?: string,
 ) {
   const sql = getSql();
   const trimmed = content.trim();
@@ -101,6 +103,8 @@ export async function submitClosingStatement(
     contextType: "closing_statement",
     contextId: debateId,
     text: trimmed,
+    contentReviewId,
+    debateId,
   });
 
   return sql.begin(async (tx) => {

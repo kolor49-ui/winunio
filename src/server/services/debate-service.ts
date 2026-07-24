@@ -8,6 +8,7 @@ const createDebateSchema = z.object({
   category: z.string().min(1).max(80),
   display_mode: z.enum(["named", "anonymous"]),
   display_name: z.string().min(1).max(80).optional(),
+  content_review_id: z.string().uuid().optional(),
 });
 
 export type CreateDebateInput = z.infer<typeof createDebateSchema>;
@@ -30,6 +31,7 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
     userId,
     contextType: "initiator_stance",
     text: input.initiator_stance.trim(),
+    contentReviewId: input.content_review_id,
   });
 
   return sql.begin(async (tx) => {

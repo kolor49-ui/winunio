@@ -9,6 +9,7 @@ import { sendBResponseNotifications } from "@/server/services/notification-servi
 
 const submitArgumentSchema = z.object({
   content: z.string().min(1).max(2000),
+  content_review_id: z.string().uuid().optional(),
 });
 
 export function parseSubmitArgumentBody(body: unknown) {
@@ -19,6 +20,7 @@ export async function submitArgument(
   roundId: string,
   userId: string,
   content: string,
+  contentReviewId?: string,
 ) {
   const sql = getSql();
   const trimmed = content.trim();
@@ -28,6 +30,8 @@ export async function submitArgument(
     contextType: "argument",
     contextId: roundId,
     text: trimmed,
+    contentReviewId,
+    roundId,
   });
 
   const result = await sql.begin(async (tx) => {
@@ -225,6 +229,7 @@ export async function getViewerRoundContext(
       content: string;
       is_system_placeholder: boolean;
       published_at: string;
+      argument_id: string;
     }>;
     my_submission: {
       content: string;
@@ -242,10 +247,12 @@ export async function getViewerRoundContext(
         is_system_placeholder: boolean;
         published_at: Date;
         participant_id: string;
+        argument_id: string;
       }[]
     >`
       SELECT
         dp.side::text AS side,
+        a.id AS argument_id,
         a.content,
         a.is_system_placeholder,
         a.published_at,
@@ -303,6 +310,7 @@ export async function getViewerRoundContext(
         content: row.content,
         is_system_placeholder: row.is_system_placeholder,
         published_at: row.published_at.toISOString(),
+        argument_id: row.argument_id,
       })),
       my_submission: mySubmission,
       can_submit: canSubmit,
@@ -317,6 +325,7 @@ export async function getViewerRoundContext(
       side: string;
       content: string;
       is_system_placeholder: boolean;
+      argument_id: string;
     }[]
   >`
     SELECT
@@ -324,6 +333,7 @@ export async function getViewerRoundContext(
       r.round_number,
       r.published_at,
       dp.side::text AS side,
+      a.id AS argument_id,
       a.content,
       a.is_system_placeholder
     FROM rounds r
@@ -345,6 +355,7 @@ export async function getViewerRoundContext(
         side: string;
         content: string;
         is_system_placeholder: boolean;
+        argument_id: string;
       }>;
     }
   >();
@@ -355,6 +366,7 @@ export async function getViewerRoundContext(
       side: row.side,
       content: row.content,
       is_system_placeholder: row.is_system_placeholder,
+      argument_id: row.argument_id,
     };
     if (existing) {
       existing.sides.push(sideEntry);

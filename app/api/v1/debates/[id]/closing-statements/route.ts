@@ -18,6 +18,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       debateId,
       user.id,
       parsed.content,
+      parsed.content_review_id,
     );
     return jsonOk(result);
   } catch (error) {

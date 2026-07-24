@@ -5,7 +5,9 @@ import { useState } from "react";
 import {
   ContentReviewFeedback,
   extractContentReviewIssues,
+  extractContentReviewStatus,
   type ContentReviewIssue,
+  type ContentReviewStatus,
 } from "../../content-review-feedback";
 
 type Application = {
@@ -54,7 +56,9 @@ export function DebatePartnerPanel({
   const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
     null,
   );
-  const [reviewBlocked, setReviewBlocked] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
+    null,
+  );
   const [loading, setLoading] = useState<string | null>(null);
 
   const isInvitee =
@@ -70,7 +74,7 @@ export function DebatePartnerPanel({
     }
     setError(null);
     setReviewIssues(null);
-    setReviewBlocked(false);
+    setReviewStatus(null);
     setLoading("apply");
     const form = new FormData(e.currentTarget);
     try {
@@ -84,7 +88,9 @@ export function DebatePartnerPanel({
         const issues = extractContentReviewIssues(data);
         if (issues) {
           setReviewIssues(issues);
-          setReviewBlocked(data.error?.code === "CONTENT_BLOCKED");
+          setReviewStatus(
+            extractContentReviewStatus(data) ?? "revision_required",
+          );
         }
         setError(data.error?.message ?? "Jelentkezés sikertelen");
         return;
@@ -256,11 +262,8 @@ export function DebatePartnerPanel({
             Rövid álláspontod (B oldal)
             <textarea name="stance" required maxLength={2000} />
           </label>
-          {reviewIssues && (
-            <ContentReviewFeedback
-              issues={reviewIssues}
-              blocked={reviewBlocked}
-            />
+          {reviewIssues && reviewStatus && (
+            <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
           )}
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit" disabled={loading === "apply"}>
