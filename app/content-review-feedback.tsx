@@ -68,6 +68,38 @@ export function formatIssueCategory(category: string): string {
   return CATEGORY_LABELS[key] ?? category.replaceAll("_", " ");
 }
 
+const RULE_DOC_LABELS: Record<string, string> = {
+  CONTENT_EDITOR: "Tartalom-ellenőrzési szabályzat",
+  BUSINESS_RULES: "Viselkedésszabályzat",
+  MODERATION: "Moderációs szabályzat",
+  ABUSE_PREVENTION: "Visszaélés-megelőzési szabályzat",
+};
+
+export function formatRuleReference(ruleReference: string): string {
+  const trimmed = ruleReference.trim();
+  if (!trimmed) return "Platformszabály";
+
+  const match = trimmed.match(/^([A-Za-z_]+)\s*§\s*(\d+)\s*$/);
+  if (match) {
+    const docKey = match[1].toUpperCase();
+    const section = match[2];
+    const docLabel = RULE_DOC_LABELS[docKey];
+    if (docLabel) {
+      return `${docLabel}, ${section}. pont`;
+    }
+  }
+
+  return trimmed.replaceAll("_", " ");
+}
+
+function formatIssueMeta(issue: ContentReviewIssue): string {
+  return [
+    `Probléma: ${formatIssueCategory(issue.category)}`,
+    formatRuleReference(issue.rule_reference),
+    issue.explanation,
+  ].join(" · ");
+}
+
 function IssueList({ issues }: { issues: ContentReviewIssue[] }) {
   if (issues.length === 0) return null;
   return (
@@ -77,10 +109,7 @@ function IssueList({ issues }: { issues: ContentReviewIssue[] }) {
           <p>
             <strong>„{issue.excerpt}”</strong>
           </p>
-          <p className="meta">
-            Probléma: {formatIssueCategory(issue.category)} —{" "}
-            {issue.rule_reference} — {issue.explanation}
-          </p>
+          <p className="meta">{formatIssueMeta(issue)}</p>
         </li>
       ))}
     </ul>
@@ -175,7 +204,7 @@ export function ContentReviewFeedback({
                   <strong>„{issue.excerpt}”</strong>
                 </p>
                 <p className="meta">
-                  {issue.rule_reference} — {issue.explanation}
+                  {formatRuleReference(issue.rule_reference)} · {issue.explanation}
                 </p>
               </li>
             ))}

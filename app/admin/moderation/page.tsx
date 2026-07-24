@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  formatIssueCategory,
+  formatRuleReference,
+} from "../../content-review-feedback";
 
 type ModerationCase = {
   id: string;
@@ -196,8 +200,9 @@ export default function AdminModerationPage() {
             <ul className="content-review-list">
               {caseDetail.case.ai_issues.map((issue, i) => (
                 <li key={i}>
-                  <strong>„{issue.excerpt}”</strong> — {issue.category}:{" "}
-                  {issue.explanation}
+                  <strong>„{issue.excerpt}”</strong> —{" "}
+                  {formatIssueCategory(issue.category)} ·{" "}
+                  {formatRuleReference(issue.rule_reference)} · {issue.explanation}
                 </li>
               ))}
             </ul>
