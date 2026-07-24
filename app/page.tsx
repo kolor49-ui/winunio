@@ -1,29 +1,27 @@
 import Link from "next/link";
+import { DebateFeed } from "./debate-feed";
+import { MyDebatesPreview } from "./my-debates-list";
+import { PlatformOverview } from "./platform-overview";
+import { SiteQuickNav } from "./site-quick-nav";
 import { getSession } from "@/server/api/http";
-import { listDebates } from "@/server/services/debate-service";
+import { listDebates, listUserDebates } from "@/server/services/debate-service";
 import { getUserById } from "@/server/services/auth-service";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, string> = {
-  waiting_for_partner: "Partnerre vár",
-  invitation_pending: "Meghívás folyamatban",
-  active: "Aktív vita",
-  waiting_for_continuation: "Folytatásra vár",
-  awaiting_closure: "Zárásra vár",
-  completed: "Lezárva",
-  cancelled: "Visszavonva",
-  under_review: "Felülvizsgálat alatt",
+type Props = {
+  searchParams: Promise<{ account_deleted?: string; sort?: string }>;
 };
-
-type Props = { searchParams: Promise<{ account_deleted?: string }> };
 
 export default async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
+  const sort = params.sort === "popular" ? "popular" : "new";
+
   let debates: Awaited<ReturnType<typeof listDebates>> = [];
   let dbError: string | null = null;
   const session = await getSession();
   let user: Awaited<ReturnType<typeof getUserById>> = null;
+
   if (session) {
     try {
       user = await getUserById(session.userId);
@@ -32,8 +30,17 @@ export default async function HomePage({ searchParams }: Props) {
     }
   }
 
+  let myDebates: Awaited<ReturnType<typeof listUserDebates>> = [];
+  if (session) {
+    try {
+      myDebates = await listUserDebates(session.userId);
+    } catch (error) {
+      console.error("HomePage my debates load failed:", error);
+    }
+  }
+
   try {
-    debates = await listDebates("new");
+    debates = await listDebates(sort);
   } catch (error) {
     console.error("HomePage DB error:", error);
     dbError =
@@ -41,33 +48,47 @@ export default async function HomePage({ searchParams }: Props) {
   }
 
   return (
-    <>
-      <h1>Páros viták</h1>
-      <p className="hint">
-        Két fél, közös jutalom — a közönség csak folytatást kérhet.
-      </p>
+    <div className="page-layout">
+      <header className="page-hero">
+        <div className="page-hero-copy">
+          <p className="page-eyebrow">Páros vitaplatform</p>
+          <h1 className="page-title">Két fél. Egy kérdés. Nincs győztes.</h1>
+          <p className="page-lead">
+            A közönség nem szavaz vitázóra — csak folytatást kérhet. A viták
+            aszinkron fordulókban futnak: A megszólal, majd B válaszol.
+          </p>
+          {user ? (
+            <p className="hint">
+              Bejelentkezve: <strong>{user.email}</strong>
+            </p>
+          ) : (
+            <p className="hint">
+              <Link href="/login">Jelentkezz be</Link>, ha partnernek szeretnél
+              jelentkezni vagy vitát indítani.
+            </p>
+          )}
+        </div>
+        <div className="page-hero-badges">
+          <span className="side-badge side-a">A</span>
+          <span className="page-hero-badge-text">bal</span>
+          <span className="side-badge side-b">B</span>
+          <span className="page-hero-badge-text">jobb</span>
+        </div>
+      </header>
 
       {params.account_deleted === "1" && (
-        <div className="card">
-          <p>A fiókod véglegesen törölve lett. Ugyanazzal az e-mail címmel újra regisztrálhatsz.</p>
+        <div className="layout-panel layout-panel-alert">
+          <p>
+            A fiókod véglegesen törölve lett. Ugyanazzal az e-mail címmel újra
+            regisztrálhatsz.
+          </p>
         </div>
       )}
 
-      {user ? (
-        <p className="hint">
-          <Link href="/vitaim">Vitáim</Link>
-          {" · "}
-          Bejelentkezve: <strong>{user.email}</strong>
-        </p>
-      ) : (
-        <p className="hint">
-          <Link href="/login">Jelentkezz be</Link>, ha partnernek szeretnél
-          jelentkezni.
-        </p>
-      )}
+      <SiteQuickNav user={user} />
 
       {dbError && (
-        <div className="card">
+        <div className="layout-panel layout-panel-alert">
           <p className="error">Szerver hiba: adatbázis nem elérhető.</p>
           <p className="hint">
             Vercel: állítsd be a <code>DATABASE_URL</code> és{" "}
@@ -77,31 +98,20 @@ export default async function HomePage({ searchParams }: Props) {
         </div>
       )}
 
-      {!dbError && debates.length === 0 ? (
-        <div className="card">
-          <p>Még nincs vita. </p>
-          <Link href="/debates/new">Indítsd az elsőt →</Link>
+      {!dbError && (
+        <div className={`layout-main ${user ? "layout-main-with-sidebar" : ""}`}>
+          {user && (
+            <aside className="layout-sidebar">
+              <MyDebatesPreview debates={myDebates} />
+            </aside>
+          )}
+          <div className="layout-content">
+            <DebateFeed debates={debates} sort={sort} />
+          </div>
         </div>
-      ) : !dbError ? (
-        <>
-          {user && debates.length > 0 && <h2 className="section-title">Nyitott viták</h2>}
-          {debates.map((d) => (
-          <Link
-            key={d.id}
-            href={`/debates/${d.id}`}
-            className="debate-link"
-          >
-            <article className="card debate-card">
-              <h2>{d.question}</h2>
-              <p className="meta">
-                {d.category} · {STATUS_LABELS[d.status] ?? d.status}
-              </p>
-              <p className="hint">Megnyitás →</p>
-            </article>
-          </Link>
-          ))}
-        </>
-      ) : null}
-    </>
+      )}
+
+      <PlatformOverview />
+    </div>
   );
 }

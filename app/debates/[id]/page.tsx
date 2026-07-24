@@ -8,7 +8,10 @@ import {
 import { shouldShowNotifyBar } from "./debate-audience";
 import { ReportButton } from "../../report-button";
 import { DebatePair, DebatePairSide } from "../debate-pair";
+import { DebateStatusPill } from "../../debate-status-pill";
+import { SiteQuickNav } from "../../site-quick-nav";
 import { getSession } from "@/server/api/http";
+import { getUserById } from "@/server/services/auth-service";
 import { getDebateById } from "@/server/services/debate-service";
 import {
   getMyApplicationForDebate,
@@ -23,21 +26,18 @@ type Props = { params: Promise<{ id: string }> };
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, string> = {
-  waiting_for_partner: "Partnerre vár",
-  invitation_pending: "Meghívás folyamatban",
-  active: "Aktív vita",
-  waiting_for_continuation: "Folytatásra vár",
-  awaiting_closure: "Zárásra vár",
-  completed: "Lezárva",
-  cancelled: "Visszavonva",
-  under_review: "Felülvizsgálat alatt",
-};
-
 export default async function DebatePage({ params }: Props) {
   const { id } = await params;
   const debate = await getDebateById(id);
   const session = await getSession();
+  let user: Awaited<ReturnType<typeof getUserById>> = null;
+  if (session) {
+    try {
+      user = await getUserById(session.userId);
+    } catch {
+      user = null;
+    }
+  }
 
   if (!debate) {
     return (
@@ -89,14 +89,26 @@ export default async function DebatePage({ params }: Props) {
   const showAudienceBar = showNotifyBar || showContinuationBar;
 
   return (
-    <div
-      className={
-        showAudienceBar ? "debate-layout debate-layout-with-bar" : "debate-layout"
-      }
-    >
+    <div className="page-layout">
+      {user && <SiteQuickNav user={user} />}
+      <div
+        className={
+          showAudienceBar ? "debate-layout debate-layout-with-bar" : "debate-layout"
+        }
+      >
+      <p className="hint">
+        <Link href="/">← Főoldal</Link>
+        {user && (
+          <>
+            {" · "}
+            <Link href="/vitaim">Vitáim</Link>
+          </>
+        )}
+      </p>
       <h1>{debate.question}</h1>
-      <p className="meta">
-        {debate.category} · {STATUS_LABELS[debate.status] ?? debate.status}
+      <p className="meta debate-meta-row">
+        <DebateStatusPill status={debate.status} />
+        <span>{debate.category}</span>
       </p>
       <p className="hint debate-layout-legend">
         <span className="side-badge side-a">A</span> bal ·{" "}
@@ -165,10 +177,6 @@ export default async function DebatePage({ params }: Props) {
         </div>
       )}
 
-      <p className="hint">
-        <Link href="/">← Vissza a listához</Link>
-      </p>
-
       {showNotifyBar && roundContext.active_round && (
         <AudienceActionBar
           mode="notify"
@@ -185,6 +193,7 @@ export default async function DebatePage({ params }: Props) {
           turnstileSiteKey={turnstileSiteKey}
         />
       )}
+      </div>
     </div>
   );
 }
