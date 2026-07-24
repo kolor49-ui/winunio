@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminPushSetup } from "./admin-push-setup";
+import { InstallAppButton } from "../install-app-button";
 import { formatAdminDateTime } from "../moderation-labels";
 
 type NotificationRow = {
@@ -102,6 +103,13 @@ export default function AdminDashboardPage() {
     <>
       <h1>Admin áttekintés</h1>
       {error && <p className="error">{error}</p>}
+
+      <section className="card">
+        <div className="admin-section-head">
+          <h2>Telepítés</h2>
+        </div>
+        <InstallAppButton />
+      </section>
 
       <section className="card">
         <div className="admin-section-head">

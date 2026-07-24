@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { SiteHeader } from "./site-header";
+import { PwaSetup } from "./install-app-button";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +8,20 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Winunio",
   description: "Páros vitaplatform",
+  applicationName: "Winunio",
+  appleWebApp: {
+    capable: true,
+    title: "Winunio",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/logo.png", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6f8f72",
 };
 
 export default function RootLayout({
@@ -15,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="hu">
       <body>
+        <PwaSetup />
         <SiteHeader />
         <main className="container">{children}</main>
       </body>

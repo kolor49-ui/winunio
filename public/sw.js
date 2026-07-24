@@ -1,7 +1,15 @@
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", (event) => {
   let payload = {
     title: "Winunio",
-    body: "Új admin értesítés",
+    body: "Új értesítés",
     url: "/admin",
   };
 
@@ -16,8 +24,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
-      icon: "/logo.svg",
-      badge: "/logo.svg",
+      icon: "/logo.png",
+      badge: "/logo.png",
       data: { url: payload.url || "/admin" },
     }),
   );
@@ -25,7 +33,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = event.notification.data?.url || "/admin";
+  const target = event.notification.data?.url || "/";
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })

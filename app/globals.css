@@ -109,11 +109,17 @@ a {
   height: 1.25rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: var(--color-side-a);
+  background: var(--color-a);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
+}
+
+.nav-badge-inline {
+  margin-left: -0.5rem;
+  margin-right: 0.25rem;
+  vertical-align: middle;
 }
 
 .admin-section-head {

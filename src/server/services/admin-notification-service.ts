@@ -249,28 +249,30 @@ export async function listAdminNotifications(
   const notifications = await sql<
     {
       id: string;
-      type: AdminNotificationType;
+      notification_type: AdminNotificationType;
       title: string;
       body: string;
       link_path: string;
       entity_id: string | null;
       created_at: Date;
-      read: boolean;
+      is_read: boolean;
     }[]
   >`
     SELECT
       n.id,
-      n.type::text AS type,
+      n.type::text AS notification_type,
       n.title,
       n.body,
       n.link_path,
       n.entity_id,
       n.created_at,
-      (r.read_at IS NOT NULL) AS read
+      EXISTS (
+        SELECT 1
+        FROM admin_notification_reads r
+        WHERE r.notification_id = n.id
+          AND r.admin_id = ${adminId}
+      ) AS is_read
     FROM admin_notifications n
-    LEFT JOIN admin_notification_reads r
-      ON r.notification_id = n.id
-      AND r.admin_id = ${adminId}
     ORDER BY n.created_at DESC
     LIMIT ${limit}
   `;
@@ -278,22 +280,24 @@ export async function listAdminNotifications(
   const [unreadRow] = await sql<{ count: number }[]>`
     SELECT COUNT(*)::int AS count
     FROM admin_notifications n
-    LEFT JOIN admin_notification_reads r
-      ON r.notification_id = n.id
-      AND r.admin_id = ${adminId}
-    WHERE r.read_at IS NULL
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM admin_notification_reads r
+      WHERE r.notification_id = n.id
+        AND r.admin_id = ${adminId}
+    )
   `;
 
   return {
     notifications: notifications.map((row) => ({
       id: row.id,
-      type: row.type,
+      type: row.notification_type,
       title: row.title,
       body: row.body,
       link_path: row.link_path,
       entity_id: row.entity_id,
       created_at: row.created_at.toISOString(),
-      read: row.read,
+      read: row.is_read,
     })),
     unread_count: unreadRow?.count ?? 0,
   };

@@ -38,16 +38,23 @@ export async function GET(request: Request) {
       return jsonOk({ notifications, unread_count });
     }
 
-    const [registrations, debates] = await Promise.all([
-      listRecentRegistrations(10),
-      listDebates("new"),
-    ]);
+    let registrations: Awaited<ReturnType<typeof listRecentRegistrations>> = [];
+    let recent_debates: Awaited<ReturnType<typeof listDebates>> = [];
+
+    try {
+      [registrations, recent_debates] = await Promise.all([
+        listRecentRegistrations(10),
+        listDebates("new"),
+      ]);
+    } catch (activityError) {
+      console.error("[admin-notifications] activity load failed:", activityError);
+    }
 
     return jsonOk({
       notifications,
       unread_count,
       registrations,
-      recent_debates: debates.slice(0, 10),
+      recent_debates: recent_debates.slice(0, 10),
     });
   } catch (error) {
     return handleRouteError(error);

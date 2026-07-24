@@ -50,7 +50,7 @@ export function AdminPushSetup() {
         return;
       }
 
-      const registration = await navigator.serviceWorker.register("/admin-sw.js");
+      const registration = await navigator.serviceWorker.register("/sw.js");
       await navigator.serviceWorker.ready;
 
       const subscription = await registration.pushManager.subscribe({

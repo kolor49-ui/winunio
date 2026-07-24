@@ -32,7 +32,10 @@ export function AdminUnreadBadge() {
   if (unreadCount <= 0) return null;
 
   return (
-    <span className="nav-badge" aria-label={`${unreadCount} olvasatlan értesítés`}>
+    <span
+      className="nav-badge nav-badge-inline"
+      aria-label={`${unreadCount} olvasatlan értesítés`}
+    >
       {unreadCount > 99 ? "99+" : unreadCount}
     </span>
   );

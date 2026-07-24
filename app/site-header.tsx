@@ -4,11 +4,15 @@ import { AdminUnreadBadge } from "./admin/admin-unread-badge";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
 
-export const dynamic = "force-dynamic";
-
 export async function SiteHeader() {
-  const session = await getSession();
-  const user = session ? await getUserById(session.userId) : null;
+  let user: Awaited<ReturnType<typeof getUserById>> = null;
+
+  try {
+    const session = await getSession();
+    user = session ? await getUserById(session.userId) : null;
+  } catch (error) {
+    console.error("[site-header] user load failed:", error);
+  }
 
   return (
     <header className="site-header">
@@ -30,10 +34,8 @@ export async function SiteHeader() {
               <Link href="/account">Fiók</Link>
               {user.is_admin && (
                 <>
-                  <Link href="/admin" className="nav-admin-link">
-                    Admin
-                    <AdminUnreadBadge />
-                  </Link>
+                  <Link href="/admin">Admin</Link>
+                  <AdminUnreadBadge />
                   <Link href="/admin/moderation">Moderáció</Link>
                 </>
               )}
