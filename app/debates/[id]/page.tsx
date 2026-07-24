@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { AudienceActionBar } from "./audience-action-bar";
 import { ClosingStatementPanel } from "./closing-statement-panel";
-import { ContinuationPanel } from "./continuation-panel";
 import { DebatePartnerPanel } from "./debate-partner-panel";
-import { DebateRoundPanel } from "./debate-round-panel";
+import {
+  DebateRoundPanel,
+  shouldShowNotifyBar,
+} from "./debate-round-panel";
 import { ReportButton } from "../../report-button";
+import { DebatePair, DebatePairSide } from "../debate-pair";
 import { getSession } from "@/server/api/http";
 import { getDebateById } from "@/server/services/debate-service";
 import {
@@ -75,29 +79,48 @@ export default async function DebatePage({ params }: Props) {
 
   const turnstileSiteKey = getTurnstileSiteKey() ?? "";
 
+  const showNotifyBar = shouldShowNotifyBar(
+    debate.status,
+    roundContext.participant_side,
+    roundContext.active_round,
+  );
+  const showContinuationBar =
+    debate.status === "waiting_for_continuation" && continuationStatus !== null;
+  const showAudienceBar = showNotifyBar || showContinuationBar;
+
   return (
-    <>
+    <div
+      className={
+        showAudienceBar ? "debate-layout debate-layout-with-bar" : "debate-layout"
+      }
+    >
       <h1>{debate.question}</h1>
       <p className="meta">
         {debate.category} · {STATUS_LABELS[debate.status] ?? debate.status}
       </p>
+      <p className="hint debate-layout-legend">
+        <span className="side-badge side-a">A</span> bal ·{" "}
+        <span className="side-badge side-b">B</span> jobb — fix pozíciók.
+      </p>
 
-      <div className="card">
-        <p>
-          <span className="side-badge side-a">A</span> kiinduló álláspont
-        </p>
-        <p>{debate.initiator_stance}</p>
-        <ReportButton debateId={debate.id} />
-      </div>
-
-      {debate.partner_stance && (
-        <div className="card">
-          <p>
-            <span className="side-badge side-b">B</span> kiinduló álláspont
-          </p>
-          <p>{debate.partner_stance}</p>
-        </div>
-      )}
+      <section className="card debate-section">
+        <h2 className="section-title">Kiinduló álláspontok</h2>
+        <DebatePair>
+          <DebatePairSide side="A" label="kiinduló álláspont">
+            <p>{debate.initiator_stance}</p>
+            <ReportButton debateId={debate.id} />
+          </DebatePairSide>
+          <DebatePairSide
+            side="B"
+            label="kiinduló álláspont"
+            placeholder={
+              debate.partner_stance ? undefined : "Partnerre vár — még nincs B álláspont."
+            }
+          >
+            {debate.partner_stance ? <p>{debate.partner_stance}</p> : null}
+          </DebatePairSide>
+        </DebatePair>
+      </section>
 
       <DebatePartnerPanel
         debateId={debate.id}
@@ -114,18 +137,9 @@ export default async function DebatePage({ params }: Props) {
         debateId={debate.id}
         debateStatus={debate.status}
         participantSide={roundContext.participant_side}
-        viewerUserId={session?.userId ?? null}
         activeRound={roundContext.active_round}
         publishedRounds={roundContext.published_rounds}
       />
-
-      {continuationStatus && (
-        <ContinuationPanel
-          initialStatus={continuationStatus}
-          viewerUserId={session?.userId ?? null}
-          turnstileSiteKey={turnstileSiteKey}
-        />
-      )}
 
       {closingContext && debate.status === "awaiting_closure" && (
         <ClosingStatementPanel debateId={debate.id} context={closingContext} />
@@ -154,6 +168,23 @@ export default async function DebatePage({ params }: Props) {
       <p className="hint">
         <Link href="/">← Vissza a listához</Link>
       </p>
-    </>
+
+      {showNotifyBar && roundContext.active_round && (
+        <AudienceActionBar
+          mode="notify"
+          roundId={roundContext.active_round.id}
+          viewerUserId={session?.userId ?? null}
+        />
+      )}
+
+      {showContinuationBar && continuationStatus && (
+        <AudienceActionBar
+          mode="continuation"
+          initialStatus={continuationStatus}
+          viewerUserId={session?.userId ?? null}
+          turnstileSiteKey={turnstileSiteKey}
+        />
+      )}
+    </div>
   );
 }

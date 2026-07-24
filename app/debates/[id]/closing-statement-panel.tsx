@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DebatePair, DebatePairSide } from "../debate-pair";
 import {
   ContentReviewFeedback,
   extractContentReviewIssues,
@@ -76,25 +77,23 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
   }
 
   if (context.phase === "published" && context.statements) {
+    const statementA = context.statements.find((s) => s.side === "A");
+    const statementB = context.statements.find((s) => s.side === "B");
+
     return (
-      <div className="card">
+      <div className="card debate-section">
         <h2>Zárógondolatok</h2>
         <p className="hint">
           Mindkét vitázó benyújtotta — egyszerre jelentek meg.
         </p>
-        {context.statements.map((statement) => (
-          <div key={statement.side} className="round-side-block">
-            <p>
-              <span
-                className={`side-badge ${statement.side === "A" ? "side-a" : "side-b"}`}
-              >
-                {statement.side}
-              </span>{" "}
-              zárógondolat
-            </p>
-            <p>{statement.content}</p>
-          </div>
-        ))}
+        <DebatePair>
+          <DebatePairSide side="A" label="zárógondolat">
+            {statementA ? <p>{statementA.content}</p> : null}
+          </DebatePairSide>
+          <DebatePairSide side="B" label="zárógondolat">
+            {statementB ? <p>{statementB.content}</p> : null}
+          </DebatePairSide>
+        </DebatePair>
       </div>
     );
   }

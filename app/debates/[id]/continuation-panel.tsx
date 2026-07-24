@@ -24,6 +24,7 @@ type Props = {
   initialStatus: ContinuationStatusView;
   viewerUserId: string | null;
   turnstileSiteKey: string;
+  variant?: "card" | "bar";
 };
 
 type PendingSubmit = {
@@ -47,6 +48,7 @@ export function ContinuationPanel({
   initialStatus,
   viewerUserId,
   turnstileSiteKey,
+  variant = "card",
 }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
@@ -296,9 +298,14 @@ export function ContinuationPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingSubmit, turnstileToken]);
 
+  const rootClass =
+    variant === "bar"
+      ? "continuation-panel continuation-panel-bar"
+      : "card continuation-panel";
+
   return (
-    <div className="card continuation-panel">
-      <p>{counterText(status)}</p>
+    <div className={rootClass}>
+      <p className="continuation-counter">{counterText(status)}</p>
 
       {status.viewer_is_participant && (
         <p className="hint">A vitázók nem kérhetnek folytatást.</p>
