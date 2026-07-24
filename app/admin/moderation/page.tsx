@@ -6,6 +6,7 @@ import {
   formatRuleReference,
 } from "../../content-review-feedback";
 import {
+  formatAdminDateTime,
   formatModerationAction,
   formatModerationCaseStatus,
   formatModerationSource,
@@ -151,7 +152,7 @@ export default function AdminModerationPage() {
                 >
                   {formatModerationSource(c.source)} ·{" "}
                   {formatModerationCaseStatus(c.status)} ·{" "}
-                  {c.created_at.slice(0, 16)}
+                  {formatAdminDateTime(c.created_at)}
                 </button>
               </li>
             ))}
@@ -164,7 +165,7 @@ export default function AdminModerationPage() {
             {reports.map((r) => (
               <li key={r.id}>
                 <p>
-                  {formatReportReason(r.reason)} · {r.created_at.slice(0, 16)}
+                  {formatReportReason(r.reason)} · {formatAdminDateTime(r.created_at)}
                 </p>
                 {r.note && <p className="meta">{r.note}</p>}
                 <div className="form-actions">
@@ -247,7 +248,7 @@ export default function AdminModerationPage() {
                 {caseDetail.actions.map((a, i) => (
                   <li key={i} className="meta">
                     {formatModerationAction(a.action)} — {a.note} (
-                    {a.created_at.slice(0, 16)})
+                    {formatAdminDateTime(a.created_at)})
                   </li>
                 ))}
               </ul>

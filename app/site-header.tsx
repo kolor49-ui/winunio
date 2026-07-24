@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
-import { AdminHeaderLinks } from "./admin/admin-header-links";
+import { AdminUnreadBadge } from "./admin/admin-unread-badge";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
+
+export const dynamic = "force-dynamic";
 
 export async function SiteHeader() {
   const session = await getSession();
@@ -26,7 +28,15 @@ export async function SiteHeader() {
           {user ? (
             <>
               <Link href="/account">Fiók</Link>
-              {user.is_admin && <AdminHeaderLinks />}
+              {user.is_admin && (
+                <>
+                  <Link href="/admin" className="nav-admin-link">
+                    Admin
+                    <AdminUnreadBadge />
+                  </Link>
+                  <Link href="/admin/moderation">Moderáció</Link>
+                </>
+              )}
               {!user.email_verified && (
                 <Link href="/verify-email" className="nav-verify">
                   E-mail megerősítés

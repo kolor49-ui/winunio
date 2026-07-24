@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminPushSetup } from "./admin-push-setup";
+import { formatAdminDateTime } from "../moderation-labels";
 
 type NotificationRow = {
   id: string;
@@ -33,15 +34,6 @@ const TYPE_LABELS: Record<NotificationRow["type"], string> = {
   user_registered: "Regisztráció",
   debate_created: "Új vita",
 };
-
-function formatWhen(iso: string): string {
-  return new Date(iso).toLocaleString("hu-HU", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function AdminDashboardPage() {
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
@@ -129,7 +121,7 @@ export default function AdminDashboardPage() {
             <li key={notification.id} className={notification.read ? "meta" : ""}>
               <p>
                 <strong>{notification.title}</strong> ·{" "}
-                {TYPE_LABELS[notification.type]} · {formatWhen(notification.created_at)}
+                {TYPE_LABELS[notification.type]} · {formatAdminDateTime(notification.created_at)}
                 {!notification.read && " · Új"}
               </p>
               <p>{notification.body}</p>
@@ -162,7 +154,7 @@ export default function AdminDashboardPage() {
                   {user.display_name ? `${user.display_name} · ` : ""}
                   {user.email}
                 </p>
-                <p className="meta">{formatWhen(user.created_at)}</p>
+                <p className="meta">{formatAdminDateTime(user.created_at)}</p>
               </li>
             ))}
           </ul>
@@ -177,7 +169,7 @@ export default function AdminDashboardPage() {
                   <Link href={`/debates/${debate.id}`}>{debate.question}</Link>
                 </p>
                 <p className="meta">
-                  {debate.category} · {formatWhen(debate.created_at)}
+                  {debate.category} · {formatAdminDateTime(debate.created_at)}
                 </p>
               </li>
             ))}

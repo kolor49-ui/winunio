@@ -46,3 +46,15 @@ export function formatModerationAction(action: string): string {
 export function formatReportReason(reason: string): string {
   return REPORT_REASON_LABELS[reason] ?? reason.replaceAll("_", " ");
 }
+
+export function formatAdminDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso.slice(0, 16);
+  return date.toLocaleString("hu-HU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

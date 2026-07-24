@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { SiteHeader } from "./site-header";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Winunio",
   description: "Páros vitaplatform",
