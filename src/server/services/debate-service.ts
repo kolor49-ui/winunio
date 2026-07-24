@@ -8,6 +8,7 @@ const createDebateSchema = z.object({
   category: z.string().min(1).max(80),
   display_mode: z.enum(["named", "anonymous"]),
   display_name: z.string().min(1).max(80).optional(),
+  question_content_review_id: z.string().uuid().optional(),
   content_review_id: z.string().uuid().optional(),
 });
 
@@ -26,6 +27,13 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
 
   const isAnonymous = input.display_mode === "anonymous";
   const displayName = isAnonymous ? null : (input.display_name ?? null);
+
+  await assertContentApprovedForPublication({
+    userId,
+    contextType: "debate_question",
+    text: input.question.trim(),
+    contentReviewId: input.question_content_review_id,
+  });
 
   await assertContentApprovedForPublication({
     userId,

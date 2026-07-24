@@ -15,6 +15,96 @@ import {
   type SpellCheckSuggestion,
 } from "../../content-review-feedback";
 
+type PendingReviews = {
+  questionReviewId: string;
+  stanceReviewId: string;
+};
+
+type FieldSpellSuggestions = {
+  question: SpellCheckSuggestion[];
+  stance: SpellCheckSuggestion[];
+};
+
+async function reviewDebateTexts(input: {
+  question: string;
+  stance: string;
+}): Promise<
+  | { ok: true; pending: PendingReviews }
+  | {
+      ok: false;
+      status: ContentReviewStatus;
+      issues: ContentReviewIssue[];
+      field: "Vitakérdés" | "Kiinduló álláspont" | "Vitakérdés és kiinduló álláspont";
+    }
+> {
+  const questionReview = await reviewTextBeforePublish({
+    text: input.question,
+    contextType: "debate_question",
+  });
+
+  if (
+    questionReview.status === "revision_required" ||
+    questionReview.status === "under_review"
+  ) {
+    return {
+      ok: false,
+      status: questionReview.status,
+      issues: questionReview.issues,
+      field: "Vitakérdés",
+    };
+  }
+
+  const stanceReview = await reviewTextBeforePublish({
+    text: input.stance,
+    contextType: "initiator_stance",
+  });
+
+  if (
+    stanceReview.status === "revision_required" ||
+    stanceReview.status === "under_review"
+  ) {
+    return {
+      ok: false,
+      status: stanceReview.status,
+      issues: stanceReview.issues,
+      field: "Kiinduló álláspont",
+    };
+  }
+
+  if (
+    questionReview.status === "advisory_language" ||
+    stanceReview.status === "advisory_language"
+  ) {
+    return {
+      ok: false,
+      status: "advisory_language",
+      issues: [
+        ...(questionReview.status === "advisory_language"
+          ? questionReview.issues
+          : []),
+        ...(stanceReview.status === "advisory_language"
+          ? stanceReview.issues
+          : []),
+      ],
+      field:
+        questionReview.status === "advisory_language" &&
+        stanceReview.status === "advisory_language"
+          ? "Vitakérdés és kiinduló álláspont"
+          : questionReview.status === "advisory_language"
+            ? "Vitakérdés"
+            : "Kiinduló álláspont",
+    };
+  }
+
+  return {
+    ok: true,
+    pending: {
+      questionReviewId: questionReview.review_id,
+      stanceReviewId: stanceReview.review_id,
+    },
+  };
+}
+
 export default function NewDebatePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -24,33 +114,46 @@ export default function NewDebatePage() {
   const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
     null,
   );
-  const [pendingReviewId, setPendingReviewId] = useState<string | null>(null);
+  const [reviewField, setReviewField] = useState<string | null>(null);
+  const [questionText, setQuestionText] = useState("");
   const [stanceText, setStanceText] = useState("");
-  const [spellSuggestions, setSpellSuggestions] = useState<
-    SpellCheckSuggestion[] | null
-  >(null);
-  const [acceptedSpell, setAcceptedSpell] = useState<Set<number>>(new Set());
+  const [spellSuggestions, setSpellSuggestions] =
+    useState<FieldSpellSuggestions | null>(null);
+  const [acceptedQuestionSpell, setAcceptedQuestionSpell] = useState<Set<number>>(
+    new Set(),
+  );
+  const [acceptedStanceSpell, setAcceptedStanceSpell] = useState<Set<number>>(
+    new Set(),
+  );
   const [loading, setLoading] = useState(false);
   const [spellLoading, setSpellLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState<"named" | "anonymous">("named");
 
+  function clearReviewState() {
+    setReviewIssues(null);
+    setReviewStatus(null);
+    setReviewField(null);
+    setSpellSuggestions(null);
+  }
+
   async function createDebate(
     form: HTMLFormElement,
-    contentReviewId?: string,
-    stanceOverride?: string,
+    reviews: PendingReviews,
+    overrides?: { question?: string; stance?: string },
   ) {
     const formData = new FormData(form);
     const res = await fetch("/api/v1/debates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        question: formData.get("question"),
-        initiator_stance: stanceOverride ?? formData.get("initiator_stance"),
+        question: overrides?.question ?? formData.get("question"),
+        initiator_stance: overrides?.stance ?? formData.get("initiator_stance"),
         category: formData.get("category"),
         display_mode: displayMode,
         display_name:
           displayMode === "named" ? formData.get("display_name") : undefined,
-        content_review_id: contentReviewId,
+        question_content_review_id: reviews.questionReviewId,
+        content_review_id: reviews.stanceReviewId,
       }),
     });
     const raw = await res.text();
@@ -97,40 +200,29 @@ export default function NewDebatePage() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setReviewIssues(null);
-    setReviewStatus(null);
-    setPendingReviewId(null);
-    setSpellSuggestions(null);
+    clearReviewState();
     setLoading(true);
     const form = e.currentTarget;
+    const question = String(new FormData(form).get("question") ?? "").trim();
     const stance = String(new FormData(form).get("initiator_stance") ?? "").trim();
+    setQuestionText(question);
     setStanceText(stance);
 
     try {
-      const review = await reviewTextBeforePublish({
-        text: stance,
-        contextType: "initiator_stance",
-      });
-
-      if (review.status === "revision_required" || review.status === "under_review") {
-        setReviewIssues(review.issues);
-        setReviewStatus(review.status);
-        setError(
-          review.status === "under_review"
-            ? "A szöveg emberi felülvizsgálatot igényel."
-            : "A szöveg jelenleg nem tehető közzé.",
-        );
+      const result = await reviewDebateTexts({ question, stance });
+      if (!result.ok) {
+        setReviewIssues(result.issues);
+        setReviewStatus(result.status);
+        setReviewField(result.field);
+        if (result.status === "under_review") {
+          setError("A szöveg emberi felülvizsgálatot igényel.");
+        } else if (result.status === "revision_required") {
+          setError(`A(z) ${result.field} jelenleg nem tehető közzé.`);
+        }
         return;
       }
 
-      if (review.status === "advisory_language") {
-        setReviewIssues(review.issues);
-        setReviewStatus("advisory_language");
-        setPendingReviewId(review.review_id);
-        return;
-      }
-
-      await createDebate(form, review.review_id, stance);
+      await createDebate(form, result.pending, { question, stance });
     } catch {
       setError("Hálózati hiba");
     } finally {
@@ -138,13 +230,22 @@ export default function NewDebatePage() {
     }
   }
 
-  async function continueWithoutSpellCheck(formId: string) {
-    if (!pendingReviewId) return;
+  async function continueAfterAdvisory(formId: string) {
     setLoading(true);
     setError(null);
     try {
       const form = document.getElementById(formId) as HTMLFormElement;
-      await createDebate(form, pendingReviewId, stanceText);
+      const question = questionText.trim();
+      const stance = stanceText.trim();
+      const result = await reviewDebateTexts({ question, stance });
+      if (!result.ok) {
+        setReviewIssues(result.issues);
+        setReviewStatus(result.status);
+        setReviewField(result.field);
+        setError("A szöveg továbbra sem tehető közzé.");
+        return;
+      }
+      await createDebate(form, result.pending, { question, stance });
     } catch {
       setError("Hálózati hiba");
     } finally {
@@ -152,15 +253,32 @@ export default function NewDebatePage() {
     }
   }
 
-  async function runSpellCheck(formId: string) {
+  async function runSpellCheck() {
     setSpellLoading(true);
     setError(null);
     try {
-      const suggestions = await requestSpellCheck(stanceText);
-      setSpellSuggestions(suggestions);
-      setAcceptedSpell(new Set(suggestions.map((_, i) => i)));
+      const [questionSuggestions, stanceSuggestions] = await Promise.all([
+        questionText.trim()
+          ? requestSpellCheck(questionText.trim())
+          : Promise.resolve([]),
+        stanceText.trim()
+          ? requestSpellCheck(stanceText.trim())
+          : Promise.resolve([]),
+      ]);
+      setSpellSuggestions({
+        question: questionSuggestions,
+        stance: stanceSuggestions,
+      });
+      setAcceptedQuestionSpell(
+        new Set(questionSuggestions.map((_, index) => index)),
+      );
+      setAcceptedStanceSpell(
+        new Set(stanceSuggestions.map((_, index) => index)),
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Helyesírás-ellenőrzés sikertelen");
+      setError(
+        err instanceof Error ? err.message : "Helyesírás-ellenőrzés sikertelen",
+      );
     } finally {
       setSpellLoading(false);
     }
@@ -168,41 +286,47 @@ export default function NewDebatePage() {
 
   async function applySpellAndContinue(formId: string) {
     if (!spellSuggestions) return;
-    const corrected = applyAcceptedSpellSuggestions(
-      stanceText,
-      spellSuggestions,
-      acceptedSpell,
+    const correctedQuestion = applyAcceptedSpellSuggestions(
+      questionText,
+      spellSuggestions.question,
+      acceptedQuestionSpell,
     );
-    setStanceText(corrected);
+    const correctedStance = applyAcceptedSpellSuggestions(
+      stanceText,
+      spellSuggestions.stance,
+      acceptedStanceSpell,
+    );
+    setQuestionText(correctedQuestion);
+    setStanceText(correctedStance);
     setLoading(true);
     setError(null);
-    setReviewIssues(null);
-    setReviewStatus(null);
-    setPendingReviewId(null);
-    setSpellSuggestions(null);
+    clearReviewState();
 
     try {
-      const review = await reviewTextBeforePublish({
-        text: corrected,
-        contextType: "initiator_stance",
+      const result = await reviewDebateTexts({
+        question: correctedQuestion,
+        stance: correctedStance,
       });
-      if (
-        review.status === "revision_required" ||
-        review.status === "under_review"
-      ) {
-        setReviewIssues(review.issues);
-        setReviewStatus(review.status);
+      if (!result.ok) {
+        setReviewIssues(result.issues);
+        setReviewStatus(result.status);
+        setReviewField(result.field);
         setError("A javított szöveg továbbra sem tehető közzé.");
         return;
       }
       const form = document.getElementById(formId) as HTMLFormElement;
-      await createDebate(form, review.review_id, corrected);
+      await createDebate(form, result.pending, {
+        question: correctedQuestion,
+        stance: correctedStance,
+      });
     } catch {
       setError("Hálózati hiba");
     } finally {
       setLoading(false);
     }
   }
+
+  const showAdvisoryActions = reviewStatus === "advisory_language";
 
   return (
     <>
@@ -211,7 +335,16 @@ export default function NewDebatePage() {
       <form id="new-debate-form" className="form card" onSubmit={onSubmit}>
         <label>
           Vitakérdés
-          <input name="question" required maxLength={160} />
+          <input
+            name="question"
+            required
+            maxLength={160}
+            value={questionText}
+            onChange={(e) => {
+              setQuestionText(e.target.value);
+              clearReviewState();
+            }}
+          />
         </label>
         <label>
           Kiinduló álláspontod
@@ -222,8 +355,7 @@ export default function NewDebatePage() {
             value={stanceText}
             onChange={(e) => {
               setStanceText(e.target.value);
-              setPendingReviewId(null);
-              setReviewStatus(null);
+              clearReviewState();
             }}
           />
         </label>
@@ -253,10 +385,13 @@ export default function NewDebatePage() {
           Kijelentem, hogy a közzétett szöveg a saját megfogalmazásom, és
           felelősséget vállalok az állításaimért.
         </p>
+        {reviewField && reviewStatus !== "approved" && (
+          <p className="meta">Érintett mező: {reviewField}</p>
+        )}
         {reviewIssues && reviewStatus && (
           <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
         )}
-        {reviewStatus === "advisory_language" && pendingReviewId && (
+        {showAdvisoryActions && (
           <div className="content-review-actions">
             {!spellSuggestions ? (
               <>
@@ -264,7 +399,7 @@ export default function NewDebatePage() {
                   type="button"
                   className="btn btn-secondary"
                   disabled={spellLoading}
-                  onClick={() => runSpellCheck("new-debate-form")}
+                  onClick={runSpellCheck}
                 >
                   {spellLoading ? "Ellenőrzés…" : "Helyesírás ellenőrzése"}
                 </button>
@@ -272,26 +407,55 @@ export default function NewDebatePage() {
                   type="button"
                   className="btn"
                   disabled={loading}
-                  onClick={() => continueWithoutSpellCheck("new-debate-form")}
+                  onClick={() => continueAfterAdvisory("new-debate-form")}
                 >
                   Folytatás ellenőrzés nélkül
                 </button>
               </>
             ) : (
               <>
-                <SpellCheckDiff
-                  text={stanceText}
-                  suggestions={spellSuggestions}
-                  accepted={acceptedSpell}
-                  onToggle={(index) => {
-                    setAcceptedSpell((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(index)) next.delete(index);
-                      else next.add(index);
-                      return next;
-                    });
-                  }}
-                />
+                {spellSuggestions.question.length > 0 && (
+                  <>
+                    <p className="meta">Vitakérdés</p>
+                    <SpellCheckDiff
+                      text={questionText}
+                      suggestions={spellSuggestions.question}
+                      accepted={acceptedQuestionSpell}
+                      onToggle={(index) => {
+                        setAcceptedQuestionSpell((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(index)) next.delete(index);
+                          else next.add(index);
+                          return next;
+                        });
+                      }}
+                    />
+                  </>
+                )}
+                {spellSuggestions.stance.length > 0 && (
+                  <>
+                    <p className="meta">Kiinduló álláspont</p>
+                    <SpellCheckDiff
+                      text={stanceText}
+                      suggestions={spellSuggestions.stance}
+                      accepted={acceptedStanceSpell}
+                      onToggle={(index) => {
+                        setAcceptedStanceSpell((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(index)) next.delete(index);
+                          else next.add(index);
+                          return next;
+                        });
+                      }}
+                    />
+                  </>
+                )}
+                {spellSuggestions.question.length === 0 &&
+                  spellSuggestions.stance.length === 0 && (
+                    <p className="hint">
+                      Nincs egyértelmű helyesírási javaslat a két mezőben.
+                    </p>
+                  )}
                 <button
                   type="button"
                   className="btn"
@@ -305,7 +469,7 @@ export default function NewDebatePage() {
           </div>
         )}
         {error && <p className="error">{error}</p>}
-        {!pendingReviewId && (
+        {!showAdvisoryActions && (
           <button className="btn" type="submit" disabled={loading}>
             {loading ? "Folyamatban…" : "Vita létrehozása"}
           </button>

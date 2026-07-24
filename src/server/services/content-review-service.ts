@@ -13,6 +13,7 @@ export const contentReviewContextSchema = z.enum([
   "closing_statement",
   "initiator_stance",
   "application_stance",
+  "debate_question",
 ]);
 
 export type ContentReviewContextType = z.infer<typeof contentReviewContextSchema>;
@@ -189,7 +190,11 @@ function buildUserPrompt(input: {
   source?: string;
 }): string {
   const parts = [
-    `Kontextus: ${input.contextType}`,
+    `Kontextus: ${input.contextType}${
+      input.contextType === "debate_question"
+        ? " (rövid vitakérdés, max. 160 karakter — helyesírás/érthetőség advisory, viselkedésszabály továbbra is érvényes)"
+        : ""
+    }`,
     `Saját érvelés / szöveg:\n${input.text}`,
   ];
   if (input.quote?.trim()) {
