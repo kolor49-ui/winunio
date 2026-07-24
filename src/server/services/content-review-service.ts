@@ -558,6 +558,65 @@ export async function loadStoredReview(input: {
   };
 }
 
+const checkStoredReviewItemSchema = z.object({
+  review_id: z.string().uuid(),
+  text: z.string(),
+  context_type: contentReviewContextSchema,
+});
+
+export const checkStoredReviewsBodySchema = z.object({
+  reviews: z.array(checkStoredReviewItemSchema).min(1).max(10),
+});
+
+export async function checkStoredContentReviews(input: {
+  userId: string;
+  reviews: z.infer<typeof checkStoredReviewsBodySchema>["reviews"];
+}): Promise<{
+  reviews: Array<{
+    review_id: string;
+    context_type: ContentReviewContextType;
+    status: ContentReviewStatus;
+    issues: ContentReviewIssue[];
+  }>;
+  publishable: boolean;
+  overall_status: ContentReviewStatus;
+}> {
+  const results = await Promise.all(
+    input.reviews.map(async (item) => {
+      const stored = await loadStoredReview({
+        reviewId: item.review_id,
+        userId: input.userId,
+        text: item.text,
+      });
+      return {
+        review_id: stored.id,
+        context_type: item.context_type,
+        status: stored.status,
+        issues: stored.issues,
+      };
+    }),
+  );
+
+  const blocking = results.filter((review) => !isPublishableStatus(review.status));
+
+  let overall_status: ContentReviewStatus;
+  if (blocking.length === 0) {
+    overall_status = results.some((review) => review.status === "advisory_language")
+      ? "advisory_language"
+      : "approved";
+  } else if (blocking.some((review) => review.status === "under_review")) {
+    overall_status = "under_review";
+  } else {
+    overall_status = "revision_required";
+  }
+
+  return {
+    reviews: results,
+    publishable: blocking.length === 0,
+    overall_status,
+  };
+}
+
 export function throwIfContentNotPublishable(result: ContentReviewResult): void {
   if (isPublishableStatus(result.status)) return;
 

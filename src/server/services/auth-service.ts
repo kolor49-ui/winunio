@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getSql } from "@/server/db";
 import { hashPassword } from "@/server/auth/password";
 import { ensureBootstrapAdmin } from "@/server/services/bootstrap-admin-service";
+import { notifyAdminsUserRegistered } from "@/server/services/admin-notification-service";
 
 const registerSchema = z.object({
   email: z.string().email().max(320),
@@ -45,6 +46,13 @@ export async function registerUser(input: RegisterInput) {
     });
 
     await ensureBootstrapAdmin(user.id, user.email);
+    void notifyAdminsUserRegistered({
+      userId: user.id,
+      email: user.email,
+      displayName: input.display_name ?? null,
+    }).catch((error) => {
+      console.error("[admin-notification] registration alert failed:", error);
+    });
     return user;
   } catch (err: unknown) {
     if (

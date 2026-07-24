@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
+import { AdminHeaderLinks } from "./admin/admin-header-links";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
 
@@ -25,9 +26,7 @@ export async function SiteHeader() {
           {user ? (
             <>
               <Link href="/account">Fiók</Link>
-              {user.is_admin && (
-                <Link href="/admin/moderation">Moderáció</Link>
-              )}
+              {user.is_admin && <AdminHeaderLinks />}
               {!user.email_verified && (
                 <Link href="/verify-email" className="nav-verify">
                   E-mail megerősítés

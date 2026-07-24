@@ -5,6 +5,12 @@ import {
   formatIssueCategory,
   formatRuleReference,
 } from "../../content-review-feedback";
+import {
+  formatModerationAction,
+  formatModerationCaseStatus,
+  formatModerationSource,
+  formatReportReason,
+} from "../../moderation-labels";
 
 type ModerationCase = {
   id: string;
@@ -143,7 +149,9 @@ export default function AdminModerationPage() {
                   className="link-button"
                   onClick={() => loadCaseDetail(c.id)}
                 >
-                  {c.source} · {c.created_at.slice(0, 16)}
+                  {formatModerationSource(c.source)} ·{" "}
+                  {formatModerationCaseStatus(c.status)} ·{" "}
+                  {c.created_at.slice(0, 16)}
                 </button>
               </li>
             ))}
@@ -156,7 +164,7 @@ export default function AdminModerationPage() {
             {reports.map((r) => (
               <li key={r.id}>
                 <p>
-                  {r.reason} · {r.created_at.slice(0, 16)}
+                  {formatReportReason(r.reason)} · {r.created_at.slice(0, 16)}
                 </p>
                 {r.note && <p className="meta">{r.note}</p>}
                 <div className="form-actions">
@@ -192,7 +200,9 @@ export default function AdminModerationPage() {
         <section className="card">
           <h2>Ügy részletei</h2>
           <p className="meta">
-            Szabályzat: {caseDetail.case.policy_version} · Lenyomat:{" "}
+            Forrás: {formatModerationSource(caseDetail.case.source)} · Állapot:{" "}
+            {formatModerationCaseStatus(caseDetail.case.status)} · Szabályzat:{" "}
+            {caseDetail.case.policy_version} · Lenyomat:{" "}
             <code>{caseDetail.case.content_hash.slice(0, 12)}…</code>
           </p>
           <p>{caseDetail.content_review?.input_text ?? caseDetail.case.reported_text}</p>
@@ -236,7 +246,8 @@ export default function AdminModerationPage() {
               <ul>
                 {caseDetail.actions.map((a, i) => (
                   <li key={i} className="meta">
-                    {a.action} — {a.note} ({a.created_at.slice(0, 16)})
+                    {formatModerationAction(a.action)} — {a.note} (
+                    {a.created_at.slice(0, 16)})
                   </li>
                 ))}
               </ul>

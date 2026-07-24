@@ -321,11 +321,7 @@ export async function decideModerationCase(input: {
 
     if (detail.case.content_review_id) {
       const reviewStatus =
-        input.decision === "approve"
-          ? "approved"
-          : input.decision === "return_for_revision"
-            ? "revision_required"
-            : "under_review";
+        input.decision === "approve" ? "approved" : "revision_required";
       await tx`
         UPDATE content_reviews
         SET status = ${reviewStatus}::content_review_status

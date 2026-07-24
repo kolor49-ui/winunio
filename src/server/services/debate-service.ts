@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getSql } from "@/server/db";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
+import { notifyAdminsDebateCreated } from "@/server/services/admin-notification-service";
 
 const createDebateSchema = z.object({
   question: z.string().min(1).max(160),
@@ -84,6 +85,15 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
       status: debate.status,
       created_at: debate.created_at.toISOString(),
     };
+  }).then((debate) => {
+    void notifyAdminsDebateCreated({
+      debateId: debate.id,
+      question: debate.question,
+      initiatorUserId: userId,
+    }).catch((error) => {
+      console.error("[admin-notification] debate alert failed:", error);
+    });
+    return debate;
   });
 }
 

@@ -316,6 +316,45 @@ export async function requestHumanReview(input: {
   return data;
 }
 
+export type StoredReviewCheckResult = {
+  reviews: Array<{
+    review_id: string;
+    context_type: string;
+    status: ContentReviewStatus;
+    issues: ContentReviewIssue[];
+  }>;
+  publishable: boolean;
+  overall_status: ContentReviewStatus;
+};
+
+export async function checkStoredContentReviews(input: {
+  reviews: Array<{
+    review_id: string;
+    text: string;
+    context_type: string;
+  }>;
+}): Promise<StoredReviewCheckResult> {
+  const res = await fetch("/api/v1/content-reviews/check-stored", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error?.message ?? "Ellenőrzés sikertelen");
+  }
+  return data;
+}
+
+export const DEBATE_FIELD_LABELS: Record<string, string> = {
+  debate_question: "Vitakérdés",
+  initiator_stance: "Kiinduló álláspont",
+};
+
+export function fieldLabelForContext(contextType: string): string {
+  return DEBATE_FIELD_LABELS[contextType] ?? contextType.replaceAll("_", " ");
+}
+
 export async function requestSpellCheck(text: string): Promise<SpellCheckSuggestion[]> {
   const res = await fetch("/api/v1/content-reviews/spell-check", {
     method: "POST",
