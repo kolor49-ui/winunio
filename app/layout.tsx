@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SiteHeader } from "./site-header";
 import { PwaSetup } from "./install-app-button";
+import { SplashScreen } from "./splash-screen";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="hu" style={{ background: "#ffffff" }}>
       <body style={{ background: "#ffffff" }}>
+        <SplashScreen />
         <PwaSetup />
         <SiteHeader />
         <main className="container">{children}</main>
