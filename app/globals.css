@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: clip;
+}
+
 html,
 body {
   margin: 0;
@@ -24,6 +28,20 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
+  max-width: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+h1,
+h2,
+h3,
+.page-title,
+.debate-card-title,
+.user-debate-card-title a {
+  overflow-wrap: anywhere;
 }
 
 a {
@@ -34,6 +52,7 @@ a {
   max-width: 720px;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
+  min-width: 0;
 }
 
 .container:has(> .debate-layout),
@@ -44,6 +63,7 @@ a {
 .debate-layout {
   max-width: 960px;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .debate-layout-with-bar {
@@ -145,7 +165,7 @@ a {
 
 .audience-action-bar-copy {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
 .audience-action-bar-actions {
@@ -183,13 +203,75 @@ a {
 }
 
 @media (max-width: 720px) {
+  .container {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .site-header .container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .site-header .logo {
+    font-size: 1.25rem;
+  }
+
+  .site-header .logo-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .nav-links {
+    gap: 0.5rem 0.75rem;
+  }
+
+  .nav-user {
+    max-width: 100%;
+    flex-basis: 100%;
+  }
+
   .debate-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .debate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .page-hero {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .layout-panel {
+    padding: 1rem;
+  }
+
+  .feature-grid {
     grid-template-columns: 1fr;
   }
 
   .audience-action-bar-inner {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .audience-action-bar-copy {
+    min-width: 0;
+  }
+
+  .audience-action-btn {
+    white-space: normal;
+    text-align: center;
   }
 
   .audience-action-bar-actions .btn,
@@ -206,6 +288,19 @@ a {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .continuation-panel-bar .form,
+  .continuation-setup .form {
+    max-width: 100%;
+  }
+
+  .btn {
+    max-width: 100%;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ——— Page layout (dashboard) ——— */
@@ -214,6 +309,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .page-hero {
@@ -365,6 +462,7 @@ a {
 
 .feed-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   flex-shrink: 0;
 }
@@ -572,8 +670,10 @@ a {
 
 .site-header .container {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem 1rem;
   padding-top: 1rem;
   padding-bottom: 1rem;
   margin-bottom: 0;
@@ -847,6 +947,7 @@ select {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
+  max-width: 100%;
 }
 
 textarea {
