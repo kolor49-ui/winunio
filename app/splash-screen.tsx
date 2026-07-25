@@ -3,8 +3,24 @@
 import { useEffect, useState } from "react";
 import { LogoMark } from "./logo-mark";
 
-const SPLASH_MS = 2000;
+const SPLASH_MIN_MS = 3000;
 const FADE_MS = 350;
+
+function waitForPageLoad(): Promise<void> {
+  if (document.readyState === "complete") {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    window.addEventListener("load", () => resolve(), { once: true });
+  });
+}
+
+function waitMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 export function SplashScreen() {
   const [phase, setPhase] = useState<"visible" | "fading" | "hidden">("visible");
@@ -13,19 +29,29 @@ export function SplashScreen() {
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const displayMs = reducedMotion ? 0 : SPLASH_MS;
 
-    const fadeTimer = window.setTimeout(() => {
-      setPhase("fading");
-    }, displayMs);
-
-    const hideTimer = window.setTimeout(() => {
+    if (reducedMotion) {
       setPhase("hidden");
-    }, displayMs + FADE_MS);
+      return;
+    }
+
+    let hideTimer: number | undefined;
+    let cancelled = false;
+
+    void (async () => {
+      await Promise.all([waitMs(SPLASH_MIN_MS), waitForPageLoad()]);
+      if (cancelled) return;
+
+      setPhase("fading");
+
+      hideTimer = window.setTimeout(() => {
+        setPhase("hidden");
+      }, FADE_MS);
+    })();
 
     return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(hideTimer);
+      cancelled = true;
+      if (hideTimer) window.clearTimeout(hideTimer);
     };
   }, []);
 
