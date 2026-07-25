@@ -4,6 +4,11 @@ import { MyDebatesPreview } from "./my-debates-list";
 import { PlatformOverview } from "./platform-overview";
 import { SiteQuickNav } from "./site-quick-nav";
 import { getSession } from "@/server/api/http";
+import {
+  isDatabaseConfigError,
+  isTransientDbError,
+  withDbRetry,
+} from "@/server/db";
 import { listDebates, listUserDebates } from "@/server/services/debate-service";
 import { getUserById } from "@/server/services/auth-service";
 
@@ -18,13 +23,15 @@ export default async function HomePage({ searchParams }: Props) {
   const sort = params.sort === "popular" ? "popular" : "new";
 
   let debates: Awaited<ReturnType<typeof listDebates>> = [];
-  let dbError: string | null = null;
+  let dbConfigError = false;
+  let dbTransientError = false;
+  let dbLoadFailed = false;
   const session = await getSession();
   let user: Awaited<ReturnType<typeof getUserById>> = null;
 
   if (session) {
     try {
-      user = await getUserById(session.userId);
+      user = await withDbRetry(() => getUserById(session.userId));
     } catch (error) {
       console.error("HomePage user load failed:", error);
     }
@@ -33,18 +40,19 @@ export default async function HomePage({ searchParams }: Props) {
   let myDebates: Awaited<ReturnType<typeof listUserDebates>> = [];
   if (session) {
     try {
-      myDebates = await listUserDebates(session.userId);
+      myDebates = await withDbRetry(() => listUserDebates(session.userId));
     } catch (error) {
       console.error("HomePage my debates load failed:", error);
     }
   }
 
   try {
-    debates = await listDebates(sort);
+    debates = await withDbRetry(() => listDebates(sort));
   } catch (error) {
     console.error("HomePage DB error:", error);
-    dbError =
-      error instanceof Error ? error.message : "Adatbázis kapcsolat sikertelen";
+    dbConfigError = isDatabaseConfigError(error);
+    dbTransientError = isTransientDbError(error);
+    dbLoadFailed = true;
   }
 
   return (
@@ -87,9 +95,9 @@ export default async function HomePage({ searchParams }: Props) {
 
       <SiteQuickNav user={user} />
 
-      {dbError && (
+      {dbConfigError && (
         <div className="layout-panel layout-panel-alert">
-          <p className="error">Szerver hiba: adatbázis nem elérhető.</p>
+          <p className="error">Szerver hiba: adatbázis nincs beállítva.</p>
           <p className="hint">
             Vercel: állítsd be a <code>DATABASE_URL</code> és{" "}
             <code>AUTH_SECRET</code> env változókat, futtasd a migrációkat, majd
@@ -98,18 +106,29 @@ export default async function HomePage({ searchParams }: Props) {
         </div>
       )}
 
-      {!dbError && (
-        <div className={`layout-main ${user ? "layout-main-with-sidebar" : ""}`}>
-          {user && (
-            <aside className="layout-sidebar">
-              <MyDebatesPreview debates={myDebates} />
-            </aside>
-          )}
-          <div className="layout-content">
-            <DebateFeed debates={debates} sort={sort} />
-          </div>
+      {(dbTransientError || (dbLoadFailed && !dbConfigError)) && (
+        <div className="layout-panel layout-panel-alert">
+          <p className="error">
+            Átmeneti hiba: a viták listája most nem tölthető be.
+          </p>
+          <p className="hint">
+            <Link href="/">Frissítsd az oldalt</Link> — ha gyakran jelentkezik,
+            ellenőrizd, hogy a <code>DATABASE_URL</code> Supabase-nél a
+            transaction pooler (:6543), ne a session pooler.
+          </p>
         </div>
       )}
+
+      <div className={`layout-main ${user ? "layout-main-with-sidebar" : ""}`}>
+        {user && (
+          <aside className="layout-sidebar">
+            <MyDebatesPreview debates={myDebates} />
+          </aside>
+        )}
+        <div className="layout-content">
+          <DebateFeed debates={debates} sort={sort} />
+        </div>
+      </div>
 
       <PlatformOverview />
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogoutButton } from "./logout-button";
 import { AdminUnreadBadge } from "./admin/admin-unread-badge";
 import { getSession } from "@/server/api/http";
+import { withDbRetry } from "@/server/db";
 import { getUserById } from "@/server/services/auth-service";
 
 export async function SiteHeader() {
@@ -9,7 +10,9 @@ export async function SiteHeader() {
 
   try {
     const session = await getSession();
-    user = session ? await getUserById(session.userId) : null;
+    user = session
+      ? await withDbRetry(() => getUserById(session.userId))
+      : null;
   } catch (error) {
     console.error("[site-header] user load failed:", error);
   }
