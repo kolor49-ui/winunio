@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoMark } from "./logo-mark";
 import { LogoutButton } from "./logout-button";
 import { AdminUnreadBadge } from "./admin/admin-unread-badge";
 import { getSession } from "@/server/api/http";
@@ -21,13 +22,7 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="container">
         <Link href="/" className="logo">
-          <img
-            src="/logo.svg"
-            alt=""
-            width={48}
-            height={48}
-            className="logo-mark"
-          />
+          <LogoMark />
           <span>Winunio</span>
         </Link>
         <nav className="nav-links">
