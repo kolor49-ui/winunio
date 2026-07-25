@@ -28,8 +28,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="hu">
-      <body>
+    <html lang="hu" style={{ background: "#ffffff" }}>
+      <body style={{ background: "#ffffff" }}>
         <PwaSetup />
         <SiteHeader />
         <main className="container">{children}</main>
