@@ -60,7 +60,9 @@ export default async function HomePage({ searchParams }: Props) {
       <header className="page-hero">
         <div className="page-hero-copy">
           <p className="page-eyebrow">Páros vitaplatform</p>
-          <h1 className="page-title">Két fél. Egy kérdés. Nincs győztes.</h1>
+          <h1 className="page-title">
+            Két ember. Egy kérdés. Egy vita. Nincs győztes. Mindenki nyer!
+          </h1>
           <p className="page-lead">
             A közönség nem szavaz vitázóra — csak folytatást kérhet. A viták
             aszinkron fordulókban futnak: A megszólal, majd B válaszol.
