@@ -3,6 +3,7 @@ import { ApiError } from "@/server/api/http";
 import { computeContentHash } from "@/server/services/content-hash";
 import {
   applySpellCheckSuggestions,
+  filterNoOpSpellCheckSuggestions,
   callOpenAiContentReview,
   contentReviewResultSchema,
   isLanguageOnlyIssue,
@@ -165,6 +166,32 @@ describe("moderation publishing flow", () => {
       expect(applySpellCheckSuggestions(text, suggestions, [0])).toBe(
         "megamarad",
       );
+    });
+
+    it("5. azonos vagy látszólagos AI-javaslatok kiszűrése", () => {
+      const text = "Szórakoztat, miért ne?";
+      const filtered = filterNoOpSpellCheckSuggestions(text, [
+        {
+          original: text,
+          suggestion: text,
+          start: 0,
+          end: text.length,
+        },
+        {
+          original: text,
+          suggestion: `„${text}`,
+          start: 0,
+          end: text.length,
+        },
+        {
+          original: "megamrúl",
+          suggestion: "megamarad",
+          start: 0,
+          end: 8,
+        },
+      ]);
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0]?.suggestion).toBe("megamarad");
     });
   });
 

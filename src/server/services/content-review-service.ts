@@ -763,6 +763,39 @@ const spellCheckSuggestionSchema = z.object({
 
 export type SpellCheckSuggestion = z.infer<typeof spellCheckSuggestionSchema>;
 
+/** Ignore no-op AI suggestions and cosmetic quote/punctuation-only diffs. */
+export function filterNoOpSpellCheckSuggestions(
+  text: string,
+  suggestions: SpellCheckSuggestion[],
+): SpellCheckSuggestion[] {
+  return suggestions.filter((s) => {
+    if (s.end <= s.start) return false;
+    if (s.original === s.suggestion) return false;
+
+    const slice = text.slice(s.start, s.end);
+    if (slice === s.suggestion) return false;
+    if (normalizeSpellFragment(slice) === normalizeSpellFragment(s.suggestion)) {
+      return false;
+    }
+    if (
+      normalizeSpellFragment(s.original) ===
+      normalizeSpellFragment(s.suggestion)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function normalizeSpellFragment(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[\u201e\u201c\u201d\u0022\u00ab\u00bb]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function spellCheckParticipantContent(input: {
   text: string;
 }): Promise<{ suggestions: SpellCheckSuggestion[] }> {
@@ -855,8 +888,9 @@ export async function spellCheckParticipantContent(input: {
     .array(spellCheckSuggestionSchema)
     .parse(parsed.suggestions ?? []);
 
+  const merged = mergeSpellCheckSuggestions(localSuggestions, aiSuggestions);
   return {
-    suggestions: mergeSpellCheckSuggestions(localSuggestions, aiSuggestions),
+    suggestions: filterNoOpSpellCheckSuggestions(trimmed, merged),
   };
 }
 

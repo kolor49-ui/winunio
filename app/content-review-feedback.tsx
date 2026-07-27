@@ -230,8 +230,8 @@ export function SpellCheckDiff({
               checked={accepted.has(index)}
               onChange={() => onToggle(index)}
             />{" "}
-            <span className="meta">„{s.original}”</span> →{" "}
-            <strong>„{s.suggestion}”</strong>
+            <span className="meta spell-check-fragment">{s.original}</span> →{" "}
+            <strong className="spell-check-fragment">{s.suggestion}</strong>
           </label>
         </li>
       ))}
