@@ -142,19 +142,6 @@ async function reviewDebateTexts(input: {
     };
   }
 
-  const advisory = fields.filter((field) => field.status === "advisory_language");
-  if (advisory.length > 0) {
-    return {
-      ok: false,
-      status: "advisory_language",
-      fieldBlocks: advisory,
-      reviewIds: {
-        questionReviewId: questionReview.review_id,
-        stanceReviewId: stanceReview.review_id,
-      },
-    };
-  }
-
   return {
     ok: true,
     pending: {
@@ -292,7 +279,7 @@ export default function NewDebatePage() {
   }, []);
 
   useEffect(() => {
-    if (!draftReady || !activeDraftId || switchingDraft.current) return;
+    if (!draftReady || !activeDraftId || switchingDraft.current || loading) return;
 
     setDraftSaveStatus("saving");
     window.clearTimeout(draftSaveTimer.current);
@@ -316,7 +303,7 @@ export default function NewDebatePage() {
     return () => {
       window.clearTimeout(draftSaveTimer.current);
     };
-  }, [questionText, stanceEditor, activeDraftId, draftReady]);
+  }, [questionText, stanceEditor, activeDraftId, draftReady, loading]);
 
   async function checkStoredDebateReviews(): Promise<StoredReviewCheckResult | null> {
     if (!pendingReviews) return null;
@@ -493,6 +480,7 @@ export default function NewDebatePage() {
     setError(null);
     clearReviewState();
     setLoading(true);
+    window.clearTimeout(draftSaveTimer.current);
     const form = e.currentTarget;
     const question = String(new FormData(form).get("question") ?? "").trim();
     const stanceError = validateEditorValues(stanceEditor);
