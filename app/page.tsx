@@ -2,7 +2,6 @@ import Link from "next/link";
 import { DebateFeed } from "./debate-feed";
 import { MyDebatesPreview } from "./my-debates-list";
 import { PlatformOverview } from "./platform-overview";
-import { SiteQuickNav } from "./site-quick-nav";
 import { getSession } from "@/server/api/http";
 import {
   isDatabaseConfigError,
@@ -94,8 +93,6 @@ export default async function HomePage({ searchParams }: Props) {
           </p>
         </div>
       )}
-
-      <SiteQuickNav user={user} />
 
       {dbConfigError && (
         <div className="layout-panel layout-panel-alert">

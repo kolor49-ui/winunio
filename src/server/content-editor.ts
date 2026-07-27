@@ -33,6 +33,7 @@ export const draftFieldsSchema = z.object({
   reasoning: z.string().max(2000),
   quote: z.string().max(2000).optional().nullable(),
   source: z.string().max(500).optional().nullable(),
+  question: z.string().max(160).optional().nullable(),
 });
 
 export type DraftFields = z.infer<typeof draftFieldsSchema>;

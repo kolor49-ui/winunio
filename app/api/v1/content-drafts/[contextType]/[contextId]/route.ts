@@ -6,6 +6,7 @@ import {
 } from "@/server/api/http";
 import { draftFieldsSchema } from "@/server/content-editor";
 import {
+  deleteContentDraft,
   getContentDraft,
   parseDraftContextType,
   saveContentDraft,
@@ -45,6 +46,22 @@ export async function PUT(request: Request, { params }: RouteParams) {
       fields,
     );
     return jsonOk({ draft });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function DELETE(_request: Request, { params }: RouteParams) {
+  try {
+    const session = await requireSession();
+    const user = await requireActiveUser(session);
+    const { contextType, contextId } = await params;
+    await deleteContentDraft(
+      user.id,
+      parseDraftContextType(contextType),
+      contextId,
+    );
+    return jsonOk({ deleted: true });
   } catch (error) {
     return handleRouteError(error);
   }

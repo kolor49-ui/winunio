@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { AccountDeleteForm } from "./account-delete-form";
 import { InstallAppButton } from "../install-app-button";
 import { PlatformOverview } from "../platform-overview";
-import { SiteQuickNav } from "../site-quick-nav";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
 
@@ -35,8 +34,6 @@ export default async function AccountPage() {
           </p>
         </div>
       </header>
-
-      <SiteQuickNav user={user} />
 
       <div className="layout-main">
         <section className="layout-panel">

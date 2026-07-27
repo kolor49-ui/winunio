@@ -9,7 +9,6 @@ import { shouldShowNotifyBar } from "./debate-audience";
 import { ReportButton } from "../../report-button";
 import { DebatePair, DebatePairSide } from "../debate-pair";
 import { DebateStatusPill } from "../../debate-status-pill";
-import { SiteQuickNav } from "../../site-quick-nav";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
 import { getDebateById } from "@/server/services/debate-service";
@@ -90,7 +89,6 @@ export default async function DebatePage({ params }: Props) {
 
   return (
     <div className="page-layout">
-      {user && <SiteQuickNav user={user} />}
       <div
         className={
           showAudienceBar ? "debate-layout debate-layout-with-bar" : "debate-layout"

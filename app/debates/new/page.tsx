@@ -1,7 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  deleteInitiatorDraft,
+  fetchInitiatorDraft,
+  loadInitiatorDraftsWithFallback,
+  persistInitiatorDraft,
+  type InitiatorDraft,
+} from "../../initiator-draft-api";
+import { InitiatorDraftsPanel } from "../../initiator-drafts-panel";
 import {
   DebateEditor,
   formatEditorValuesForPublish,
@@ -40,6 +48,24 @@ type FieldSpellSuggestions = {
 
 function emptyStanceEditor(): DebateEditorValues {
   return { reasoning: "", quote: "", source: "" };
+}
+
+const DRAFT_DEBOUNCE_MS = 800;
+
+function sortDrafts(drafts: InitiatorDraft[]): InitiatorDraft[] {
+  return [...drafts].sort(
+    (a, b) => new Date(b.saved_at).getTime() - new Date(a.saved_at).getTime(),
+  );
+}
+
+function upsertDraftList(
+  drafts: InitiatorDraft[],
+  saved: InitiatorDraft,
+): InitiatorDraft[] {
+  return sortDrafts([
+    saved,
+    ...drafts.filter((draft) => draft.context_id !== saved.context_id),
+  ]);
 }
 
 function fieldBlocksFromStoredCheck(
@@ -167,6 +193,14 @@ export default function NewDebatePage() {
   const [loading, setLoading] = useState(false);
   const [spellLoading, setSpellLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState<"named" | "anonymous">("named");
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<InitiatorDraft[]>([]);
+  const [draftSaveStatus, setDraftSaveStatus] = useState<
+    "idle" | "loading" | "saving" | "saved" | "error"
+  >("loading");
+  const [draftReady, setDraftReady] = useState(false);
+  const draftSaveTimer = useRef<number | undefined>(undefined);
+  const switchingDraft = useRef(false);
 
   function clearReviewState() {
     setReviewIssues(null);
@@ -176,6 +210,114 @@ export default function NewDebatePage() {
     setAppealState(null);
     setSpellSuggestions(null);
   }
+
+  async function flushDraftSave(): Promise<void> {
+    if (!activeDraftId) return;
+    window.clearTimeout(draftSaveTimer.current);
+    const saved = await persistInitiatorDraft(activeDraftId, {
+      question: questionText,
+      stance: stanceEditor,
+    });
+    if (saved) {
+      setDrafts((current) => upsertDraftList(current, saved));
+    }
+  }
+
+  async function selectDraft(draftId: string) {
+    if (!draftReady || draftId === activeDraftId) return;
+    switchingDraft.current = true;
+    setDraftSaveStatus("saving");
+    try {
+      await flushDraftSave();
+      const draft = await fetchInitiatorDraft(draftId);
+      setActiveDraftId(draftId);
+      setQuestionText(draft?.question ?? "");
+      setStanceEditor(
+        draft
+          ? {
+              reasoning: draft.reasoning ?? "",
+              quote: draft.quote ?? "",
+              source: draft.source ?? "",
+            }
+          : emptyStanceEditor(),
+      );
+      clearReviewState();
+      setDraftSaveStatus("saved");
+    } catch {
+      setDraftSaveStatus("error");
+    } finally {
+      switchingDraft.current = false;
+    }
+  }
+
+  async function createDraft(draftId: string) {
+    if (!draftReady) return;
+    switchingDraft.current = true;
+    setDraftSaveStatus("saving");
+    try {
+      await flushDraftSave();
+      setActiveDraftId(draftId);
+      setQuestionText("");
+      setStanceEditor(emptyStanceEditor());
+      clearReviewState();
+      setDraftSaveStatus("idle");
+    } catch {
+      setDraftSaveStatus("error");
+    } finally {
+      switchingDraft.current = false;
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setDraftSaveStatus("loading");
+      try {
+        const loaded = await loadInitiatorDraftsWithFallback();
+        if (cancelled) return;
+        setDrafts(loaded.drafts);
+        setActiveDraftId(loaded.activeDraftId);
+        setQuestionText(loaded.question);
+        setStanceEditor(loaded.stance);
+        setDraftReady(true);
+        setDraftSaveStatus("idle");
+      } catch {
+        if (cancelled) return;
+        setDraftReady(true);
+        setDraftSaveStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady || !activeDraftId || switchingDraft.current) return;
+
+    setDraftSaveStatus("saving");
+    window.clearTimeout(draftSaveTimer.current);
+    draftSaveTimer.current = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const saved = await persistInitiatorDraft(activeDraftId, {
+            question: questionText,
+            stance: stanceEditor,
+          });
+          if (saved) {
+            setDrafts((current) => upsertDraftList(current, saved));
+          }
+          setDraftSaveStatus("saved");
+        } catch {
+          setDraftSaveStatus("error");
+        }
+      })();
+    }, DRAFT_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(draftSaveTimer.current);
+    };
+  }, [questionText, stanceEditor, activeDraftId, draftReady]);
 
   async function checkStoredDebateReviews(): Promise<StoredReviewCheckResult | null> {
     if (!pendingReviews) return null;
@@ -333,6 +475,16 @@ export default function NewDebatePage() {
     if (!data.debate?.id) {
       setError("Váratlan szerverválasz");
       return;
+    }
+    if (activeDraftId) {
+      try {
+        await deleteInitiatorDraft(activeDraftId);
+        setDrafts((current) =>
+          current.filter((draft) => draft.context_id !== activeDraftId),
+        );
+      } catch {
+        /* vita létrejött — piszkozat törlése nem kritikus */
+      }
     }
     router.push(`/debates/${data.debate.id}`);
   }
@@ -508,9 +660,17 @@ export default function NewDebatePage() {
     !appealState;
 
   return (
-    <>
-      <h1>Vitát indítok</h1>
-      <p className="hint">Max. 160 karakteres vitakérdés.</p>
+    <div className="page-layout">
+      <header className="page-hero page-hero-compact">
+        <div className="page-hero-copy">
+          <p className="page-eyebrow">Vitaindítás</p>
+          <h1 className="page-title">Vitát indítok</h1>
+          <p className="page-lead">Max. 160 karakteres vitakérdés.</p>
+        </div>
+      </header>
+
+      <div className="layout-main layout-main-with-sidebar-right">
+        <div className="layout-content">
       <form id="new-debate-form" className="form card" onSubmit={onSubmit}>
         <label>
           Vitakérdés
@@ -526,9 +686,12 @@ export default function NewDebatePage() {
           />
         </label>
         <DebateEditor
+          key={activeDraftId ?? "draft"}
           embedded
+          disableDraftPersistence
+          initialValues={stanceEditor}
           contextType="initiator_stance"
-          contextId="new"
+          contextId={activeDraftId ?? "new"}
           reasoningLabel="Kiinduló álláspontod"
           onValuesChange={(values) => {
             setStanceEditor(values);
@@ -720,6 +883,19 @@ export default function NewDebatePage() {
         <span className="side-badge side-a">A</span> bal ·{" "}
         <span className="side-badge side-b">B</span> jobb — fix pozíciók.
       </p>
-    </>
+        </div>
+
+        {draftReady && (
+          <InitiatorDraftsPanel
+            activeDraftId={activeDraftId}
+            draftSaveStatus={draftSaveStatus}
+            drafts={drafts}
+            onDraftsChange={setDrafts}
+            onSelectDraft={(draftId) => void selectDraft(draftId)}
+            onCreateDraft={(draftId) => void createDraft(draftId)}
+          />
+        )}
+      </div>
+    </div>
   );
 }

@@ -30,6 +30,8 @@ type SharedProps = {
   reasoningLabel: string;
   className?: string;
   onValuesChange?: (values: DebateEditorValues) => void;
+  disableDraftPersistence?: boolean;
+  initialValues?: DebateEditorValues;
 };
 
 type StandaloneProps = SharedProps & {
@@ -122,16 +124,20 @@ export function DebateEditor(props: Props) {
     reasoningLabel,
     className = "debate-editor",
     onValuesChange,
+    disableDraftPersistence = false,
+    initialValues,
   } = props;
   const embedded = props.embedded === true;
   const loading = !embedded ? props.loading : false;
   const submitLabel = !embedded ? props.submitLabel : "";
   const onSubmit = !embedded ? props.onSubmit : undefined;
 
-  const [values, setValues] = useState<DebateEditorValues>(emptyValues);
+  const [values, setValues] = useState<DebateEditorValues>(
+    () => initialValues ?? emptyValues(),
+  );
   const [draftStatus, setDraftStatus] = useState<
     "idle" | "loading" | "saving" | "saved" | "error"
-  >("loading");
+  >(disableDraftPersistence ? "idle" : "loading");
   const [dirty, setDirty] = useState(false);
   const [pasteWarning, setPasteWarning] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -155,6 +161,7 @@ export function DebateEditor(props: Props) {
   }, [values, onValuesChange]);
 
   useEffect(() => {
+    if (disableDraftPersistence) return;
     let cancelled = false;
     void (async () => {
       setDraftStatus("loading");
@@ -172,10 +179,10 @@ export function DebateEditor(props: Props) {
     return () => {
       cancelled = true;
     };
-  }, [contextType, contextId]);
+  }, [contextType, contextId, disableDraftPersistence]);
 
   useEffect(() => {
-    if (!dirty) return;
+    if (disableDraftPersistence || !dirty) return;
 
     setDraftStatus("saving");
     window.clearTimeout(saveTimer.current);
@@ -194,7 +201,7 @@ export function DebateEditor(props: Props) {
     return () => {
       window.clearTimeout(saveTimer.current);
     };
-  }, [values, dirty, contextType, contextId]);
+  }, [values, dirty, contextType, contextId, disableDraftPersistence]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -408,7 +415,7 @@ export function DebateEditor(props: Props) {
           {spellLoading ? "Ellenőrzés…" : "Helyesírás ellenőrzése"}
         </button>
         <p className="debate-editor-draft-status" aria-live="polite">
-          {draftMessage}
+          {!disableDraftPersistence ? draftMessage : null}
         </p>
       </div>
 
