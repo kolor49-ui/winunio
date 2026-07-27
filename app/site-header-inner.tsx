@@ -20,15 +20,22 @@ function NavLinks({
   user,
   onNavigate,
   className,
+  showHomeLink = false,
 }: {
   user: SiteHeaderUser | null;
   onNavigate?: () => void;
   className?: string;
+  showHomeLink?: boolean;
 }) {
   const closeOnClick = onNavigate ? { onClick: onNavigate } : undefined;
 
   return (
     <nav className={className} aria-label="Fő navigáció">
+      {showHomeLink ? (
+        <Link href="/" {...closeOnClick}>
+          Főoldal
+        </Link>
+      ) : null}
       <Link href="/hogyan-mukodik" {...closeOnClick}>
         Hogyan működik
       </Link>
@@ -103,22 +110,35 @@ export function SiteHeaderInner({ user }: Props) {
           <span>Winunio</span>
         </Link>
         {user ? (
-          <span className="site-header-email" title="Bejelentkezve">
+          <span className="site-header-email site-header-email--desktop" title="Bejelentkezve">
             {user.email}
           </span>
         ) : null}
-        <button
-          type="button"
-          className="mobile-nav-toggle"
-          aria-expanded={menuOpen}
-          aria-controls={panelId}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? "Bezár" : "Menü"}
-        </button>
+        <div className="site-header-bar-end">
+          <Link href="/" className="site-header-home-link">
+            Főoldal
+          </Link>
+          {user ? (
+            <span className="site-header-email site-header-email--mobile" title="Bejelentkezve">
+              {user.email}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            className={`mobile-nav-toggle${menuOpen ? " mobile-nav-toggle-open" : ""}`}
+            aria-expanded={menuOpen}
+            aria-controls={panelId}
+            aria-label={menuOpen ? "Menü bezárása" : "Menü megnyitása"}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span className="mobile-nav-toggle-bar" aria-hidden="true" />
+            <span className="mobile-nav-toggle-bar" aria-hidden="true" />
+            <span className="mobile-nav-toggle-bar" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
-      <NavLinks user={user} className="nav-links nav-links--desktop" />
+      <NavLinks user={user} className="nav-links nav-links--desktop" showHomeLink />
 
       {menuOpen ? (
         <>
@@ -128,7 +148,13 @@ export function SiteHeaderInner({ user }: Props) {
             aria-label="Menü bezárása"
             onClick={() => setMenuOpen(false)}
           />
-          <div id={panelId} className="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Mobil menü">
+          <div
+            id={panelId}
+            className="mobile-nav-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobil menü"
+          >
             <NavLinks
               user={user}
               className="mobile-nav-links"
