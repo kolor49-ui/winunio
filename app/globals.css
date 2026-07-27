@@ -282,20 +282,17 @@ a {
     height: 36px;
   }
 
-  .nav-links {
-    flex: 1;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 0.5rem 0.65rem;
-    font-size: 0.8125rem;
-    min-width: 0;
+  .mobile-nav-toggle {
+    display: inline-flex;
+    align-items: center;
   }
 
-  .nav-links::-webkit-scrollbar {
+  .nav-links--desktop {
     display: none;
+  }
+
+  .site-header-email {
+    max-width: min(10rem, calc(100% - 8.5rem));
   }
 
   .debate-pair {
@@ -780,6 +777,8 @@ a {
 
 
 .site-header {
+  position: relative;
+  z-index: 100;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   margin-bottom: 2rem;
@@ -864,6 +863,78 @@ a {
 
 .nav-links a:hover {
   color: var(--color-text);
+}
+
+.mobile-nav-toggle {
+  display: none;
+  margin-left: auto;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  position: relative;
+  z-index: 202;
+}
+
+.mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  border: none;
+  padding: 0;
+  background: rgb(0 0 0 / 0.35);
+  cursor: pointer;
+}
+
+.mobile-nav-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 201;
+  padding: 5.75rem 1rem 1.5rem;
+  overflow-y: auto;
+  background: var(--color-surface);
+}
+
+.mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  overflow: visible;
+}
+
+.mobile-nav-links a,
+.mobile-nav-links .nav-logout {
+  display: block;
+  width: 100%;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1rem;
+  text-align: left;
+  color: var(--color-text);
+  white-space: normal;
+}
+
+.mobile-nav-links a:hover,
+.mobile-nav-links .nav-logout:hover {
+  color: var(--color-a);
+}
+
+.mobile-nav-links .nav-admin-link {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mobile-nav-links .nav-badge-inline {
+  margin-left: 0;
 }
 
 .nav-logout {
