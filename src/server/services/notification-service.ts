@@ -1,6 +1,6 @@
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
-import { sendEmail } from "@/server/email/send-email";
+import { notifyUser } from "@/server/services/user-notification-service";
 
 export async function subscribeToBResponse(
   roundId: string,
@@ -71,26 +71,35 @@ export async function sendBResponseNotifications(roundId: string): Promise<numbe
   const sql = getSql();
 
   const pending = await sql<
-    { id: string; user_id: string | null; email: string | null }[]
+    {
+      id: string;
+      user_id: string | null;
+      debate_id: string;
+    }[]
   >`
-    SELECT n.id, n.user_id, u.email
+    SELECT n.id, n.user_id, r.debate_id
     FROM round_response_notifications n
-    LEFT JOIN users u ON u.id = n.user_id
+    JOIN rounds r ON r.id = n.round_id
     WHERE n.round_id = ${roundId}
       AND n.sent_at IS NULL
       AND n.notify_on = 'b_response'
+      AND n.user_id IS NOT NULL
   `;
 
   let sent = 0;
   for (const row of pending) {
-    const email = row.email;
-    if (!email) continue;
+    if (!row.user_id) continue;
     try {
-      await sendEmail({
-        to: email,
-        subject: "B válasza megjelent a vitán",
-        text: "A vitában, amelyre értesítést kértél, megjelent B válasza.",
-        html: "<p>A vitában, amelyre értesítést kértél, megjelent <strong>B</strong> válasza.</p>",
+      await notifyUser({
+        userId: row.user_id,
+        title: "B válasza megjelent",
+        body: "A vitában, amelyre értesítést kértél, megjelent B válasza.",
+        linkPath: `/debates/${row.debate_id}`,
+        emailSubject: "Winunio — B válasza megjelent",
+        emailText:
+          "A vitában, amelyre értesítést kértél, megjelent B válasza.",
+        emailHtml:
+          "<p>A vitában, amelyre értesítést kértél, megjelent <strong>B</strong> válasza.</p>",
       });
       sent += 1;
       await sql`
@@ -99,7 +108,7 @@ export async function sendBResponseNotifications(roundId: string): Promise<numbe
         WHERE id = ${row.id}
       `;
     } catch (error) {
-      console.error("[notification] B response email failed:", row.id, error);
+      console.error("[notification] B response notify failed:", row.id, error);
     }
   }
 

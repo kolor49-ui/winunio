@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DebateEditor } from "../../debate-editor";
+import { ParticipantContentDisplay } from "../../participant-content-display";
 
 type Application = {
   id: string;
@@ -185,7 +186,7 @@ export function DebatePartnerPanel({
               {initialApplications.map((app) => (
                 <li key={app.id} className="application-item">
                   <p className="meta">{app.applicant_label}</p>
-                  <p>{app.stance}</p>
+                  <ParticipantContentDisplay content={app.stance} />
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -211,7 +212,7 @@ export function DebatePartnerPanel({
       return (
         <div className="card">
           <h2>Jelentkezésed</h2>
-          <p>{mine.stance}</p>
+          <ParticipantContentDisplay content={mine.stance} />
           <p className="hint">Várakozás a vitaindító döntésére.</p>
           <button
             type="button"

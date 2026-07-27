@@ -1166,6 +1166,64 @@ textarea {
   color: var(--color-muted);
 }
 
+.participant-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.participant-content-reasoning {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.participant-content-quote {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-a);
+  border-radius: 0 8px 8px 0;
+  background: var(--color-a-muted);
+}
+
+.participant-content-quote-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.participant-content-quote-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.participant-content-source {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.participant-content-source-label {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.participant-content-source-link {
+  color: var(--color-a);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.participant-content-source-link:hover {
+  color: var(--color-text);
+}
+
 .debate-editor-paste-alert {
   margin: 0;
   padding: 0.625rem 0.75rem;

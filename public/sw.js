@@ -10,7 +10,7 @@ self.addEventListener("push", (event) => {
   let payload = {
     title: "Winunio",
     body: "Új értesítés",
-    url: "/admin",
+    url: "/",
   };
 
   if (event.data) {

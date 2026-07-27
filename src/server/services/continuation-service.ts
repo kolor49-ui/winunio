@@ -16,6 +16,7 @@ import {
 } from "@/server/services/passkey-service";
 import { isPhoneVerified } from "@/server/services/phone-service";
 import { logSecurityEvent } from "@/server/services/security-event-service";
+import { notifyNewRoundOpened } from "@/server/services/user-notification-service";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 
 const CHALLENGE_TTL_MINUTES = 10;
@@ -655,6 +656,12 @@ export async function submitContinuationRequest(
         idempotent: result.idempotent,
       },
     });
+
+    if (!result.idempotent && result.threshold_met) {
+      void notifyNewRoundOpened(round.debate_id).catch((error) => {
+        console.error("[continuation] new round notify failed:", error);
+      });
+    }
 
     return result;
   } catch (error) {

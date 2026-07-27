@@ -6,6 +6,7 @@ import {
   DebateRoundPanel,
 } from "./debate-round-panel";
 import { shouldShowNotifyBar } from "./debate-audience";
+import { ParticipantContentDisplay } from "../../participant-content-display";
 import { ReportButton } from "../../report-button";
 import { DebatePair, DebatePairSide } from "../debate-pair";
 import { DebateStatusPill } from "../../debate-status-pill";
@@ -117,7 +118,7 @@ export default async function DebatePage({ params }: Props) {
         <h2 className="section-title">Kiinduló álláspontok</h2>
         <DebatePair>
           <DebatePairSide side="A" label="kiinduló álláspont">
-            <p>{debate.initiator_stance}</p>
+            <ParticipantContentDisplay content={debate.initiator_stance} />
             <ReportButton debateId={debate.id} />
           </DebatePairSide>
           <DebatePairSide
@@ -127,7 +128,9 @@ export default async function DebatePage({ params }: Props) {
               debate.partner_stance ? undefined : "Partnerre vár — még nincs B álláspont."
             }
           >
-            {debate.partner_stance ? <p>{debate.partner_stance}</p> : null}
+            {debate.partner_stance ? (
+              <ParticipantContentDisplay content={debate.partner_stance} />
+            ) : null}
           </DebatePairSide>
         </DebatePair>
       </section>

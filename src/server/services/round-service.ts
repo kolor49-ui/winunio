@@ -7,6 +7,7 @@ import { getSql } from "@/server/db";
 import { debateNeedsAwaitingClosure } from "@/server/services/closing-statement-service";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 import { sendBResponseNotifications } from "@/server/services/notification-service";
+import { notifyParticipantTurn } from "@/server/services/user-notification-service";
 
 export function parseSubmitArgumentBody(body: unknown) {
   return parseLegacyOrEditorBody(body);
@@ -57,8 +58,8 @@ export async function submitArgument(
       throw new ApiError(410, "ROUND_DEADLINE_PASSED", "A határidő lejárt");
     }
 
-    const [debate] = await tx<{ id: string; status: string }[]>`
-      SELECT id, status::text AS status
+    const [debate] = await tx<{ id: string; status: string; question: string }[]>`
+      SELECT id, status::text AS status, question
       FROM debates
       WHERE id = ${round.debate_id}
       FOR UPDATE
@@ -187,8 +188,35 @@ export async function submitArgument(
       debate_status: debateStatus,
       submissions_in_round: countRow?.cnt ?? 0,
       notify_b_response: participant.side === "B",
+      notify_b_turn: participant.side === "A",
+      debate_id: round.debate_id,
+      debate_question: debate.question,
     };
   });
+
+  if (result.notify_b_turn) {
+    void (async () => {
+      try {
+        const sql = getSql();
+        const [partner] = await sql<{ user_id: string }[]>`
+          SELECT user_id
+          FROM debate_participants
+          WHERE debate_id = ${result.debate_id}
+            AND side = 'B'::participant_side
+          LIMIT 1
+        `;
+        if (!partner) return;
+        await notifyParticipantTurn({
+          userId: partner.user_id,
+          debateId: result.debate_id,
+          question: result.debate_question,
+          side: "B",
+        });
+      } catch (error) {
+        console.error("[round] B turn notify failed:", error);
+      }
+    })();
+  }
 
   if (result.notify_b_response) {
     void sendBResponseNotifications(roundId).catch((error) => {
@@ -196,7 +224,13 @@ export async function submitArgument(
     });
   }
 
-  const { notify_b_response: _, ...response } = result;
+  const {
+    notify_b_response: _notifyAudience,
+    notify_b_turn: _notifyTurn,
+    debate_id: _debateId,
+    debate_question: _debateQuestion,
+    ...response
+  } = result;
   return response;
 }
 

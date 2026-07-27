@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AccountDeleteForm } from "./account-delete-form";
 import { InstallAppButton } from "../install-app-button";
+import { UserPushSetup } from "../user-push-setup";
 import { PlatformOverview } from "../platform-overview";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
@@ -36,6 +37,15 @@ export default async function AccountPage() {
       </header>
 
       <div className="layout-main">
+        <section className="layout-panel">
+          <h2 className="layout-panel-title">Értesítések</h2>
+          <p className="hint">
+            Push üzenetet kaphatsz, ha téged érintő esemény történik: meghívás,
+            teendő a vitában, B válasza, admin jóváhagyás.
+          </p>
+          <UserPushSetup />
+        </section>
+
         <section className="layout-panel">
           <h2 className="layout-panel-title">Telepítés</h2>
           <p className="hint">

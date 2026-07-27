@@ -38,7 +38,7 @@ function configureWebPush(): boolean {
   if (!publicKey || !privateKey) return false;
 
   webpush.setVapidDetails(
-    readEnv("VAPID_SUBJECT") ?? "mailto:admin@winunio.com",
+    readEnv("VAPID_SUBJECT") ?? "mailto:winunio@winunio.com",
     publicKey,
     privateKey,
   );

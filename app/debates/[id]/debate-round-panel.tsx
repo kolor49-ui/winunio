@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DebatePair, DebatePairSide } from "../debate-pair";
 import { DebateEditor } from "../../debate-editor";
+import { ParticipantContentDisplay } from "../../participant-content-display";
 import { ReportButton } from "../../report-button";
 
 type ActiveRound = {
@@ -56,7 +57,7 @@ function ArgumentContent({
 }) {
   return (
     <>
-      <p>{content}</p>
+      <ParticipantContentDisplay content={content} />
       {!content.startsWith("[Eltávolítva") && argumentId && (
         <ReportButton debateId={debateId} argumentId={argumentId} />
       )}

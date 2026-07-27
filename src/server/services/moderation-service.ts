@@ -2,6 +2,7 @@ import { transitionDebate } from "@/domain/debate";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
 import { computeContentHash } from "@/server/services/content-hash";
+import { notifyAppealApproved } from "@/server/services/user-notification-service";
 import {
   CONTENT_POLICY_VERSION,
   type ContentReviewIssue,
@@ -385,6 +386,17 @@ export async function decideModerationCase(input: {
       )
     `;
   });
+
+  if (input.decision === "approve" && detail.case.source === "user_appeal") {
+    void notifyAppealApproved({
+      userId: detail.case.requester_id,
+      linkPath: detail.case.debate_id
+        ? `/debates/${detail.case.debate_id}`
+        : "/debates/new",
+    }).catch((error) => {
+      console.error("[moderation] appeal approved notify failed:", error);
+    });
+  }
 
   return { status: newStatus };
 }

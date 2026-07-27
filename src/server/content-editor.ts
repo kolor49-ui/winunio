@@ -61,6 +61,38 @@ export function formatParticipantContent(input: EditorFields): string {
   return parts.join("\n");
 }
 
+const FORMATTED_QUOTE_MARKER = "\n— Idézet —\n";
+const FORMATTED_SOURCE_PREFIX = "\nForrás: ";
+
+export function parseFormattedParticipantContent(content: string): {
+  reasoning: string;
+  quote: string | null;
+  source: string | null;
+} {
+  const trimmed = content.trim();
+  const markerIndex = trimmed.indexOf(FORMATTED_QUOTE_MARKER);
+  if (markerIndex === -1) {
+    return { reasoning: trimmed, quote: null, source: null };
+  }
+
+  const reasoning = trimmed.slice(0, markerIndex).trim();
+  let rest = trimmed.slice(markerIndex + FORMATTED_QUOTE_MARKER.length);
+  let quote = rest.trim();
+  let source: string | null = null;
+
+  const sourceIndex = rest.lastIndexOf(FORMATTED_SOURCE_PREFIX);
+  if (sourceIndex !== -1) {
+    source = rest.slice(sourceIndex + FORMATTED_SOURCE_PREFIX.length).trim();
+    quote = rest.slice(0, sourceIndex).trim();
+  }
+
+  return {
+    reasoning,
+    quote: quote || null,
+    source: source || null,
+  };
+}
+
 export function parseLegacyOrEditorBody(body: unknown): {
   fields: EditorFields;
   content: string;

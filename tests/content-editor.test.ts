@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatParticipantContent,
   normalizeEditorFields,
+  parseFormattedParticipantContent,
   parseLegacyOrEditorBody,
 } from "@/server/content-editor";
 
@@ -47,5 +48,26 @@ describe("content-editor", () => {
     });
     expect(parsed.content).toContain("— Idézet —");
     expect(parsed.fields.quote).toBe("Idézet");
+  });
+
+  it("parses formatted content back into reasoning, quote, and source", () => {
+    const formatted = formatParticipantContent({
+      reasoning: "Saját szöveg.",
+      quote: "Idézett mondat.",
+      source: "https://example.com/page",
+    });
+    expect(parseFormattedParticipantContent(formatted)).toEqual({
+      reasoning: "Saját szöveg.",
+      quote: "Idézett mondat.",
+      source: "https://example.com/page",
+    });
+  });
+
+  it("parses reasoning-only formatted content", () => {
+    expect(parseFormattedParticipantContent("Csak érvelés.")).toEqual({
+      reasoning: "Csak érvelés.",
+      quote: null,
+      source: null,
+    });
   });
 });

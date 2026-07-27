@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DebateEditor } from "../../debate-editor";
+import { ParticipantContentDisplay } from "../../participant-content-display";
 import { DebatePair, DebatePairSide } from "../debate-pair";
 
 export type ClosingStatementContext = {
@@ -70,10 +71,14 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
         </p>
         <DebatePair>
           <DebatePairSide side="A" label="zárógondolat">
-            {statementA ? <p>{statementA.content}</p> : null}
+            {statementA ? (
+              <ParticipantContentDisplay content={statementA.content} />
+            ) : null}
           </DebatePairSide>
           <DebatePairSide side="B" label="zárógondolat">
-            {statementB ? <p>{statementB.content}</p> : null}
+            {statementB ? (
+              <ParticipantContentDisplay content={statementB.content} />
+            ) : null}
           </DebatePairSide>
         </DebatePair>
       </div>

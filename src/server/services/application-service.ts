@@ -7,6 +7,11 @@ import { ApiError } from "@/server/api/http";
 import { parseLegacyOrEditorBody } from "@/server/content-editor";
 import { getSql } from "@/server/db";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
+import {
+  notifyInvitationAccepted,
+  notifyInvitationRejected,
+  notifyPartnerInvited,
+} from "@/server/services/user-notification-service";
 
 const INVITATION_HOURS = 48;
 const ROUND_DEADLINE_HOURS = 72;
@@ -272,11 +277,11 @@ export async function selectPartner(
 ) {
   const sql = getSql();
 
-  return sql.begin(async (tx) => {
+  const result = await sql.begin(async (tx) => {
     const [debate] = await tx<
-      { id: string; initiator_id: string; status: string }[]
+      { id: string; initiator_id: string; status: string; question: string }[]
     >`
-      SELECT id, initiator_id, status::text AS status
+      SELECT id, initiator_id, status::text AS status, question
       FROM debates
       WHERE id = ${debateId}
       FOR UPDATE
@@ -356,14 +361,30 @@ export async function selectPartner(
         invitation_expires_at: updated.invitation_expires_at.toISOString(),
       },
       debate_status: "invitation_pending",
+      invitee_user_id: application.user_id,
+      debate_id: debateId,
+      debate_question: debate.question,
     };
   });
+
+  void notifyPartnerInvited({
+    inviteeUserId: result.invitee_user_id,
+    debateId: result.debate_id,
+    question: result.debate_question,
+  }).catch((error) => {
+    console.error("[application] partner invite notify failed:", error);
+  });
+
+  return {
+    invitation: result.invitation,
+    debate_status: result.debate_status,
+  };
 }
 
 export async function acceptInvitation(applicationId: string, userId: string) {
   const sql = getSql();
 
-  return sql.begin(async (tx) => {
+  const result = await sql.begin(async (tx) => {
     const [application] = await tx<
       {
         id: string;
@@ -408,9 +429,9 @@ export async function acceptInvitation(applicationId: string, userId: string) {
     }
 
     const [debate] = await tx<
-      { id: string; initiator_id: string; status: string }[]
+      { id: string; initiator_id: string; status: string; question: string }[]
     >`
-      SELECT id, initiator_id, status::text AS status
+      SELECT id, initiator_id, status::text AS status, question
       FROM debates
       WHERE id = ${application.debate_id}
       FOR UPDATE
@@ -482,6 +503,8 @@ export async function acceptInvitation(applicationId: string, userId: string) {
     return {
       debate_id: debate.id,
       debate_status: "active",
+      initiator_user_id: debate.initiator_id,
+      debate_question: debate.question,
       round: {
         id: round.id,
         round_number: round.round_number,
@@ -489,12 +512,26 @@ export async function acceptInvitation(applicationId: string, userId: string) {
       },
     };
   });
+
+  void notifyInvitationAccepted({
+    initiatorUserId: result.initiator_user_id,
+    debateId: result.debate_id,
+    question: result.debate_question,
+  }).catch((error) => {
+    console.error("[application] invitation accepted notify failed:", error);
+  });
+
+  return {
+    debate_id: result.debate_id,
+    debate_status: result.debate_status,
+    round: result.round,
+  };
 }
 
 export async function rejectInvitation(applicationId: string, userId: string) {
   const sql = getSql();
 
-  return sql.begin(async (tx) => {
+  const result = await sql.begin(async (tx) => {
     const [application] = await tx<
       {
         id: string;
@@ -540,12 +577,39 @@ export async function rejectInvitation(applicationId: string, userId: string) {
       WHERE id = ${application.debate_id} AND status = 'invitation_pending'
     `;
 
+    const [debate] = await tx<
+      { initiator_id: string; question: string }[]
+    >`
+      SELECT initiator_id, question
+      FROM debates
+      WHERE id = ${application.debate_id}
+      LIMIT 1
+    `;
+
     return {
       debate_id: application.debate_id,
       debate_status: "waiting_for_partner",
       application_status: "rejected",
+      initiator_user_id: debate?.initiator_id ?? null,
+      debate_question: debate?.question ?? "",
     };
   });
+
+  if (result.initiator_user_id) {
+    void notifyInvitationRejected({
+      initiatorUserId: result.initiator_user_id,
+      debateId: result.debate_id,
+      question: result.debate_question,
+    }).catch((error) => {
+      console.error("[application] invitation rejected notify failed:", error);
+    });
+  }
+
+  return {
+    debate_id: result.debate_id,
+    debate_status: result.debate_status,
+    application_status: result.application_status,
+  };
 }
 
 export async function getMyApplicationForDebate(debateId: string, userId: string) {
