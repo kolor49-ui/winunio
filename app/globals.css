@@ -277,28 +277,6 @@ a {
     height: 36px;
   }
 
-  .site-header-email--desktop {
-    display: none;
-  }
-
-  .site-header-email--mobile {
-    display: block;
-  }
-
-  .site-header-home-link {
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .mobile-nav-toggle {
-    display: inline-flex;
-    flex-direction: column;
-  }
-
-  .nav-links--desktop {
-    display: none;
-  }
-
   .debate-pair {
     grid-template-columns: 1fr;
   }
@@ -999,6 +977,30 @@ a {
 
 .mobile-nav-links .nav-badge-inline {
   margin-left: 0;
+}
+
+@media (max-width: 720px) {
+  .site-header .nav-links.nav-links--desktop {
+    display: none;
+  }
+
+  .site-header .mobile-nav-toggle {
+    display: inline-flex;
+    flex-direction: column;
+  }
+
+  .site-header .site-header-home-link {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .site-header .site-header-email--desktop {
+    display: none;
+  }
+
+  .site-header .site-header-email--mobile {
+    display: block;
+  }
 }
 
 .nav-logout {

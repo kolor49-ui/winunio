@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { handleRouteError } from "@/server/api/errors";
+import { notifyAdminsDebateCreated } from "@/server/services/admin-notification-service";
 import {
   jsonOk,
   requireActiveUser,
@@ -28,6 +30,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const input = parseCreateDebateBody(body);
     const debate = await createDebate(user.id, input);
+    after(async () => {
+      try {
+        await notifyAdminsDebateCreated({
+          debateId: debate.id,
+          question: debate.question,
+          initiatorUserId: user.id,
+        });
+      } catch (error) {
+        console.error("[admin-notification] debate alert failed:", error);
+      }
+    });
     return jsonOk({ debate }, 201);
   } catch (error) {
     return handleRouteError(error);

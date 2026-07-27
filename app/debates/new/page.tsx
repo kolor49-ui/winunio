@@ -96,15 +96,14 @@ async function reviewDebateTexts(input: {
       reviewIds: PendingReviews;
     }
 > {
+  const stanceText = formatEditorValuesForPublish(input.stance);
   const [questionReview, stanceReview] = await Promise.all([
     reviewTextBeforePublish({
       text: input.question,
       contextType: "debate_question",
     }),
     reviewTextBeforePublish({
-      text: input.stance.reasoning.trim(),
-      quote: input.stance.quote.trim() || undefined,
-      source: input.stance.source.trim() || undefined,
+      text: stanceText,
       contextType: "initiator_stance",
     }),
   ]);
@@ -330,7 +329,7 @@ export default function NewDebatePage() {
         },
         {
           review_id: pendingReviews.stanceReviewId,
-          text: stanceEditor.reasoning.trim(),
+          text: stancePublishText(),
           context_type: "initiator_stance",
         },
       ],
@@ -526,8 +525,8 @@ export default function NewDebatePage() {
         question,
         stance: stancePublishText(),
       });
-    } catch {
-      setError("Hálózati hiba");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
       setLoading(false);
     }
@@ -560,8 +559,8 @@ export default function NewDebatePage() {
         question,
         stance: stancePublishText(),
       });
-    } catch {
-      setError("Hálózati hiba");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
       setLoading(false);
     }
@@ -623,8 +622,8 @@ export default function NewDebatePage() {
         question: correctedQuestion,
         stance: stancePublishText(),
       });
-    } catch {
-      setError("Hálózati hiba");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
       setLoading(false);
     }
