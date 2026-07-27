@@ -260,9 +260,16 @@ a {
   }
 
   .site-header .container {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .site-header-bar {
+    min-height: 2.25rem;
+  }
+
+  .site-header-email {
+    font-size: 0.75rem;
+    max-width: min(14rem, calc(100% - 7rem));
   }
 
   .site-header .logo {
@@ -289,11 +296,6 @@ a {
 
   .nav-links::-webkit-scrollbar {
     display: none;
-  }
-
-  .nav-user {
-    flex-shrink: 0;
-    max-width: 9rem;
   }
 
   .debate-pair {
@@ -784,14 +786,38 @@ a {
 }
 
 .site-header .container {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
   padding-top: 1rem;
   padding-bottom: 1rem;
   margin-bottom: 0;
+}
+
+.site-header-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.site-header-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 3rem;
+}
+
+.site-header-email {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  max-width: min(20rem, calc(100% - 10rem));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  pointer-events: none;
 }
 
 .logo {
@@ -818,6 +844,7 @@ a {
   gap: 1rem;
   font-size: 0.9375rem;
   min-width: 0;
+  width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -837,17 +864,6 @@ a {
 
 .nav-links a:hover {
   color: var(--color-text);
-}
-
-.nav-user {
-  font-size: 0.8125rem;
-  color: var(--color-text);
-  font-weight: 500;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .nav-logout {

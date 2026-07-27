@@ -20,11 +20,18 @@ export async function SiteHeader() {
 
   return (
     <header className="site-header">
-      <div className="container">
-        <Link href="/" className="logo">
-          <LogoMark />
-          <span>Winunio</span>
-        </Link>
+      <div className="container site-header-inner">
+        <div className="site-header-bar">
+          <Link href="/" className="logo">
+            <LogoMark />
+            <span>Winunio</span>
+          </Link>
+          {user ? (
+            <span className="site-header-email" title="Bejelentkezve">
+              {user.email}
+            </span>
+          ) : null}
+        </div>
         <nav className="nav-links">
           <Link href="/hogyan-mukodik">Hogyan működik</Link>
           <Link href="/debates/new">Vitát indítok</Link>
@@ -44,9 +51,6 @@ export async function SiteHeader() {
                   E-mail megerősítés
                 </Link>
               )}
-              <span className="nav-user" title="Bejelentkezve">
-                {user.email}
-              </span>
               <LogoutButton />
             </>
           ) : (
