@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -180,6 +181,7 @@ export default function NewDebatePage() {
   );
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [createdDebateId, setCreatedDebateId] = useState<string | null>(null);
   const [spellLoading, setSpellLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState<"named" | "anonymous">("named");
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
@@ -459,11 +461,39 @@ export default function NewDebatePage() {
     return formatEditorValuesForPublish(values);
   }
 
+  function finishDebateCreation(debateId: string) {
+    setLoading(false);
+    setError(null);
+    setSuccessMessage("Vitaindítás sikeres");
+    setCreatedDebateId(debateId);
+
+    if (activeDraftId) {
+      const draftId = activeDraftId;
+      void deleteInitiatorDraft(draftId)
+        .then(() => {
+          setDrafts((current) =>
+            current.filter((draft) => draft.context_id !== draftId),
+          );
+        })
+        .catch(() => {
+          /* vita létrejött — piszkozat törlése nem kritikus */
+        });
+    }
+
+    void router.push(`/debates/${debateId}`);
+    window.setTimeout(() => {
+      if (window.location.pathname.endsWith("/debates/new")) {
+        window.location.assign(`/debates/${debateId}`);
+      }
+    }, 1200);
+  }
+
   async function publishWithApprovedReviews() {
     if (!pendingReviews) return;
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
+    setCreatedDebateId(null);
     try {
       const result = await checkStoredDebateReviews();
       if (!result?.publishable) {
@@ -541,19 +571,7 @@ export default function NewDebatePage() {
       setError("Váratlan szerverválasz");
       return false;
     }
-    if (activeDraftId) {
-      try {
-        await deleteInitiatorDraft(activeDraftId);
-        setDrafts((current) =>
-          current.filter((draft) => draft.context_id !== activeDraftId),
-        );
-      } catch {
-        /* vita létrejött — piszkozat törlése nem kritikus */
-      }
-    }
-    setError(null);
-    setSuccessMessage("A vita létrejött. Átirányítás…");
-    router.push(`/debates/${data.debate.id}`);
+    finishDebateCreation(data.debate.id);
     return true;
   }
 
@@ -561,6 +579,7 @@ export default function NewDebatePage() {
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
+    setCreatedDebateId(null);
     clearReviewState();
     setLoading(true);
     window.clearTimeout(draftSaveTimer.current);
@@ -608,6 +627,7 @@ export default function NewDebatePage() {
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
+    setCreatedDebateId(null);
     try {
       const form = document.getElementById(formId) as HTMLFormElement;
       const question = questionText.trim();
@@ -675,6 +695,7 @@ export default function NewDebatePage() {
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
+    setCreatedDebateId(null);
     clearReviewState();
 
     try {
@@ -946,20 +967,21 @@ export default function NewDebatePage() {
           </div>
         )}
         {error && <p className="error">{error}</p>}
-        {successMessage && (
-          <p className="success" role="status">
-            {successMessage}
-          </p>
+        {successMessage && createdDebateId && (
+          <div className="debate-created-success" role="status" aria-live="polite">
+            <p className="debate-created-success-title">{successMessage}</p>
+            <p className="hint">Átirányítunk a vitára…</p>
+            <Link href={`/debates/${createdDebateId}`} className="btn">
+              Tovább a vitához
+            </Link>
+          </div>
         )}
         {!showAdvisoryActions &&
           !showBlockingActions &&
-          !appealState && (
-          <button className="btn" type="submit" disabled={loading || !!successMessage}>
-            {loading
-              ? "Ellenőrzés és indítás…"
-              : successMessage
-                ? "Átirányítás…"
-                : "Vita létrehozása"}
+          !appealState &&
+          !successMessage && (
+          <button className="btn" type="submit" disabled={loading}>
+            {loading ? "Ellenőrzés és indítás…" : "Vita létrehozása"}
           </button>
         )}
       </form>

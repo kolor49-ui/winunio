@@ -1275,6 +1275,25 @@ textarea {
   font-weight: 500;
 }
 
+.debate-created-success {
+  margin: 0 0 1rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid #6f8f72;
+  border-radius: 12px;
+  background: var(--color-a-muted);
+}
+
+.debate-created-success-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #3d6b47;
+}
+
+.debate-created-success .hint {
+  margin: 0 0 0.875rem;
+}
+
 .hint {
   font-size: 0.8125rem;
   color: var(--color-muted);
