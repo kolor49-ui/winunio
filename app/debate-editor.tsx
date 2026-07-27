@@ -155,10 +155,15 @@ export function DebateEditor(props: Props) {
   const [spellLoading, setSpellLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const saveTimer = useRef<number | undefined>(undefined);
+  const onValuesChangeRef = useRef(onValuesChange);
 
   useEffect(() => {
-    onValuesChange?.(values);
-  }, [values, onValuesChange]);
+    onValuesChangeRef.current = onValuesChange;
+  }, [onValuesChange]);
+
+  useEffect(() => {
+    onValuesChangeRef.current?.(values);
+  }, [values]);
 
   useEffect(() => {
     if (disableDraftPersistence) return;

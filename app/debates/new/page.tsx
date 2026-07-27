@@ -355,7 +355,6 @@ export default function NewDebatePage() {
     }
 
     if (isDraftEmpty({ question: questionText, stance: stanceEditor })) {
-      setDraftSaveStatus("idle");
       return;
     }
 
