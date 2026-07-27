@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  DebateEditor,
+  formatEditorValuesForPublish,
+  validateEditorValues,
+  type DebateEditorValues,
+} from "../../debate-editor";
+import {
   applyAcceptedSpellSuggestions,
   checkStoredContentReviews,
   ContentReviewFeedback,
@@ -30,8 +36,11 @@ type AppealState = "waiting" | "ready" | null;
 
 type FieldSpellSuggestions = {
   question: SpellCheckSuggestion[];
-  stance: SpellCheckSuggestion[];
 };
+
+function emptyStanceEditor(): DebateEditorValues {
+  return { reasoning: "", quote: "", source: "" };
+}
 
 function fieldBlocksFromStoredCheck(
   result: StoredReviewCheckResult,
@@ -51,7 +60,7 @@ function fieldBlocksFromStoredCheck(
 
 async function reviewDebateTexts(input: {
   question: string;
-  stance: string;
+  stance: DebateEditorValues;
 }): Promise<
   | { ok: true; pending: PendingReviews }
   | {
@@ -67,7 +76,9 @@ async function reviewDebateTexts(input: {
       contextType: "debate_question",
     }),
     reviewTextBeforePublish({
-      text: input.stance,
+      text: input.stance.reasoning.trim(),
+      quote: input.stance.quote.trim() || undefined,
+      source: input.stance.source.trim() || undefined,
       contextType: "initiator_stance",
     }),
   ]);
@@ -145,13 +156,12 @@ export default function NewDebatePage() {
   );
   const [appealState, setAppealState] = useState<AppealState>(null);
   const [questionText, setQuestionText] = useState("");
-  const [stanceText, setStanceText] = useState("");
+  const [stanceEditor, setStanceEditor] = useState<DebateEditorValues>(
+    emptyStanceEditor,
+  );
   const [spellSuggestions, setSpellSuggestions] =
     useState<FieldSpellSuggestions | null>(null);
   const [acceptedQuestionSpell, setAcceptedQuestionSpell] = useState<Set<number>>(
-    new Set(),
-  );
-  const [acceptedStanceSpell, setAcceptedStanceSpell] = useState<Set<number>>(
     new Set(),
   );
   const [loading, setLoading] = useState(false);
@@ -178,7 +188,7 @@ export default function NewDebatePage() {
         },
         {
           review_id: pendingReviews.stanceReviewId,
-          text: stanceText.trim(),
+          text: stanceEditor.reasoning.trim(),
           context_type: "initiator_stance",
         },
       ],
@@ -238,7 +248,11 @@ export default function NewDebatePage() {
       void refreshAppealStatus({ silent: true });
     }, 20000);
     return () => window.clearInterval(intervalId);
-  }, [appealState, pendingReviews, questionText, stanceText]);
+  }, [appealState, pendingReviews, questionText, stanceEditor]);
+
+  function stancePublishText(values = stanceEditor): string {
+    return formatEditorValuesForPublish(values);
+  }
 
   async function publishWithApprovedReviews() {
     if (!pendingReviews) return;
@@ -253,7 +267,7 @@ export default function NewDebatePage() {
       const form = document.getElementById("new-debate-form") as HTMLFormElement;
       await createDebate(form, pendingReviews, {
         question: questionText.trim(),
-        stance: stanceText.trim(),
+        stance: stancePublishText(),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Vitaindítás sikertelen");
@@ -330,12 +344,17 @@ export default function NewDebatePage() {
     setLoading(true);
     const form = e.currentTarget;
     const question = String(new FormData(form).get("question") ?? "").trim();
-    const stance = String(new FormData(form).get("initiator_stance") ?? "").trim();
+    const stanceError = validateEditorValues(stanceEditor);
     setQuestionText(question);
-    setStanceText(stance);
+
+    if (stanceError) {
+      setError(stanceError);
+      setLoading(false);
+      return;
+    }
 
     try {
-      const result = await reviewDebateTexts({ question, stance });
+      const result = await reviewDebateTexts({ question, stance: stanceEditor });
       if (!result.ok) {
         setPendingReviews(result.reviewIds);
         setFieldBlocks(result.fieldBlocks);
@@ -351,7 +370,10 @@ export default function NewDebatePage() {
         return;
       }
 
-      await createDebate(form, result.pending, { question, stance });
+      await createDebate(form, result.pending, {
+        question,
+        stance: stancePublishText(),
+      });
     } catch {
       setError("Hálózati hiba");
     } finally {
@@ -365,8 +387,13 @@ export default function NewDebatePage() {
     try {
       const form = document.getElementById(formId) as HTMLFormElement;
       const question = questionText.trim();
-      const stance = stanceText.trim();
-      const result = await reviewDebateTexts({ question, stance });
+      const stanceError = validateEditorValues(stanceEditor);
+      if (stanceError) {
+        setError(stanceError);
+        setLoading(false);
+        return;
+      }
+      const result = await reviewDebateTexts({ question, stance: stanceEditor });
       if (!result.ok) {
         setPendingReviews(result.reviewIds);
         setFieldBlocks(result.fieldBlocks);
@@ -377,7 +404,10 @@ export default function NewDebatePage() {
         setError("A szöveg továbbra sem tehető közzé.");
         return;
       }
-      await createDebate(form, result.pending, { question, stance });
+      await createDebate(form, result.pending, {
+        question,
+        stance: stancePublishText(),
+      });
     } catch {
       setError("Hálózati hiba");
     } finally {
@@ -389,23 +419,16 @@ export default function NewDebatePage() {
     setSpellLoading(true);
     setError(null);
     try {
-      const [questionSuggestions, stanceSuggestions] = await Promise.all([
+      const [questionSuggestions] = await Promise.all([
         questionText.trim()
           ? requestSpellCheck(questionText.trim())
-          : Promise.resolve([]),
-        stanceText.trim()
-          ? requestSpellCheck(stanceText.trim())
           : Promise.resolve([]),
       ]);
       setSpellSuggestions({
         question: questionSuggestions,
-        stance: stanceSuggestions,
       });
       setAcceptedQuestionSpell(
         new Set(questionSuggestions.map((_, index) => index)),
-      );
-      setAcceptedStanceSpell(
-        new Set(stanceSuggestions.map((_, index) => index)),
       );
     } catch (err) {
       setError(
@@ -423,13 +446,7 @@ export default function NewDebatePage() {
       spellSuggestions.question,
       acceptedQuestionSpell,
     );
-    const correctedStance = applyAcceptedSpellSuggestions(
-      stanceText,
-      spellSuggestions.stance,
-      acceptedStanceSpell,
-    );
     setQuestionText(correctedQuestion);
-    setStanceText(correctedStance);
     setLoading(true);
     setError(null);
     clearReviewState();
@@ -437,7 +454,7 @@ export default function NewDebatePage() {
     try {
       const result = await reviewDebateTexts({
         question: correctedQuestion,
-        stance: correctedStance,
+        stance: stanceEditor,
       });
       if (!result.ok) {
         setPendingReviews(result.reviewIds);
@@ -452,7 +469,7 @@ export default function NewDebatePage() {
       const form = document.getElementById(formId) as HTMLFormElement;
       await createDebate(form, result.pending, {
         question: correctedQuestion,
-        stance: correctedStance,
+        stance: stancePublishText(),
       });
     } catch {
       setError("Hálózati hiba");
@@ -508,19 +525,16 @@ export default function NewDebatePage() {
             }}
           />
         </label>
-        <label>
-          Kiinduló álláspontod
-          <textarea
-            name="initiator_stance"
-            required
-            maxLength={2000}
-            value={stanceText}
-            onChange={(e) => {
-              setStanceText(e.target.value);
-              clearReviewState();
-            }}
-          />
-        </label>
+        <DebateEditor
+          embedded
+          contextType="initiator_stance"
+          contextId="new"
+          reasoningLabel="Kiinduló álláspontod"
+          onValuesChange={(values) => {
+            setStanceEditor(values);
+            clearReviewState();
+          }}
+        />
         <label>
           Kategória
           <input name="category" required maxLength={80} placeholder="pl. tech" />
@@ -675,30 +689,12 @@ export default function NewDebatePage() {
                     />
                   </>
                 )}
-                {spellSuggestions.stance.length > 0 && (
-                  <>
-                    <p className="meta">Kiinduló álláspont</p>
-                    <SpellCheckDiff
-                      text={stanceText}
-                      suggestions={spellSuggestions.stance}
-                      accepted={acceptedStanceSpell}
-                      onToggle={(index) => {
-                        setAcceptedStanceSpell((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(index)) next.delete(index);
-                          else next.add(index);
-                          return next;
-                        });
-                      }}
-                    />
-                  </>
+                {spellSuggestions.question.length === 0 && (
+                  <p className="hint">
+                    Nincs egyértelmű helyesírási javaslat a vitakérdésben. Az
+                    álláspont mezőnél használd a „Helyesírás ellenőrzése” gombot.
+                  </p>
                 )}
-                {spellSuggestions.question.length === 0 &&
-                  spellSuggestions.stance.length === 0 && (
-                    <p className="hint">
-                      Nincs egyértelmű helyesírási javaslat a két mezőben.
-                    </p>
-                  )}
                 <button
                   type="button"
                   className="btn"

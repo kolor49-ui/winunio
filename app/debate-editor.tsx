@@ -24,10 +24,16 @@ export type DebateEditorValues = {
   source: string;
 };
 
-type Props = {
+type SharedProps = {
   contextType: ContentDraftContext;
   contextId: string;
   reasoningLabel: string;
+  className?: string;
+  onValuesChange?: (values: DebateEditorValues) => void;
+};
+
+type StandaloneProps = SharedProps & {
+  embedded?: false;
   submitLabel: string;
   loading?: boolean;
   onSubmit: (payload: {
@@ -36,8 +42,13 @@ type Props = {
     source: string | null;
     content_review_id?: string;
   }) => Promise<void>;
-  className?: string;
 };
+
+type EmbeddedProps = SharedProps & {
+  embedded: true;
+};
+
+type Props = StandaloneProps | EmbeddedProps;
 
 const PASTE_MESSAGE =
   "A saját érvelést a Winunio szerkesztőjében kell megírnod. Beilleszteni csak az Idézet vagy a Forrás mezőbe lehet.";
@@ -46,6 +57,20 @@ const DRAFT_DEBOUNCE_MS = 800;
 
 function emptyValues(): DebateEditorValues {
   return { reasoning: "", quote: "", source: "" };
+}
+
+export function formatEditorValuesForPublish(values: DebateEditorValues): string {
+  const reasoning = values.reasoning.trim();
+  const quote = values.quote.trim();
+  const source = values.source.trim();
+  const parts = [reasoning];
+  if (quote) {
+    parts.push("", "— Idézet —", quote);
+    if (source) {
+      parts.push(`Forrás: ${source}`);
+    }
+  }
+  return parts.join("\n");
 }
 
 async function loadDraft(
@@ -90,15 +115,19 @@ export function blockReasoningPaste(
   event.preventDefault();
 }
 
-export function DebateEditor({
-  contextType,
-  contextId,
-  reasoningLabel,
-  submitLabel,
-  loading = false,
-  onSubmit,
-  className = "form debate-editor",
-}: Props) {
+export function DebateEditor(props: Props) {
+  const {
+    contextType,
+    contextId,
+    reasoningLabel,
+    className = "debate-editor",
+    onValuesChange,
+  } = props;
+  const embedded = props.embedded === true;
+  const loading = !embedded ? props.loading : false;
+  const submitLabel = !embedded ? props.submitLabel : "";
+  const onSubmit = !embedded ? props.onSubmit : undefined;
+
   const [values, setValues] = useState<DebateEditorValues>(emptyValues);
   const [draftStatus, setDraftStatus] = useState<
     "idle" | "loading" | "saving" | "saved" | "error"
@@ -120,6 +149,10 @@ export function DebateEditor({
   const [spellLoading, setSpellLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const saveTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    onValuesChange?.(values);
+  }, [values, onValuesChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,6 +275,7 @@ export function DebateEditor({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (embedded || !onSubmit) return;
     if (!validateFields()) return;
 
     setSubmitting(true);
@@ -299,9 +333,13 @@ export function DebateEditor({
             : "";
 
   const busy = loading || submitting;
+  const Wrapper = embedded ? "div" : "form";
+  const wrapperProps = embedded
+    ? { className }
+    : { className: `form ${className}`, onSubmit: handleSubmit };
 
   return (
-    <form className={className} onSubmit={handleSubmit}>
+    <Wrapper {...wrapperProps}>
       <p className="debate-editor-intro hint">
         A saját érvelést itt kell megírnod. Beilleszteni csak idézetet vagy
         forrást lehet — mások gondolatait sajátként nem.
@@ -321,7 +359,7 @@ export function DebateEditor({
             blockReasoningPaste(event);
             showPasteWarning();
           }}
-          required
+          required={!embedded}
           maxLength={2000}
           rows={6}
           aria-describedby="debate-editor-paste-help"
@@ -376,7 +414,9 @@ export function DebateEditor({
 
       {spellSuggestions && (
         <div className="debate-editor-spell panel-nested">
-          <p className="meta">Helyesírási javaslatok — csak elfogadás után kerülnek be.</p>
+          <p className="meta">
+            Helyesírási javaslatok — csak elfogadás után kerülnek be.
+          </p>
           <SpellCheckDiff
             text={values.reasoning}
             suggestions={spellSuggestions}
@@ -412,7 +452,7 @@ export function DebateEditor({
         </div>
       )}
 
-      {reviewIssues && reviewStatus && (
+      {!embedded && reviewIssues && reviewStatus && (
         <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
       )}
 
@@ -422,9 +462,21 @@ export function DebateEditor({
         </p>
       )}
 
-      <button className="btn" type="submit" disabled={busy}>
-        {busy ? "Küldés…" : submitLabel}
-      </button>
-    </form>
+      {!embedded && (
+        <button className="btn" type="submit" disabled={busy}>
+          {busy ? "Küldés…" : submitLabel}
+        </button>
+      )}
+    </Wrapper>
   );
+}
+
+export function validateEditorValues(values: DebateEditorValues): string | null {
+  if (!values.reasoning.trim()) {
+    return "A kiinduló álláspont kötelező.";
+  }
+  if (values.quote.trim() && !values.source.trim()) {
+    return "Idézethez forrás kötelező.";
+  }
+  return null;
 }
