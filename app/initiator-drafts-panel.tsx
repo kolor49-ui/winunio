@@ -69,8 +69,8 @@ export function InitiatorDraftsPanel({
           <div>
             <h2 className="layout-panel-title">Piszkozatok</h2>
             <p className="hint">
-              Mentett vitaindítások — kattints a betöltéshez. Mentés után az
-              adatlap kiürül.
+              Mentett vitaindítások — kattints a betöltéshez. Új szöveg mentése
+              után az adatlap kiürül; betöltött piszkozatnál nem.
             </p>
           </div>
           <button

@@ -188,6 +188,8 @@ export default function NewDebatePage() {
   const [draftReady, setDraftReady] = useState(false);
   const draftSaveTimer = useRef<number | undefined>(undefined);
   const switchingDraft = useRef(false);
+  /** Új szöveg írása — mentés után kiürül. Betöltött piszkozat — nem. */
+  const draftSessionRef = useRef<"compose" | "loaded">("compose");
 
   function clearReviewState() {
     setReviewIssues(null);
@@ -211,6 +213,7 @@ export default function NewDebatePage() {
 
   function resetToNewDraftSheet(draftId?: string) {
     switchingDraft.current = true;
+    draftSessionRef.current = "compose";
     window.clearTimeout(draftSaveTimer.current);
     clearInitiatorForm();
     setActiveDraftId(draftId ?? createDraftId());
@@ -243,6 +246,7 @@ export default function NewDebatePage() {
         "new-debate-form",
       ) as HTMLFormElement | null;
       form?.reset();
+      draftSessionRef.current = "loaded";
       setActiveDraftId(draftId);
       setQuestionText(draft?.question ?? "");
       setStanceEditor(
@@ -315,7 +319,9 @@ export default function NewDebatePage() {
           });
           if (saved) {
             setDrafts((current) => upsertDraftList(current, saved));
-            resetToNewDraftSheet();
+            if (draftSessionRef.current === "compose") {
+              resetToNewDraftSheet();
+            }
             setDraftSaveStatus("saved");
             return;
           }
