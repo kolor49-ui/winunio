@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { debateCategorySchema } from "@/domain/debate-categories";
+import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 
@@ -11,6 +12,7 @@ const createDebateSchema = z.object({
   display_name: z.string().min(1).max(80).optional(),
   question_content_review_id: z.string().uuid().optional(),
   content_review_id: z.string().uuid().optional(),
+  initiator_draft_id: z.string().uuid().optional(),
 });
 
 export type CreateDebateInput = z.infer<typeof createDebateSchema>;
@@ -29,21 +31,42 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
   const isAnonymous = input.display_mode === "anonymous";
   const displayName = isAnonymous ? null : (input.display_name ?? null);
 
+  const question = input.question.trim();
+  const initiatorStance = input.initiator_stance.trim();
+
   await assertContentApprovedForPublication({
     userId,
     contextType: "debate_question",
-    text: input.question.trim(),
+    text: question,
     contentReviewId: input.question_content_review_id,
   });
 
   await assertContentApprovedForPublication({
     userId,
     contextType: "initiator_stance",
-    text: input.initiator_stance.trim(),
+    text: initiatorStance,
     contentReviewId: input.content_review_id,
   });
 
   const debate = await sql.begin(async (tx) => {
+    const [existing] = await tx<{ id: string }[]>`
+      SELECT id
+      FROM debates
+      WHERE initiator_id = ${userId}
+        AND question = ${question}
+        AND status NOT IN ('cancelled', 'completed')
+      LIMIT 1
+    `;
+
+    if (existing) {
+      throw new ApiError(
+        409,
+        "DEBATE_ALREADY_EXISTS",
+        "Már indítottál vitát ezzel a kérdéssel.",
+        { debate_id: existing.id },
+      );
+    }
+
     await tx`
       UPDATE public_profiles
       SET display_name = ${displayName}, is_anonymous = ${isAnonymous}
@@ -69,12 +92,28 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
       )
       VALUES (
         ${userId},
-        ${input.question.trim()},
-        ${input.initiator_stance.trim()},
+        ${question},
+        ${initiatorStance},
         ${input.category.trim()},
         'waiting_for_partner'
       )
       RETURNING id, question, initiator_stance, category, status::text, created_at
+    `;
+
+    if (input.initiator_draft_id) {
+      await tx`
+        DELETE FROM content_drafts
+        WHERE user_id = ${userId}
+          AND context_type = 'initiator_stance'
+          AND context_id = ${input.initiator_draft_id}
+      `;
+    }
+
+    await tx`
+      DELETE FROM content_drafts
+      WHERE user_id = ${userId}
+        AND context_type = 'initiator_stance'
+        AND question = ${question}
     `;
 
     return {

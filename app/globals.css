@@ -35,51 +35,6 @@ body {
   overflow-x: clip;
 }
 
-body.splash-active {
-  overflow: hidden;
-}
-
-.splash-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  transition: opacity 0.35s ease;
-}
-
-.splash-screen-fading {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.splash-logo {
-  width: 112px;
-  height: 112px;
-  transform-origin: center center;
-  animation: splash-bubbles-grow 3s ease-out forwards;
-}
-
-@keyframes splash-bubbles-grow {
-  from {
-    opacity: 0.7;
-    transform: scale(0.45);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1.4);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .splash-logo {
-    animation: none;
-  }
-}
-
 h1,
 h2,
 h3,

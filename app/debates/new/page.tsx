@@ -196,6 +196,7 @@ export default function NewDebatePage() {
   const [draftReady, setDraftReady] = useState(false);
   const draftSaveTimer = useRef<number | undefined>(undefined);
   const switchingDraft = useRef(false);
+  const submittingDebateRef = useRef(false);
 
   function clearReviewState() {
     setReviewIssues(null);
@@ -358,7 +359,14 @@ export default function NewDebatePage() {
   }, []);
 
   useEffect(() => {
-    if (!draftReady || !activeDraftId || switchingDraft.current || loading) {
+    if (
+      !draftReady ||
+      !activeDraftId ||
+      switchingDraft.current ||
+      loading ||
+      successMessage ||
+      submittingDebateRef.current
+    ) {
       return;
     }
 
@@ -388,7 +396,7 @@ export default function NewDebatePage() {
     return () => {
       window.clearTimeout(draftSaveTimer.current);
     };
-  }, [questionText, stanceEditor, activeDraftId, draftReady, loading]);
+  }, [questionText, stanceEditor, activeDraftId, draftReady, loading, successMessage]);
 
   async function checkStoredDebateReviews(): Promise<StoredReviewCheckResult | null> {
     if (!pendingReviews) return null;
@@ -467,24 +475,35 @@ export default function NewDebatePage() {
     return formatEditorValuesForPublish(values);
   }
 
-  function finishDebateCreation(debateId: string) {
+  async function finishDebateCreation(debateId: string) {
+    submittingDebateRef.current = true;
+    window.clearTimeout(draftSaveTimer.current);
+    switchingDraft.current = true;
+
+    const draftId = activeDraftId;
+    const publishedQuestion = questionText.trim();
+
     setLoading(false);
     setError(null);
     setSuccessMessage("Vitaindítás sikeres");
     setCreatedDebateId(debateId);
 
-    if (activeDraftId) {
-      const draftId = activeDraftId;
-      void deleteInitiatorDraft(draftId)
-        .then(() => {
-          setDrafts((current) =>
-            current.filter((draft) => draft.context_id !== draftId),
-          );
-        })
-        .catch(() => {
-          /* vita létrejött — piszkozat törlése nem kritikus */
-        });
+    if (draftId) {
+      try {
+        await deleteInitiatorDraft(draftId);
+      } catch {
+        /* szerver oldalon is törlődik */
+      }
     }
+
+    setDrafts((current) =>
+      current.filter(
+        (draft) =>
+          draft.context_id !== draftId &&
+          draft.question?.trim() !== publishedQuestion,
+      ),
+    );
+    startEmptyDraftSheet();
 
     void router.push(`/debates/${debateId}`);
     window.setTimeout(() => {
@@ -524,7 +543,13 @@ export default function NewDebatePage() {
     reviews: PendingReviews,
     overrides?: { question?: string; stance?: string },
   ): Promise<boolean> {
+    if (submittingDebateRef.current) return false;
+
+    submittingDebateRef.current = true;
+    window.clearTimeout(draftSaveTimer.current);
+
     const formData = new FormData(form);
+    try {
     const res = await fetch("/api/v1/debates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -537,6 +562,7 @@ export default function NewDebatePage() {
           displayMode === "named" ? formData.get("display_name") : undefined,
         question_content_review_id: reviews.questionReviewId,
         content_review_id: reviews.stanceReviewId,
+        initiator_draft_id: activeDraftId ?? undefined,
       }),
     });
     const raw = await res.text();
@@ -552,11 +578,28 @@ export default function NewDebatePage() {
           ? "Váratlan szerverválasz"
           : `Szerver hiba (${res.status}) — próbáld újra később`,
       );
+      submittingDebateRef.current = false;
       return false;
     }
     if (!res.ok) {
       if (res.status === 401) {
         setError("Előbb jelentkezz be.");
+        submittingDebateRef.current = false;
+        return false;
+      }
+      if (data.error?.code === "DEBATE_ALREADY_EXISTS") {
+        const existingId =
+          data.error.details &&
+          typeof data.error.details === "object" &&
+          "debate_id" in data.error.details &&
+          typeof data.error.details.debate_id === "string"
+            ? data.error.details.debate_id
+            : null;
+        setError("Már indítottál vitát ezzel a kérdéssel.");
+        if (existingId) {
+          setCreatedDebateId(existingId);
+        }
+        submittingDebateRef.current = false;
         return false;
       }
       const issues = extractContentReviewIssues(
@@ -571,18 +614,25 @@ export default function NewDebatePage() {
         );
       }
       setError(data.error?.message ?? "Vitaindítás sikertelen");
+      submittingDebateRef.current = false;
       return false;
     }
     if (!data.debate?.id) {
       setError("Váratlan szerverválasz");
+      submittingDebateRef.current = false;
       return false;
     }
-    finishDebateCreation(data.debate.id);
+    await finishDebateCreation(data.debate.id);
     return true;
+    } catch {
+      submittingDebateRef.current = false;
+      throw new Error("Hálózati hiba");
+    }
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingDebateRef.current) return;
     setError(null);
     setSuccessMessage(null);
     setCreatedDebateId(null);
@@ -995,6 +1045,11 @@ export default function NewDebatePage() {
               Tovább a vitához
             </Link>
           </div>
+        )}
+        {error && createdDebateId && !successMessage && (
+          <Link href={`/debates/${createdDebateId}`} className="btn btn-secondary">
+            Meglévő vita megnyitása
+          </Link>
         )}
         {!showAdvisoryActions &&
           !showBlockingActions &&
