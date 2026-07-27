@@ -7,6 +7,7 @@ import {
   deleteInitiatorDraft,
   fetchInitiatorDraft,
   fetchInitiatorDrafts,
+  isDraftEmpty,
   persistInitiatorDraft,
   type InitiatorDraft,
 } from "../../initiator-draft-api";
@@ -51,7 +52,7 @@ function emptyStanceEditor(): DebateEditorValues {
   return { reasoning: "", quote: "", source: "" };
 }
 
-const DRAFT_DEBOUNCE_MS = 800;
+const DRAFT_DEBOUNCE_MS = 3000;
 
 function sortDrafts(drafts: InitiatorDraft[]): InitiatorDraft[] {
   return [...drafts].sort(
@@ -178,6 +179,7 @@ export default function NewDebatePage() {
     new Set(),
   );
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [spellLoading, setSpellLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState<"named" | "anonymous">("named");
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
@@ -188,8 +190,6 @@ export default function NewDebatePage() {
   const [draftReady, setDraftReady] = useState(false);
   const draftSaveTimer = useRef<number | undefined>(undefined);
   const switchingDraft = useRef(false);
-  /** Új szöveg írása — mentés után kiürül. Betöltött piszkozat — nem. */
-  const draftSessionRef = useRef<"compose" | "loaded">("compose");
 
   function clearReviewState() {
     setReviewIssues(null);
@@ -211,9 +211,8 @@ export default function NewDebatePage() {
     form?.reset();
   }
 
-  function resetToNewDraftSheet(draftId?: string) {
+  function startEmptyDraftSheet(draftId?: string) {
     switchingDraft.current = true;
-    draftSessionRef.current = "compose";
     window.clearTimeout(draftSaveTimer.current);
     clearInitiatorForm();
     setActiveDraftId(draftId ?? createDraftId());
@@ -246,7 +245,6 @@ export default function NewDebatePage() {
         "new-debate-form",
       ) as HTMLFormElement | null;
       form?.reset();
-      draftSessionRef.current = "loaded";
       setActiveDraftId(draftId);
       setQuestionText(draft?.question ?? "");
       setStanceEditor(
@@ -274,9 +272,55 @@ export default function NewDebatePage() {
     setDraftSaveStatus("saving");
     try {
       await flushDraftSave();
-      resetToNewDraftSheet(draftId);
+      startEmptyDraftSheet(draftId);
     } catch {
       setDraftSaveStatus("error");
+      switchingDraft.current = false;
+    }
+  }
+
+  async function deleteDraft(draftId: string) {
+    switchingDraft.current = true;
+    window.clearTimeout(draftSaveTimer.current);
+    try {
+      await deleteInitiatorDraft(draftId);
+      setDrafts((current) =>
+        current.filter((draft) => draft.context_id !== draftId),
+      );
+      if (activeDraftId === draftId) {
+        startEmptyDraftSheet();
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Piszkozat törlése sikertelen",
+      );
+    } finally {
+      switchingDraft.current = false;
+    }
+  }
+
+  async function deleteAllDrafts() {
+    if (drafts.length === 0) return;
+    if (
+      !window.confirm(
+        `Biztosan törlöd mind a ${drafts.length} piszkozatot? Ez nem vonható vissza.`,
+      )
+    ) {
+      return;
+    }
+    switchingDraft.current = true;
+    window.clearTimeout(draftSaveTimer.current);
+    try {
+      await Promise.all(
+        drafts.map((draft) => deleteInitiatorDraft(draft.context_id)),
+      );
+      setDrafts([]);
+      startEmptyDraftSheet();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Piszkozatok törlése sikertelen",
+      );
+    } finally {
       switchingDraft.current = false;
     }
   }
@@ -306,7 +350,14 @@ export default function NewDebatePage() {
   }, []);
 
   useEffect(() => {
-    if (!draftReady || !activeDraftId || switchingDraft.current || loading) return;
+    if (!draftReady || !activeDraftId || switchingDraft.current || loading) {
+      return;
+    }
+
+    if (isDraftEmpty({ question: questionText, stance: stanceEditor })) {
+      setDraftSaveStatus("idle");
+      return;
+    }
 
     setDraftSaveStatus("saving");
     window.clearTimeout(draftSaveTimer.current);
@@ -319,11 +370,6 @@ export default function NewDebatePage() {
           });
           if (saved) {
             setDrafts((current) => upsertDraftList(current, saved));
-            if (draftSessionRef.current === "compose") {
-              resetToNewDraftSheet();
-            }
-            setDraftSaveStatus("saved");
-            return;
           }
           setDraftSaveStatus("saved");
         } catch {
@@ -418,6 +464,7 @@ export default function NewDebatePage() {
     if (!pendingReviews) return;
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const result = await checkStoredDebateReviews();
       if (!result?.publishable) {
@@ -425,10 +472,11 @@ export default function NewDebatePage() {
         return;
       }
       const form = document.getElementById("new-debate-form") as HTMLFormElement;
-      await createDebate(form, pendingReviews, {
+      const created = await createDebate(form, pendingReviews, {
         question: questionText.trim(),
         stance: stancePublishText(),
       });
+      if (created) return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Vitaindítás sikertelen");
     } finally {
@@ -440,7 +488,7 @@ export default function NewDebatePage() {
     form: HTMLFormElement,
     reviews: PendingReviews,
     overrides?: { question?: string; stance?: string },
-  ) {
+  ): Promise<boolean> {
     const formData = new FormData(form);
     const res = await fetch("/api/v1/debates", {
       method: "POST",
@@ -469,12 +517,12 @@ export default function NewDebatePage() {
           ? "Váratlan szerverválasz"
           : `Szerver hiba (${res.status}) — próbáld újra később`,
       );
-      return;
+      return false;
     }
     if (!res.ok) {
       if (res.status === 401) {
         setError("Előbb jelentkezz be.");
-        return;
+        return false;
       }
       const issues = extractContentReviewIssues(
         data as Parameters<typeof extractContentReviewIssues>[0],
@@ -488,11 +536,11 @@ export default function NewDebatePage() {
         );
       }
       setError(data.error?.message ?? "Vitaindítás sikertelen");
-      return;
+      return false;
     }
     if (!data.debate?.id) {
       setError("Váratlan szerverválasz");
-      return;
+      return false;
     }
     if (activeDraftId) {
       try {
@@ -504,12 +552,16 @@ export default function NewDebatePage() {
         /* vita létrejött — piszkozat törlése nem kritikus */
       }
     }
+    setError(null);
+    setSuccessMessage("A vita létrejött. Átirányítás…");
     router.push(`/debates/${data.debate.id}`);
+    return true;
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     clearReviewState();
     setLoading(true);
     window.clearTimeout(draftSaveTimer.current);
@@ -541,10 +593,11 @@ export default function NewDebatePage() {
         return;
       }
 
-      await createDebate(form, result.pending, {
+      const created = await createDebate(form, result.pending, {
         question,
         stance: stancePublishText(),
       });
+      if (created) return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
@@ -555,6 +608,7 @@ export default function NewDebatePage() {
   async function continueAfterAdvisory(formId: string) {
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const form = document.getElementById(formId) as HTMLFormElement;
       const question = questionText.trim();
@@ -575,10 +629,11 @@ export default function NewDebatePage() {
         setError("A szöveg továbbra sem tehető közzé.");
         return;
       }
-      await createDebate(form, result.pending, {
+      const created = await createDebate(form, result.pending, {
         question,
         stance: stancePublishText(),
       });
+      if (created) return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
@@ -620,6 +675,7 @@ export default function NewDebatePage() {
     setQuestionText(correctedQuestion);
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     clearReviewState();
 
     try {
@@ -638,10 +694,11 @@ export default function NewDebatePage() {
         return;
       }
       const form = document.getElementById(formId) as HTMLFormElement;
-      await createDebate(form, result.pending, {
+      const created = await createDebate(form, result.pending, {
         question: correctedQuestion,
         stance: stancePublishText(),
       });
+      if (created) return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
@@ -890,11 +947,20 @@ export default function NewDebatePage() {
           </div>
         )}
         {error && <p className="error">{error}</p>}
+        {successMessage && (
+          <p className="success" role="status">
+            {successMessage}
+          </p>
+        )}
         {!showAdvisoryActions &&
           !showBlockingActions &&
           !appealState && (
-          <button className="btn" type="submit" disabled={loading}>
-            {loading ? "Folyamatban…" : "Vita létrehozása"}
+          <button className="btn" type="submit" disabled={loading || !!successMessage}>
+            {loading
+              ? "Ellenőrzés és indítás…"
+              : successMessage
+                ? "Átirányítás…"
+                : "Vita létrehozása"}
           </button>
         )}
       </form>
@@ -909,9 +975,10 @@ export default function NewDebatePage() {
             activeDraftId={activeDraftId}
             draftSaveStatus={draftSaveStatus}
             drafts={drafts}
-            onDraftsChange={setDrafts}
             onSelectDraft={(draftId) => void selectDraft(draftId)}
             onCreateDraft={(draftId) => void createDraft(draftId)}
+            onDeleteDraft={(draftId) => void deleteDraft(draftId)}
+            onDeleteAllDrafts={() => void deleteAllDrafts()}
           />
         )}
       </div>

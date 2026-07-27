@@ -494,7 +494,11 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.35rem 0.5rem;
-  align-items: center;
+  align-items: stretch;
+}
+
+.initiator-drafts-toolbar {
+  margin-bottom: 0.75rem;
 }
 
 .initiator-draft-card {
@@ -533,17 +537,10 @@ a {
 }
 
 .initiator-draft-delete {
-  border: none;
-  background: none;
-  padding: 0.25rem 0.35rem;
-  font-size: 0.75rem;
-  color: var(--color-muted);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.initiator-draft-delete:hover {
-  color: var(--color-text);
+  flex-shrink: 0;
+  align-self: center;
+  min-height: 2.25rem;
+  white-space: nowrap;
 }
 
 .initiator-drafts-save-status {
@@ -1270,6 +1267,12 @@ textarea {
 .error {
   color: #b42318;
   font-size: 0.875rem;
+}
+
+.success {
+  color: #3d6b47;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .hint {

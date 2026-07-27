@@ -2,7 +2,6 @@
 
 import {
   createDraftId,
-  deleteInitiatorDraft,
   draftPreviewLabel,
   draftToEditorValues,
   formatDraftSavedAt,
@@ -14,41 +13,33 @@ type Props = {
   activeDraftId: string | null;
   draftSaveStatus: "idle" | "loading" | "saving" | "saved" | "error";
   drafts: InitiatorDraft[];
-  onDraftsChange: (drafts: InitiatorDraft[]) => void;
   onSelectDraft: (draftId: string) => void;
   onCreateDraft: (draftId: string) => void;
+  onDeleteDraft: (draftId: string) => void;
+  onDeleteAllDrafts: () => void;
 };
 
 export function InitiatorDraftsPanel({
   activeDraftId,
   draftSaveStatus,
   drafts,
-  onDraftsChange,
   onSelectDraft,
   onCreateDraft,
+  onDeleteDraft,
+  onDeleteAllDrafts,
 }: Props) {
   function handleCreateDraft() {
     onCreateDraft(createDraftId());
   }
 
-  async function handleDeleteDraft(draftId: string) {
+  function handleDeleteDraft(
+    event: React.MouseEvent<HTMLButtonElement>,
+    draftId: string,
+  ) {
+    event.stopPropagation();
+    event.preventDefault();
     if (!window.confirm("Biztosan törlöd ezt a piszkozatot?")) return;
-    try {
-      await deleteInitiatorDraft(draftId);
-      const remaining = drafts.filter((draft) => draft.context_id !== draftId);
-      onDraftsChange(remaining);
-      if (activeDraftId === draftId) {
-        if (remaining.length > 0) {
-          onSelectDraft(remaining[0]!.context_id);
-        } else {
-          handleCreateDraft();
-        }
-      }
-    } catch (error) {
-      window.alert(
-        error instanceof Error ? error.message : "Piszkozat törlése sikertelen",
-      );
-    }
+    onDeleteDraft(draftId);
   }
 
   const saveMessage =
@@ -69,8 +60,8 @@ export function InitiatorDraftsPanel({
           <div>
             <h2 className="layout-panel-title">Piszkozatok</h2>
             <p className="hint">
-              Mentett vitaindítások — kattints a betöltéshez. Új szöveg mentése
-              után az adatlap kiürül; betöltött piszkozatnál nem.
+              Automatikus mentés gépelés közben (3 mp). Kattints egy piszkozatra
+              a betöltéshez. Az „Új” gomb üres lapot nyit.
             </p>
           </div>
           <button
@@ -88,9 +79,22 @@ export function InitiatorDraftsPanel({
           </p>
         )}
 
+        {drafts.length > 1 && (
+          <div className="initiator-drafts-toolbar">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onDeleteAllDrafts}
+            >
+              Összes törlése ({drafts.length})
+            </button>
+          </div>
+        )}
+
         {drafts.length === 0 ? (
           <p className="meta">
-            Még nincs mentett piszkozat. Az első változtatás után megjelenik itt.
+            Még nincs mentett piszkozat. Gépelés után automatikusan megjelenik
+            itt.
           </p>
         ) : (
           <ul className="initiator-drafts-list">
@@ -116,9 +120,9 @@ export function InitiatorDraftsPanel({
                   </button>
                   <button
                     type="button"
-                    className="initiator-draft-delete"
+                    className="btn btn-secondary btn-sm initiator-draft-delete"
                     aria-label="Piszkozat törlése"
-                    onClick={() => void handleDeleteDraft(draft.context_id)}
+                    onClick={(event) => handleDeleteDraft(event, draft.context_id)}
                   >
                     Törlés
                   </button>
