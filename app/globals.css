@@ -260,27 +260,40 @@ a {
   }
 
   .site-header .container {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
-  .site-header .logo {
-    font-size: 1.25rem;
-  }
-
-  .site-header .logo-mark {
-    width: 40px;
-    height: 40px;
-  }
-
-  .nav-links {
+    flex-direction: row;
+    align-items: center;
     gap: 0.5rem 0.75rem;
   }
 
+  .site-header .logo {
+    font-size: 1.125rem;
+    flex-shrink: 0;
+  }
+
+  .site-header .logo-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .nav-links {
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.5rem 0.65rem;
+    font-size: 0.8125rem;
+    min-width: 0;
+  }
+
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
   .nav-user {
-    max-width: 100%;
-    flex-basis: 100%;
+    flex-shrink: 0;
+    max-width: 9rem;
   }
 
   .debate-pair {
@@ -800,16 +813,24 @@ a {
 
 .nav-links {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 1rem;
   font-size: 0.9375rem;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.nav-links::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-links a {
   margin-right: 0.25rem;
-}
-
-.nav-links a {
+  flex-shrink: 0;
+  white-space: nowrap;
   text-decoration: none;
   color: var(--color-muted);
 }
@@ -826,12 +847,35 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nav-logout {
+  font: inherit;
+  font-size: 0.9375rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.nav-logout:hover {
+  color: var(--color-text);
+}
+
+.nav-logout-error {
+  font-size: 0.75rem;
+  color: #b42318;
 }
 
 .nav-admin-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  color: var(--color-text);
 }
 
 .nav-badge {
@@ -866,25 +910,6 @@ a {
 
 .admin-section-head h2 {
   margin: 0;
-}
-
-.nav-logout {
-  font: inherit;
-  font-size: 0.9375rem;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--color-muted);
-}
-
-.nav-logout:hover {
-  color: var(--color-text);
-}
-
-.nav-logout-error {
-  font-size: 0.75rem;
-  color: #b42318;
 }
 
 .content-review-feedback {
