@@ -68,7 +68,10 @@ export function InitiatorDraftsPanel({
         <div className="layout-panel-header layout-panel-header-row">
           <div>
             <h2 className="layout-panel-title">Piszkozatok</h2>
-            <p className="hint">Mentett vitaindítások — kattints a betöltéshez.</p>
+            <p className="hint">
+              Mentett vitaindítások — kattints a betöltéshez. Mentés után az
+              adatlap kiürül.
+            </p>
           </div>
           <button
             type="button"

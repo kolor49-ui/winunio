@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  createDraftId,
   deleteInitiatorDraft,
   fetchInitiatorDraft,
-  loadInitiatorDraftsWithFallback,
+  fetchInitiatorDrafts,
   persistInitiatorDraft,
   type InitiatorDraft,
 } from "../../initiator-draft-api";
@@ -197,6 +198,28 @@ export default function NewDebatePage() {
     setSpellSuggestions(null);
   }
 
+  function clearInitiatorForm() {
+    setQuestionText("");
+    setStanceEditor(emptyStanceEditor());
+    setDisplayMode("named");
+    clearReviewState();
+    const form = document.getElementById(
+      "new-debate-form",
+    ) as HTMLFormElement | null;
+    form?.reset();
+  }
+
+  function resetToNewDraftSheet(draftId?: string) {
+    switchingDraft.current = true;
+    window.clearTimeout(draftSaveTimer.current);
+    clearInitiatorForm();
+    setActiveDraftId(draftId ?? createDraftId());
+    setDraftSaveStatus("idle");
+    window.setTimeout(() => {
+      switchingDraft.current = false;
+    }, 0);
+  }
+
   async function flushDraftSave(): Promise<void> {
     if (!activeDraftId) return;
     window.clearTimeout(draftSaveTimer.current);
@@ -216,6 +239,10 @@ export default function NewDebatePage() {
     try {
       await flushDraftSave();
       const draft = await fetchInitiatorDraft(draftId);
+      const form = document.getElementById(
+        "new-debate-form",
+      ) as HTMLFormElement | null;
+      form?.reset();
       setActiveDraftId(draftId);
       setQuestionText(draft?.question ?? "");
       setStanceEditor(
@@ -227,6 +254,7 @@ export default function NewDebatePage() {
             }
           : emptyStanceEditor(),
       );
+      setDisplayMode("named");
       clearReviewState();
       setDraftSaveStatus("saved");
     } catch {
@@ -242,14 +270,9 @@ export default function NewDebatePage() {
     setDraftSaveStatus("saving");
     try {
       await flushDraftSave();
-      setActiveDraftId(draftId);
-      setQuestionText("");
-      setStanceEditor(emptyStanceEditor());
-      clearReviewState();
-      setDraftSaveStatus("idle");
+      resetToNewDraftSheet(draftId);
     } catch {
       setDraftSaveStatus("error");
-    } finally {
       switchingDraft.current = false;
     }
   }
@@ -259,12 +282,12 @@ export default function NewDebatePage() {
     void (async () => {
       setDraftSaveStatus("loading");
       try {
-        const loaded = await loadInitiatorDraftsWithFallback();
+        const loadedDrafts = await fetchInitiatorDrafts();
         if (cancelled) return;
-        setDrafts(loaded.drafts);
-        setActiveDraftId(loaded.activeDraftId);
-        setQuestionText(loaded.question);
-        setStanceEditor(loaded.stance);
+        setDrafts(loadedDrafts);
+        setActiveDraftId(createDraftId());
+        setQuestionText("");
+        setStanceEditor(emptyStanceEditor());
         setDraftReady(true);
         setDraftSaveStatus("idle");
       } catch {
@@ -292,6 +315,9 @@ export default function NewDebatePage() {
           });
           if (saved) {
             setDrafts((current) => upsertDraftList(current, saved));
+            resetToNewDraftSheet();
+            setDraftSaveStatus("saved");
+            return;
           }
           setDraftSaveStatus("saved");
         } catch {
