@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  DEBATE_CATEGORIES,
+} from "@/domain/debate-categories";
+import {
   createDraftId,
   deleteInitiatorDraft,
   fetchInitiatorDraft,
@@ -184,6 +187,7 @@ export default function NewDebatePage() {
   const [createdDebateId, setCreatedDebateId] = useState<string | null>(null);
   const [spellLoading, setSpellLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState<"named" | "anonymous">("named");
+  const [category, setCategory] = useState("");
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<InitiatorDraft[]>([]);
   const [draftSaveStatus, setDraftSaveStatus] = useState<
@@ -206,6 +210,7 @@ export default function NewDebatePage() {
     setQuestionText("");
     setStanceEditor(emptyStanceEditor());
     setDisplayMode("named");
+    setCategory("");
     clearReviewState();
     const form = document.getElementById(
       "new-debate-form",
@@ -259,6 +264,7 @@ export default function NewDebatePage() {
           : emptyStanceEditor(),
       );
       setDisplayMode("named");
+      setCategory("");
       clearReviewState();
       setDraftSaveStatus("saved");
     } catch {
@@ -796,7 +802,21 @@ export default function NewDebatePage() {
         />
         <label>
           Kategória
-          <input name="category" required maxLength={80} placeholder="pl. tech" />
+          <select
+            name="category"
+            required
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="" disabled>
+              Válassz kategóriát…
+            </option>
+            {DEBATE_CATEGORIES.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Megjelenés

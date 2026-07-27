@@ -8,6 +8,7 @@ A rendszer logikai „alkotmánya”. Forrásigazság implementáció előtt.
 
 - A vitakérdés legfeljebb **160 karakter**.
 - Az indító megadja a saját rövid kiinduló álláspontját.
+- A kategória **előre rögzített listából** választható: Közélet és politika; Társadalom és emberi kapcsolatok; Gazdaság, pénz és munka; Tudomány és technológia; Egészség és életmód; Oktatás és fejlődés; Környezet és jövő; Kultúra, média és szórakozás; Sport és szabadidő; Filozófia, etika és vallás; Közlekedés.
 - A vita partner nélkül **`waiting_for_partner`** állapotba kerül.
 - A jelentkezés **ingyenes**.
 - A jelentkezők rövid állásponttal kerülnek a várólistára.

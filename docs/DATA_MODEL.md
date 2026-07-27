@@ -59,7 +59,7 @@ Debate ──< Round ──< Argument
 | `initiator_id` | User ref | |
 | `question` | string(160) | Vitakérdés |
 | `initiator_stance` | text | Rövid kiinduló álláspont |
-| `category` | string | |
+| `category` | string | Előre rögzített kategória (lásd BUSINESS_RULES §1) |
 | `status` | enum | Lásd STATE_MACHINE |
 | `created_at` | timestamp | |
 | `published_at` | timestamp \| null | |
