@@ -26,6 +26,7 @@ export async function SiteHeader() {
           <span>Winunio</span>
         </Link>
         <nav className="nav-links">
+          <Link href="/hogyan-mukodik">Hogyan működik</Link>
           <Link href="/debates/new">Vitát indítok</Link>
           {user ? (
             <>
