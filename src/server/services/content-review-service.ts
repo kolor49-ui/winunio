@@ -2,6 +2,11 @@ import { z } from "zod";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
 import { readEnv } from "@/server/env";
+import {
+  detectMissingSpaceSuggestions,
+  mergeSpellCheckSuggestions,
+  missingSpaceSuggestionsToReviewIssues,
+} from "@/server/missing-space-detection";
 import { computeContentHash } from "@/server/services/content-hash";
 import { createModerationCaseFromReview } from "@/server/services/moderation-service";
 import {
@@ -138,7 +143,7 @@ Fontos:
 - Különbséget teszel érv / vélemény határozott bírálata és személyes támadás között.
 - Idézet esetén figyelembe veszed, hogy idézett tartalomról van szó.
 - NEM minősíted az érv erősségét vagy politikai helyességét.
-- Helyesírási hibák, elütések, hiányzó ékezetek, zavaros megfogalmazás → advisory_language.
+- Helyesírási hibák, elütések, hiányzó ékezetek, hiányzó szóközök (összeérő szavak), zavaros megfogalmazás → advisory_language.
 - Elütés vagy nehezen érthető szöveg ÖNMAGÁBAN NEM személyeskedés és NEM sértés.
 - Példa advisory_language: „vagy ijet nem monhatók megamrúl?” — helyesírási/érthetőségi jelzés, nem sértés.
 - NE állítsd önállóan, hogy egy szöveg törvénybe ütközik — bizonytalan esetben blocked (emberi döntés).
@@ -213,35 +218,85 @@ function getOpenAiConfig() {
 }
 
 /** Post-process AI output — spelling/clarity must not block publish. */
+export function augmentWithMissingSpaceAdvisory(
+  result: ContentReviewResult,
+  text: string,
+): ContentReviewResult {
+  const spaceIssues = missingSpaceSuggestionsToReviewIssues(
+    detectMissingSpaceSuggestions(text),
+  );
+  if (spaceIssues.length === 0) {
+    return result;
+  }
+
+  const mergedIssues = [...result.issues];
+  for (const issue of spaceIssues) {
+    const duplicate = mergedIssues.some(
+      (existing) =>
+        existing.start === issue.start &&
+        existing.end === issue.end &&
+        existing.excerpt === issue.excerpt,
+    );
+    if (!duplicate) {
+      mergedIssues.push(issue);
+    }
+  }
+
+  if (result.status === "approved" || result.status === "advisory_language") {
+    return {
+      status: "advisory_language",
+      issues: mergedIssues,
+    };
+  }
+
+  return result;
+}
+
+/** Post-process AI output — spelling/clarity must not block publish. */
 export function normalizeReviewResult(
   raw: z.infer<typeof aiReviewResultSchema>,
   text: string,
 ): ContentReviewResult {
   if (raw.status === "blocked") {
-    return { status: "under_review", issues: raw.issues };
+    return augmentWithMissingSpaceAdvisory(
+      { status: "under_review", issues: raw.issues },
+      text,
+    );
   }
 
   if (raw.status === "advisory_language" || raw.status === "approved") {
-    return { status: raw.status, issues: raw.issues };
+    return augmentWithMissingSpaceAdvisory(
+      { status: raw.status, issues: raw.issues },
+      text,
+    );
   }
 
   if (raw.status === "revision_required") {
     if (looksLikeLanguageAdvisory(text) || isLanguageOnlyIssue(raw.issues, text)) {
-      return {
-        status: "advisory_language",
-        issues: raw.issues.map((issue) => ({
-          ...issue,
-          category: issue.category || "clarity",
-          explanation:
-            issue.explanation ||
-            "A szöveg nehezen érthető lehet, vagy helyesírási hibát tartalmaz.",
-        })),
-      };
+      return augmentWithMissingSpaceAdvisory(
+        {
+          status: "advisory_language",
+          issues: raw.issues.map((issue) => ({
+            ...issue,
+            category: issue.category || "clarity",
+            explanation:
+              issue.explanation ||
+              "A szöveg nehezen érthető lehet, vagy helyesírási hibát tartalmaz.",
+          })),
+        },
+        text,
+      );
     }
-    return { status: "revision_required", issues: raw.issues };
+    return augmentWithMissingSpaceAdvisory(
+      { status: "revision_required", issues: raw.issues },
+      text,
+    );
   }
 
-  return { status: "approved", issues: raw.issues };
+  return augmentWithMissingSpaceAdvisory(
+    { status: "approved", issues: raw.issues },
+    text,
+  );
 }
 
 export function isLanguageOnlyIssue(
@@ -265,7 +320,7 @@ export function isLanguageOnlyIssue(
     }
     return (
       LANGUAGE_ADVISORY_CATEGORIES.has(cat) ||
-      /helyesír|elütés|érthet|zavaros|pontozás|ékezet/i.test(expl)
+      /helyesír|elütés|érthet|zavaros|pontozás|ékezet|szóköz|összeér/i.test(expl)
     );
   });
 }
@@ -725,6 +780,8 @@ export async function spellCheckParticipantContent(input: {
     );
   }
 
+  const localSuggestions = detectMissingSpaceSuggestions(trimmed);
+
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -766,7 +823,7 @@ export async function spellCheckParticipantContent(input: {
         {
           role: "system",
           content:
-            "Csak helyesírási és központozási javításokat adj (elütés, ékezet). TILOS stílus, hangnem, mondatszerkezet vagy tartalmi módosítás.",
+            "Csak helyesírási és központozási javításokat adj (elütés, ékezet, hiányzó szóköz, összeérő szavak). TILOS stílus, hangnem, mondatszerkezet vagy tartalmi módosítás.",
         },
         { role: "user", content: trimmed },
       ],
@@ -794,10 +851,12 @@ export async function spellCheckParticipantContent(input: {
   }
 
   const parsed = JSON.parse(raw) as { suggestions: SpellCheckSuggestion[] };
+  const aiSuggestions = z
+    .array(spellCheckSuggestionSchema)
+    .parse(parsed.suggestions ?? []);
+
   return {
-    suggestions: z
-      .array(spellCheckSuggestionSchema)
-      .parse(parsed.suggestions ?? []),
+    suggestions: mergeSpellCheckSuggestions(localSuggestions, aiSuggestions),
   };
 }
 
