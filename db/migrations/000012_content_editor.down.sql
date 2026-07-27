@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS content_drafts;
+
+ALTER TABLE closing_statements
+  DROP COLUMN IF EXISTS source,
+  DROP COLUMN IF EXISTS quote,
+  DROP COLUMN IF EXISTS reasoning;
+
+ALTER TABLE arguments
+  DROP COLUMN IF EXISTS source,
+  DROP COLUMN IF EXISTS quote,
+  DROP COLUMN IF EXISTS reasoning;

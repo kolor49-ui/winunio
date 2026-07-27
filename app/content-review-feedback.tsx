@@ -243,6 +243,8 @@ export async function reviewTextBeforePublish(input: {
   text: string;
   contextType: string;
   contextId?: string;
+  quote?: string;
+  source?: string;
 }): Promise<{
   status: ContentReviewStatus;
   issues: ContentReviewIssue[];
@@ -256,6 +258,8 @@ export async function reviewTextBeforePublish(input: {
       context_type: input.contextType,
       context_id: input.contextId,
       text: input.text,
+      quote: input.quote,
+      source: input.source,
     }),
   });
   const data = await res.json();

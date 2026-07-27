@@ -4,19 +4,15 @@ import { transitionDebate } from "@/domain/debate";
 import { transitionDebateApplication } from "@/domain/debate-application";
 import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
+import { parseLegacyOrEditorBody } from "@/server/content-editor";
 import { getSql } from "@/server/db";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 
 const INVITATION_HOURS = 48;
 const ROUND_DEADLINE_HOURS = 72;
 
-const applySchema = z.object({
-  stance: z.string().min(1).max(2000),
-  content_review_id: z.string().uuid().optional(),
-});
-
 export function parseApplyBody(body: unknown) {
-  return applySchema.parse(body);
+  return parseLegacyOrEditorBody(body);
 }
 
 const selectPartnerSchema = z.object({
@@ -34,17 +30,18 @@ function mapDomainError(error: DomainError): ApiError {
 export async function applyToDebate(
   debateId: string,
   userId: string,
-  stance: string,
-  contentReviewId?: string,
+  parsed: ReturnType<typeof parseApplyBody>,
 ) {
   const sql = getSql();
-  const trimmed = stance.trim();
+  const { fields, content, content_review_id: contentReviewId } = parsed;
 
   await assertContentApprovedForPublication({
     userId,
     contextType: "application_stance",
     contextId: debateId,
-    text: trimmed,
+    text: fields.reasoning,
+    quote: fields.quote ?? undefined,
+    source: fields.source ?? undefined,
     contentReviewId,
     debateId,
   });
@@ -123,7 +120,7 @@ export async function applyToDebate(
         >`
           UPDATE debate_applications
           SET
-            stance = ${trimmed},
+            stance = ${content},
             status = 'pending',
             invited_at = NULL,
             invitation_expires_at = NULL,
@@ -152,7 +149,7 @@ export async function applyToDebate(
       }[]
     >`
       INSERT INTO debate_applications (debate_id, user_id, stance, status)
-      VALUES (${debateId}, ${userId}, ${trimmed}, 'pending')
+      VALUES (${debateId}, ${userId}, ${content}, 'pending')
       RETURNING id, stance, status::text AS status, created_at
     `;
 

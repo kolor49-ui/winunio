@@ -1,16 +1,12 @@
 import { z } from "zod";
 import { transitionDebate } from "@/domain/debate";
 import { ApiError } from "@/server/api/http";
+import { parseLegacyOrEditorBody } from "@/server/content-editor";
 import { getSql } from "@/server/db";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 
-const closingStatementSchema = z.object({
-  content: z.string().min(1).max(2000),
-  content_review_id: z.string().uuid().optional(),
-});
-
 export function parseClosingStatementBody(body: unknown) {
-  return closingStatementSchema.parse(body);
+  return parseLegacyOrEditorBody(body);
 }
 
 type SqlClient = ReturnType<typeof getSql>;
@@ -92,17 +88,18 @@ export async function getClosingStatementContext(
 export async function submitClosingStatement(
   debateId: string,
   userId: string,
-  content: string,
-  contentReviewId?: string,
+  parsed: ReturnType<typeof parseLegacyOrEditorBody>,
 ) {
   const sql = getSql();
-  const trimmed = content.trim();
+  const { fields, content, content_review_id: contentReviewId } = parsed;
 
   await assertContentApprovedForPublication({
     userId,
     contextType: "closing_statement",
     contextId: debateId,
-    text: trimmed,
+    text: fields.reasoning,
+    quote: fields.quote ?? undefined,
+    source: fields.source ?? undefined,
     contentReviewId,
     debateId,
   });
@@ -153,8 +150,22 @@ export async function submitClosingStatement(
     }
 
     await tx`
-      INSERT INTO closing_statements (debate_id, participant_id, content)
-      VALUES (${debateId}, ${participant.id}, ${trimmed})
+      INSERT INTO closing_statements (
+        debate_id,
+        participant_id,
+        content,
+        reasoning,
+        quote,
+        source
+      )
+      VALUES (
+        ${debateId},
+        ${participant.id},
+        ${content},
+        ${fields.reasoning},
+        ${fields.quote ?? null},
+        ${fields.source ?? null}
+      )
     `;
 
     const [countRow] = await tx<{ cnt: number }[]>`

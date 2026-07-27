@@ -3,13 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DebatePair, DebatePairSide } from "../debate-pair";
-import {
-  ContentReviewFeedback,
-  extractContentReviewIssues,
-  extractContentReviewStatus,
-  type ContentReviewIssue,
-  type ContentReviewStatus,
-} from "../../content-review-feedback";
+import { DebateEditor } from "../../debate-editor";
 import { ReportButton } from "../../report-button";
 
 type ActiveRound = {
@@ -73,36 +67,37 @@ function ArgumentContent({
 function SubmitForm({
   participantSide,
   activeRound,
-  reviewIssues,
-  reviewStatus,
   error,
   loading,
   onSubmit,
 }: {
   participantSide: string;
   activeRound: ActiveRound;
-  reviewIssues: ContentReviewIssue[] | null;
-  reviewStatus: ContentReviewStatus | null;
   error: string | null;
   loading: boolean;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (payload: {
+    reasoning: string;
+    quote: string | null;
+    source: string | null;
+    content_review_id?: string;
+  }) => Promise<void>;
 }) {
   return (
-    <form className="form debate-pair-form" onSubmit={onSubmit}>
-      <label>
-        {participantSide === "A"
-          ? "Megszólalásod (A oldal)"
-          : "Válaszod B oldalról"}
-        <textarea name="content" required maxLength={2000} />
-      </label>
-      {reviewIssues && reviewStatus && (
-        <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
-      )}
+    <>
+      <DebateEditor
+        contextType="argument"
+        contextId={activeRound.id}
+        reasoningLabel={
+          participantSide === "A"
+            ? "Saját érvelés (A oldal)"
+            : "Saját érvelés (B oldal)"
+        }
+        submitLabel="Beküldés"
+        loading={loading}
+        onSubmit={onSubmit}
+      />
       {error && <p className="error">{error}</p>}
-      <button className="btn" type="submit" disabled={loading}>
-        {loading ? "Küldés…" : "Beküldés"}
-      </button>
-    </form>
+    </>
   );
 }
 
@@ -154,8 +149,6 @@ function ActiveRoundCard({
   debateId,
   participantSide,
   activeRound,
-  reviewIssues,
-  reviewStatus,
   error,
   loading,
   onSubmit,
@@ -163,11 +156,14 @@ function ActiveRoundCard({
   debateId: string;
   participantSide: string | null;
   activeRound: ActiveRound;
-  reviewIssues: ContentReviewIssue[] | null;
-  reviewStatus: ContentReviewStatus | null;
   error: string | null;
   loading: boolean;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (payload: {
+    reasoning: string;
+    quote: string | null;
+    source: string | null;
+    content_review_id?: string;
+  }) => Promise<void>;
 }) {
   const publishedA = activeRound.published_sides.find((s) => s.side === "A");
   const publishedB = activeRound.published_sides.find((s) => s.side === "B");
@@ -208,8 +204,6 @@ function ActiveRoundCard({
             <SubmitForm
               participantSide={participantSide}
               activeRound={activeRound}
-              reviewIssues={reviewIssues}
-              reviewStatus={reviewStatus}
               error={error}
               loading={loading}
               onSubmit={onSubmit}
@@ -235,8 +229,6 @@ function ActiveRoundCard({
             <SubmitForm
               participantSide={participantSide}
               activeRound={activeRound}
-              reviewIssues={reviewIssues}
-              reviewStatus={reviewStatus}
               error={error}
               loading={loading}
               onSubmit={onSubmit}
@@ -258,37 +250,25 @@ export function DebateRoundPanel({
 }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
-    null,
-  );
-  const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
-    null,
-  );
   const [loading, setLoading] = useState(false);
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function submit(payload: {
+    reasoning: string;
+    quote: string | null;
+    source: string | null;
+    content_review_id?: string;
+  }) {
     if (!activeRound) return;
     setError(null);
-    setReviewIssues(null);
-    setReviewStatus(null);
     setLoading(true);
-    const form = new FormData(e.currentTarget);
     try {
       const res = await fetch(`/api/v1/rounds/${activeRound.id}/arguments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: form.get("content") }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
-        const issues = extractContentReviewIssues(data);
-        if (issues) {
-          setReviewIssues(issues);
-          setReviewStatus(
-            extractContentReviewStatus(data) ?? "revision_required",
-          );
-        }
         setError(data.error?.message ?? "Beküldés sikertelen");
         return;
       }
@@ -315,8 +295,6 @@ export function DebateRoundPanel({
           debateId={debateId}
           participantSide={participantSide}
           activeRound={activeRound}
-          reviewIssues={reviewIssues}
-          reviewStatus={reviewStatus}
           error={error}
           loading={loading}
           onSubmit={submit}

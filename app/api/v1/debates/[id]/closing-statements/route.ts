@@ -14,12 +14,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const user = await requireActiveUser(session);
     const body = await request.json();
     const parsed = parseClosingStatementBody(body);
-    const result = await submitClosingStatement(
-      debateId,
-      user.id,
-      parsed.content,
-      parsed.content_review_id,
-    );
+    const result = await submitClosingStatement(debateId, user.id, parsed);
     return jsonOk(result);
   } catch (error) {
     return handleRouteError(error);

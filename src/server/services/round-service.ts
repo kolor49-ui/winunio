@@ -2,34 +2,31 @@ import { z } from "zod";
 import { transitionDebate } from "@/domain/debate";
 import { transitionRound } from "@/domain/round";
 import { ApiError } from "@/server/api/http";
+import { parseLegacyOrEditorBody } from "@/server/content-editor";
 import { getSql } from "@/server/db";
 import { debateNeedsAwaitingClosure } from "@/server/services/closing-statement-service";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
 import { sendBResponseNotifications } from "@/server/services/notification-service";
 
-const submitArgumentSchema = z.object({
-  content: z.string().min(1).max(2000),
-  content_review_id: z.string().uuid().optional(),
-});
-
 export function parseSubmitArgumentBody(body: unknown) {
-  return submitArgumentSchema.parse(body);
+  return parseLegacyOrEditorBody(body);
 }
 
 export async function submitArgument(
   roundId: string,
   userId: string,
-  content: string,
-  contentReviewId?: string,
+  parsed: ReturnType<typeof parseLegacyOrEditorBody>,
 ) {
   const sql = getSql();
-  const trimmed = content.trim();
+  const { fields, content, content_review_id: contentReviewId } = parsed;
 
   await assertContentApprovedForPublication({
     userId,
     contextType: "argument",
     contextId: roundId,
-    text: trimmed,
+    text: fields.reasoning,
+    quote: fields.quote ?? undefined,
+    source: fields.source ?? undefined,
     contentReviewId,
     roundId,
   });
@@ -126,11 +123,22 @@ export async function submitArgument(
     const [inserted] = await tx<
       { id: string; submitted_at: Date }[]
     >`
-      INSERT INTO arguments (round_id, participant_id, content, published_at)
+      INSERT INTO arguments (
+        round_id,
+        participant_id,
+        content,
+        reasoning,
+        quote,
+        source,
+        published_at
+      )
       VALUES (
         ${roundId},
         ${participant.id},
-        ${trimmed},
+        ${content},
+        ${fields.reasoning},
+        ${fields.quote ?? null},
+        ${fields.source ?? null},
         ${now}
       )
       RETURNING id, submitted_at

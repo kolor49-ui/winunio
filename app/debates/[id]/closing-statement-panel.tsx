@@ -2,14 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DebateEditor } from "../../debate-editor";
 import { DebatePair, DebatePairSide } from "../debate-pair";
-import {
-  ContentReviewFeedback,
-  extractContentReviewIssues,
-  extractContentReviewStatus,
-  type ContentReviewIssue,
-  type ContentReviewStatus,
-} from "../../content-review-feedback";
 
 export type ClosingStatementContext = {
   phase: "collecting" | "published";
@@ -32,39 +26,27 @@ type Props = {
 export function ClosingStatementPanel({ debateId, context }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
-    null,
-  );
-  const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
-    null,
-  );
   const [loading, setLoading] = useState(false);
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function submit(payload: {
+    reasoning: string;
+    quote: string | null;
+    source: string | null;
+    content_review_id?: string;
+  }) {
     setError(null);
-    setReviewIssues(null);
-    setReviewStatus(null);
     setLoading(true);
-    const form = new FormData(e.currentTarget);
     try {
       const res = await fetch(
         `/api/v1/debates/${debateId}/closing-statements`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: form.get("content") }),
+          body: JSON.stringify(payload),
         },
       );
       const data = await res.json();
       if (!res.ok) {
-        const issues = extractContentReviewIssues(data);
-        if (issues) {
-          setReviewIssues(issues);
-          setReviewStatus(
-            extractContentReviewStatus(data) ?? "revision_required",
-          );
-        }
         setError(data.error?.message ?? "Beküldés sikertelen");
         return;
       }
@@ -107,19 +89,17 @@ export function ClosingStatementPanel({ debateId, context }: Props) {
       </p>
 
       {context.viewer_can_submit && (
-        <form className="form" onSubmit={submit}>
-          <label>
-            Zárógondolatod
-            <textarea name="content" required maxLength={2000} />
-          </label>
-          {reviewIssues && reviewStatus && (
-            <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
-          )}
+        <>
+          <DebateEditor
+            contextType="closing_statement"
+            contextId={debateId}
+            reasoningLabel="Saját zárógondolat"
+            submitLabel="Zárógondolat beküldése"
+            loading={loading}
+            onSubmit={submit}
+          />
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={loading}>
-            {loading ? "Küldés…" : "Zárógondolat beküldése"}
-          </button>
-        </form>
+        </>
       )}
 
       {context.viewer_submitted && context.waiting_for_partner && (

@@ -17,8 +17,8 @@ export async function POST(request: Request, { params }: Params) {
     const user = await requireActiveUser(session);
     const { id } = await params;
     const body = await request.json();
-    const { content, content_review_id } = parseSubmitArgumentBody(body);
-    const result = await submitArgument(id, user.id, content, content_review_id);
+    const parsed = parseSubmitArgumentBody(body);
+    const result = await submitArgument(id, user.id, parsed);
     return jsonOk(result, 201);
   } catch (error) {
     return handleRouteError(error);

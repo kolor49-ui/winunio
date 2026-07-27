@@ -30,8 +30,8 @@ export async function POST(request: Request, { params }: Params) {
     const user = await requireActiveUser(session);
     const { id } = await params;
     const body = await request.json();
-    const { stance, content_review_id } = parseApplyBody(body);
-    const application = await applyToDebate(id, user.id, stance, content_review_id);
+    const parsed = parseApplyBody(body);
+    const application = await applyToDebate(id, user.id, parsed);
     return jsonOk({ application }, 201);
   } catch (error) {
     return handleRouteError(error);

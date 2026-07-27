@@ -2,13 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  ContentReviewFeedback,
-  extractContentReviewIssues,
-  extractContentReviewStatus,
-  type ContentReviewIssue,
-  type ContentReviewStatus,
-} from "../../content-review-feedback";
+import { DebateEditor } from "../../debate-editor";
 
 type Application = {
   id: string;
@@ -53,12 +47,6 @@ export function DebatePartnerPanel({
   const router = useRouter();
   const [mine, setMine] = useState(myApplication);
   const [error, setError] = useState<string | null>(null);
-  const [reviewIssues, setReviewIssues] = useState<ContentReviewIssue[] | null>(
-    null,
-  );
-  const [reviewStatus, setReviewStatus] = useState<ContentReviewStatus | null>(
-    null,
-  );
   const [loading, setLoading] = useState<string | null>(null);
 
   const isInvitee =
@@ -66,32 +54,26 @@ export function DebatePartnerPanel({
     viewerUserId &&
     pendingInvitation.invitee_user_id === viewerUserId;
 
-  async function apply(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function apply(payload: {
+    reasoning: string;
+    quote: string | null;
+    source: string | null;
+    content_review_id?: string;
+  }) {
     if (!viewerUserId) {
       setError("Előbb jelentkezz be.");
       return;
     }
     setError(null);
-    setReviewIssues(null);
-    setReviewStatus(null);
     setLoading("apply");
-    const form = new FormData(e.currentTarget);
     try {
       const res = await fetch(`/api/v1/debates/${debateId}/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stance: form.get("stance") }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
-        const issues = extractContentReviewIssues(data);
-        if (issues) {
-          setReviewIssues(issues);
-          setReviewStatus(
-            extractContentReviewStatus(data) ?? "revision_required",
-          );
-        }
         setError(data.error?.message ?? "Jelentkezés sikertelen");
         return;
       }
@@ -257,19 +239,15 @@ export function DebatePartnerPanel({
     return (
       <div className="card">
         <h2>Partnernek jelentkezem</h2>
-        <form className="form" onSubmit={apply}>
-          <label>
-            Rövid álláspontod (B oldal)
-            <textarea name="stance" required maxLength={2000} />
-          </label>
-          {reviewIssues && reviewStatus && (
-            <ContentReviewFeedback issues={reviewIssues} status={reviewStatus} />
-          )}
-          {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={loading === "apply"}>
-            {loading === "apply" ? "Küldés…" : "Jelentkezés"}
-          </button>
-        </form>
+        <DebateEditor
+          contextType="application_stance"
+          contextId={debateId}
+          reasoningLabel="Rövid álláspontod (B oldal)"
+          submitLabel="Jelentkezés"
+          loading={loading === "apply"}
+          onSubmit={apply}
+        />
+        {error && <p className="error">{error}</p>}
       </div>
     );
   }
