@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { DebateFeed } from "./debate-feed";
 import { MyDebatesPreview } from "./my-debates-list";
-import { PlatformOverview } from "./platform-overview";
 import { getSession } from "@/server/api/http";
 import {
   isDatabaseConfigError,
@@ -128,8 +127,6 @@ export default async function HomePage({ searchParams }: Props) {
           <DebateFeed debates={debates} sort={sort} />
         </div>
       </div>
-
-      <PlatformOverview />
     </div>
   );
 }

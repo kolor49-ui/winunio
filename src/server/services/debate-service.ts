@@ -43,7 +43,7 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
     contentReviewId: input.content_review_id,
   });
 
-  return sql.begin(async (tx) => {
+  const debate = await sql.begin(async (tx) => {
     await tx`
       UPDATE public_profiles
       SET display_name = ${displayName}, is_anonymous = ${isAnonymous}
@@ -85,16 +85,19 @@ export async function createDebate(userId: string, input: CreateDebateInput) {
       status: debate.status,
       created_at: debate.created_at.toISOString(),
     };
-  }).then((debate) => {
-    void notifyAdminsDebateCreated({
+  });
+
+  try {
+    await notifyAdminsDebateCreated({
       debateId: debate.id,
       question: debate.question,
       initiatorUserId: userId,
-    }).catch((error) => {
-      console.error("[admin-notification] debate alert failed:", error);
     });
-    return debate;
-  });
+  } catch (error) {
+    console.error("[admin-notification] debate alert failed:", error);
+  }
+
+  return debate;
 }
 
 export async function listDebates(sort: "new" | "popular" = "new") {

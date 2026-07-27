@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { AccountDeleteForm } from "./account-delete-form";
 import { InstallAppButton } from "../install-app-button";
 import { UserPushSetup } from "../user-push-setup";
-import { PlatformOverview } from "../platform-overview";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
 
@@ -60,8 +59,6 @@ export default async function AccountPage() {
           <AccountDeleteForm />
         </section>
       </div>
-
-      <PlatformOverview />
     </div>
   );
 }

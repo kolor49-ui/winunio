@@ -2,7 +2,7 @@ import webpush from "web-push";
 import { getSql } from "@/server/db";
 import { sendEmail } from "@/server/email/send-email";
 import { readEnv } from "@/server/env";
-import { isBootstrapAdminEmail } from "@/server/services/bootstrap-admin-service";
+import { isBootstrapAdminEmail, getBootstrapAdminEmails } from "@/server/services/bootstrap-admin-service";
 
 export type AdminNotificationType = "user_registered" | "debate_created";
 
@@ -53,7 +53,7 @@ async function listAdminEmails(): Promise<string[]> {
     WHERE is_admin = true
       AND status = 'active'
   `;
-  return [...new Set(rows.map((row) => row.email))];
+  return [...new Set([...rows.map((row) => row.email), ...getBootstrapAdminEmails()])];
 }
 
 async function insertNotification(input: {

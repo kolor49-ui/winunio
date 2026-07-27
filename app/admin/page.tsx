@@ -121,6 +121,10 @@ export default function AdminDashboardPage() {
           )}
         </div>
         <AdminPushSetup />
+        <p className="hint">
+          Új vita indításakor e-mailt és (engedélyezés után) push üzenetet kapsz.
+          Az admin panelen az „Értesítések” listában is megjelenik.
+        </p>
         <ul className="admin-list">
           {notifications.length === 0 && (
             <li className="meta">Még nincs értesítés.</li>

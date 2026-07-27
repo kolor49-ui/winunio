@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { MyDebatesGrouped } from "../my-debates-list";
-import { PlatformOverview } from "../platform-overview";
 import { getSession } from "@/server/api/http";
 import { getUserById } from "@/server/services/auth-service";
 import { listUserDebates } from "@/server/services/debate-service";
@@ -55,8 +54,6 @@ export default async function VitaimPage() {
       </header>
 
       <MyDebatesGrouped debates={myDebates} />
-
-      <PlatformOverview />
     </div>
   );
 }
