@@ -55,6 +55,18 @@ Lista.
 
 Vita részletek + aktuális forduló + számlálók.
 
+### `POST /api/v1/debates/:id/cancel`
+
+Vitaindító visszavonja a vitát → `cancelled`.
+
+| | |
+|---|---|
+| **Jogosultság** | Vitaindító |
+| **Üzleti szabály** | Csak `waiting_for_partner` vagy `invitation_pending`; nyitott jelentkezések `closed` |
+| **Válasz** | `200` `{ debate_id, debate_status: "cancelled" }` |
+| **Hibák** | `403` nem indító; `409` nem visszavonható állapot |
+| **Idempotencia** | Már `cancelled` → `200` |
+
 ---
 
 ## Applications

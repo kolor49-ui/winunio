@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AudienceActionBar } from "./audience-action-bar";
 import { ClosingStatementPanel } from "./closing-statement-panel";
 import { DebatePartnerPanel } from "./debate-partner-panel";
+import { DebateCancelPanel } from "./debate-cancel-panel";
 import {
   DebateRoundPanel,
 } from "./debate-round-panel";
@@ -87,6 +88,10 @@ export default async function DebatePage({ params }: Props) {
   const showContinuationBar =
     debate.status === "waiting_for_continuation" && continuationStatus !== null;
   const showAudienceBar = showNotifyBar || showContinuationBar;
+  const canCancelDebate =
+    isInitiator &&
+    (debate.status === "waiting_for_partner" ||
+      debate.status === "invitation_pending");
 
   return (
     <div className="page-layout">
@@ -145,6 +150,18 @@ export default async function DebatePage({ params }: Props) {
         initialApplications={applications}
         myApplication={myApplication}
       />
+
+      {canCancelDebate && <DebateCancelPanel debateId={debate.id} />}
+
+      {debate.status === "cancelled" && (
+        <div className="card">
+          <p>
+            {isInitiator
+              ? "A vitát visszavontad."
+              : "A vitát a vitaindító visszavonta."}
+          </p>
+        </div>
+      )}
 
       <DebateRoundPanel
         debateId={debate.id}

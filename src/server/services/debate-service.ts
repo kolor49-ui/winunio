@@ -1,8 +1,15 @@
 import { z } from "zod";
 import { debateCategorySchema } from "@/domain/debate-categories";
+import { transitionDebate } from "@/domain/debate";
+import { transitionDebateApplication } from "@/domain/debate-application";
+import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
 import { assertContentApprovedForPublication } from "@/server/services/content-review-service";
+
+function mapDomainError(error: DomainError): ApiError {
+  return new ApiError(409, error.code, error.message);
+}
 
 const createDebateSchema = z.object({
   question: z.string().min(1).max(160),
@@ -394,4 +401,81 @@ export async function getDebateById(debateId: string) {
         }
       : null,
   };
+}
+
+export async function cancelDebate(debateId: string, userId: string) {
+  const sql = getSql();
+
+  return sql.begin(async (tx) => {
+    const [debate] = await tx<
+      { id: string; initiator_id: string; status: string }[]
+    >`
+      SELECT id, initiator_id, status::text AS status
+      FROM debates
+      WHERE id = ${debateId}
+      FOR UPDATE
+    `;
+
+    if (!debate) {
+      throw new ApiError(404, "NOT_FOUND", "Vita nem található");
+    }
+
+    if (debate.initiator_id !== userId) {
+      throw new ApiError(
+        403,
+        "FORBIDDEN",
+        "Csak a vitaindító vonhatja vissza a vitát",
+      );
+    }
+
+    if (debate.status === "cancelled") {
+      return { debate_id: debate.id, debate_status: "cancelled" as const };
+    }
+
+    try {
+      transitionDebate(
+        {
+          status: debate.status as "waiting_for_partner" | "invitation_pending",
+        },
+        { type: "CANCEL_DEBATE" },
+      );
+    } catch (error) {
+      if (error instanceof DomainError) throw mapDomainError(error);
+      throw error;
+    }
+
+    await tx`
+      UPDATE debates
+      SET status = 'cancelled'
+      WHERE id = ${debateId}
+    `;
+
+    const applications = await tx<{ id: string; status: string }[]>`
+      SELECT id, status::text AS status
+      FROM debate_applications
+      WHERE debate_id = ${debateId}
+        AND status IN ('pending', 'invited')
+      FOR UPDATE
+    `;
+
+    for (const application of applications) {
+      try {
+        transitionDebateApplication(
+          application.status as "pending" | "invited",
+          { type: "DEBATE_CANCELLED" },
+        );
+      } catch (error) {
+        if (error instanceof DomainError) throw mapDomainError(error);
+        throw error;
+      }
+
+      await tx`
+        UPDATE debate_applications
+        SET status = 'closed'
+        WHERE id = ${application.id}
+      `;
+    }
+
+    return { debate_id: debate.id, debate_status: "cancelled" as const };
+  });
 }
