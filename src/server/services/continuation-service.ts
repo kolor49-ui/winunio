@@ -18,6 +18,7 @@ import { isPhoneVerified } from "@/server/services/phone-service";
 import { logSecurityEvent } from "@/server/services/security-event-service";
 import { notifyNewRoundOpened } from "@/server/services/user-notification-service";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
+import type { WebAuthnContext } from "@/server/webauthn-config";
 
 const CHALLENGE_TTL_MINUTES = 10;
 const CONTINUATION_RATE_LIMIT_PER_DAY = 20;
@@ -29,7 +30,6 @@ const challengeBodySchema = z.object({
 
 const submitBodySchema = z.object({
   challenge_id: z.string().uuid(),
-  turnstile_token: z.string().min(1),
   passkey_assertion: z.custom<AuthenticationResponseJSON>(),
 });
 
@@ -293,6 +293,7 @@ export async function issueContinuationChallenge(
   completedRoundId: string,
   userId: string,
   turnstileToken: string,
+  webAuthnContext?: WebAuthnContext,
 ) {
   const turnstileOk = await verifyTurnstileToken(turnstileToken);
   if (!turnstileOk) {
@@ -353,6 +354,7 @@ export async function issueContinuationChallenge(
   const passkeyOptions = await createPasskeyAuthenticationOptions(
     userId,
     challenge.challenge_token,
+    webAuthnContext,
   );
 
   return {
@@ -367,12 +369,8 @@ export async function submitContinuationRequest(
   completedRoundId: string,
   userId: string,
   input: z.infer<typeof submitBodySchema>,
+  webAuthnContext?: WebAuthnContext,
 ) {
-  const turnstileOk = await verifyTurnstileToken(input.turnstile_token);
-  if (!turnstileOk) {
-    throw new ApiError(422, "TURNSTILE_FAILED", "Turnstile ellenőrzés sikertelen");
-  }
-
   const sql = getSql();
 
   const [round] = await sql<
@@ -452,6 +450,7 @@ export async function submitContinuationRequest(
     userId,
     input.passkey_assertion,
     challenge.challenge_token,
+    webAuthnContext,
   );
 
   const unlockRules = await loadUnlockRules();

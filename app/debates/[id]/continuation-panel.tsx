@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatHuPhoneDisplay, formatHuPhoneForApi } from "../../phone-hu";
 import { PhoneInputHu } from "../../phone-input-hu";
 import { TurnstileWidget } from "./turnstile-widget";
@@ -29,10 +29,17 @@ type Props = {
   variant?: "card" | "bar";
 };
 
-type PendingSubmit = {
-  challengeId: string;
-  passkeyAssertion: unknown;
-};
+function mapWebAuthnError(err: unknown): string {
+  if (!(err instanceof Error)) return "Az azonosítás megszakadt.";
+  const msg = err.message.toLowerCase();
+  if (msg.includes("timed out") || msg.includes("not allowed")) {
+    return "Az azonosítás megszakadt vagy lejárt. Ne használj QR-olvasót — a böngésző Face ID / ujjlenyomat ablakát erősítsd meg.";
+  }
+  if (msg.includes("cancel") || msg.includes("abort")) {
+    return "Az azonosítás megszakadt.";
+  }
+  return err.message;
+}
 
 function counterText(status: ContinuationStatusView): string {
   const count = status.request_count;
@@ -59,9 +66,6 @@ export function ContinuationPanel({
   const [loading, setLoading] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileReset, setTurnstileReset] = useState(0);
-  const [pendingSubmit, setPendingSubmit] = useState<PendingSubmit | null>(
-    null,
-  );
   const [phoneVerified, setPhoneVerified] = useState(
     initialStatus.viewer_phone_verified,
   );
@@ -69,7 +73,6 @@ export function ContinuationPanel({
   const [phoneLocal, setPhoneLocal] = useState("");
   const [pendingPhoneE164, setPendingPhoneE164] = useState<string | null>(null);
   const [smsCode, setSmsCode] = useState("");
-  const finalizingRef = useRef(false);
 
   const handleTurnstileToken = useCallback((token: string | null) => {
     setTurnstileToken(token);
@@ -188,9 +191,7 @@ export function ContinuationPanel({
       setHasPasskey(true);
       setInfo("Biztonságos azonosítás (Passkey) beállítva.");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Passkey regisztráció megszakadt",
-      );
+      setError(mapWebAuthnError(err));
     } finally {
       setLoading(null);
     }
@@ -199,7 +200,6 @@ export function ContinuationPanel({
   async function submitContinuation(
     challengeId: string,
     passkeyAssertion: unknown,
-    token: string,
   ) {
     const res = await fetch(
       `/api/v1/rounds/${status.completed_round_id}/continuation-requests`,
@@ -208,7 +208,6 @@ export function ContinuationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challenge_id: challengeId,
-          turnstile_token: token,
           passkey_assertion: passkeyAssertion,
         }),
       },
@@ -226,7 +225,6 @@ export function ContinuationPanel({
       viewer_already_requested: true,
       viewer_can_request: false,
     }));
-    setPendingSubmit(null);
     setTurnstileToken(null);
     setTurnstileReset((n) => n + 1);
 
@@ -284,47 +282,13 @@ export function ContinuationPanel({
         optionsJSON: challengeData.passkey_options,
       });
 
-      setTurnstileToken(null);
-      setTurnstileReset((n) => n + 1);
-      setPendingSubmit({
-        challengeId: challengeData.challenge_id,
-        passkeyAssertion: assertion,
-      });
-      setInfo("Utolsó lépés: erősítsd meg újra a kérést (Turnstile).");
+      await submitContinuation(challengeData.challenge_id, assertion);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Folytatáskérés megszakadt",
-      );
+      setError(mapWebAuthnError(err));
     } finally {
       setLoading(null);
     }
   }
-
-  async function finalizePending() {
-    if (!pendingSubmit || !turnstileToken) return;
-    setError(null);
-    setLoading("finalize");
-    try {
-      await submitContinuation(
-        pendingSubmit.challengeId,
-        pendingSubmit.passkeyAssertion,
-        turnstileToken,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Véglegesítés sikertelen");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  useEffect(() => {
-    if (!pendingSubmit || !turnstileToken || finalizingRef.current) return;
-    finalizingRef.current = true;
-    void finalizePending().finally(() => {
-      finalizingRef.current = false;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingSubmit, turnstileToken]);
 
   const rootClass =
     variant === "bar"
@@ -431,8 +395,8 @@ export function ContinuationPanel({
             {phoneVerified && !hasPasskey && (
               <div className="continuation-setup">
                 <p className="hint">
-                  Biztonságos azonosítás (Passkey) szükséges minden
-                  folytatáskéréshez.
+                  Egyszeri beállítás: az eszközöd biztonságos azonosítása (Face ID,
+                  ujjlenyomat vagy PIN). Ne töröld a képernyőzárat — ahhoz kötődik.
                 </p>
                 <button
                   type="button"
@@ -445,7 +409,7 @@ export function ContinuationPanel({
               </div>
             )}
 
-            {phoneVerified && hasPasskey && !pendingSubmit && (
+            {phoneVerified && hasPasskey && (
               <>
                 <TurnstileWidget
                   siteKey={turnstileSiteKey}
@@ -458,19 +422,8 @@ export function ContinuationPanel({
                   onClick={() => void requestContinuation()}
                   disabled={loading !== null || !turnstileToken}
                 >
-                  KÉREM A FOLYTATÁST
+                  {loading === "continuation" ? "Ellenőrzés…" : "KÉREM A FOLYTATÁST"}
                 </button>
-              </>
-            )}
-
-            {pendingSubmit && (
-              <>
-                <TurnstileWidget
-                  siteKey={turnstileSiteKey}
-                  onToken={handleTurnstileToken}
-                  resetKey={turnstileReset}
-                />
-                <p className="hint">Passkey ellenőrzés kész — Turnstile után véglegesítjük.</p>
               </>
             )}
 

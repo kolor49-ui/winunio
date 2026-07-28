@@ -204,7 +204,7 @@ Challenge kiadása (Turnstile token szükséges).
 
 | | |
 |---|---|
-| **Bemenet** | `challenge_id`, `turnstile_token`, `passkey_assertion` |
+| **Bemenet** | `challenge_id`, `passkey_assertion` |
 | **Üzleti szabály** | ABUSE_PREVENTION teljes pipeline |
 | **Idempotencia** | **Kötelező** — `UNIQUE(user_id, completed_round_id)`; retry → `200` meglévő |
 | **Mellékhatás** | Számláló +1; esetleg atomi küszöb-esemény |

@@ -14,7 +14,17 @@ import {
   getWebAuthnOrigin,
   getWebAuthnRpId,
   getWebAuthnRpName,
+  type WebAuthnContext,
 } from "@/server/webauthn-config";
+
+function resolveWebAuthnContext(context?: WebAuthnContext): WebAuthnContext {
+  return (
+    context ?? {
+      origin: getWebAuthnOrigin(),
+      rpId: getWebAuthnRpId(),
+    }
+  );
+}
 
 const CHALLENGE_TTL_MINUTES = 10;
 
@@ -68,7 +78,12 @@ export async function userHasPasskey(userId: string): Promise<boolean> {
   return Boolean(row);
 }
 
-export async function createPasskeyRegistrationOptions(userId: string, email: string) {
+export async function createPasskeyRegistrationOptions(
+  userId: string,
+  email: string,
+  webAuthnContext?: WebAuthnContext,
+) {
+  const { rpId } = resolveWebAuthnContext(webAuthnContext);
   const sql = getSql();
   const existing = await sql<{ credential_id: string }[]>`
     SELECT credential_id FROM passkey_credentials WHERE user_id = ${userId}
@@ -76,7 +91,7 @@ export async function createPasskeyRegistrationOptions(userId: string, email: st
 
   const options = await generateRegistrationOptions({
     rpName: getWebAuthnRpName(),
-    rpID: getWebAuthnRpId(),
+    rpID: rpId,
     userName: email,
     userID: new TextEncoder().encode(userId),
     userDisplayName: email,
@@ -97,15 +112,27 @@ export async function createPasskeyRegistrationOptions(userId: string, email: st
 export async function verifyPasskeyRegistration(
   userId: string,
   response: RegistrationResponseJSON,
+  webAuthnContext?: WebAuthnContext,
 ) {
+  const { origin, rpId } = resolveWebAuthnContext(webAuthnContext);
   const expectedChallenge = await consumeWebAuthnChallenge(userId, "register");
-  const verification = await verifyRegistrationResponse({
-    response,
-    expectedChallenge,
-    expectedOrigin: getWebAuthnOrigin(),
-    expectedRPID: getWebAuthnRpId(),
-    requireUserVerification: true,
-  });
+  let verification;
+  try {
+    verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpId,
+      requireUserVerification: true,
+    });
+  } catch (error) {
+    console.error("[passkey] registration verify failed:", error);
+    throw new ApiError(
+      422,
+      "PASSKEY_INVALID",
+      "Passkey regisztráció sikertelen — próbáld ugyanabból a böngészőből és címről.",
+    );
+  }
 
   if (!verification.verified || !verification.registrationInfo) {
     throw new ApiError(422, "PASSKEY_INVALID", "Passkey regisztráció sikertelen");
@@ -136,7 +163,9 @@ export async function verifyPasskeyRegistration(
 export async function createPasskeyAuthenticationOptions(
   userId: string,
   webAuthnChallenge: string,
+  webAuthnContext?: WebAuthnContext,
 ) {
+  const { rpId } = resolveWebAuthnContext(webAuthnContext);
   const sql = getSql();
   const credentials = await sql<
     { credential_id: string; public_key: Buffer; counter: string }[]
@@ -151,7 +180,7 @@ export async function createPasskeyAuthenticationOptions(
   }
 
   const options = await generateAuthenticationOptions({
-    rpID: getWebAuthnRpId(),
+    rpID: rpId,
     challenge: webAuthnChallenge,
     userVerification: "required",
     allowCredentials: credentials.map((row) => ({
@@ -167,7 +196,9 @@ export async function verifyPasskeyAuthentication(
   userId: string,
   response: AuthenticationResponseJSON,
   expectedChallenge: string,
+  webAuthnContext?: WebAuthnContext,
 ) {
+  const { origin, rpId } = resolveWebAuthnContext(webAuthnContext);
   const sql = getSql();
   const [credential] = await sql<
     { id: string; credential_id: string; public_key: Buffer; counter: string }[]
@@ -182,18 +213,28 @@ export async function verifyPasskeyAuthentication(
     throw new ApiError(422, "PASSKEY_INVALID", "Ismeretlen Passkey");
   }
 
-  const verification = await verifyAuthenticationResponse({
-    response,
-    expectedChallenge,
-    expectedOrigin: getWebAuthnOrigin(),
-    expectedRPID: getWebAuthnRpId(),
-    credential: {
-      id: credential.credential_id,
-      publicKey: new Uint8Array(credential.public_key),
-      counter: Number(credential.counter),
-    },
-    requireUserVerification: true,
-  });
+  let verification;
+  try {
+    verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpId,
+      credential: {
+        id: credential.credential_id,
+        publicKey: new Uint8Array(credential.public_key),
+        counter: Number(credential.counter),
+      },
+      requireUserVerification: true,
+    });
+  } catch (error) {
+    console.error("[passkey] authentication verify failed:", error);
+    throw new ApiError(
+      422,
+      "PASSKEY_INVALID",
+      "Passkey ellenőrzés sikertelen — nyisd meg ugyanazt a címet (pl. www.winunio.com), ahol beállítottad.",
+    );
+  }
 
   if (!verification.verified) {
     throw new ApiError(422, "PASSKEY_INVALID", "Passkey ellenőrzés sikertelen");
