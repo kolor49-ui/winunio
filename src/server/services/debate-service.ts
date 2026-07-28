@@ -192,6 +192,16 @@ export async function listDebates(sort: "new" | "popular" = "new") {
 
 export type DebateListItem = ReturnType<typeof formatDebateListItem>;
 
+/** Főoldal: szekvenciális lekérdezés (serverless pool max 1 mellett biztonságos). */
+export async function listHomepageDebateBuckets(): Promise<{
+  live: DebateListItem[];
+  open: DebateListItem[];
+}> {
+  const live = await listDebatesByBucket("live", "new");
+  const open = await listDebatesByBucket("open", "new");
+  return { live, open };
+}
+
 export async function listDebatesByBucket(
   bucket: DebateListBucket,
   sort: "new" | "popular" = "new",

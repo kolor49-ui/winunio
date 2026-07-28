@@ -8,7 +8,7 @@ import {
   withDbRetry,
 } from "@/server/db";
 import {
-  listDebatesByBucket,
+  listHomepageDebateBuckets,
   listUserDebates,
 } from "@/server/services/debate-service";
 import { getUserById } from "@/server/services/auth-service";
@@ -21,8 +21,12 @@ type Props = {
 
 export default async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
-  let liveDebates: Awaited<ReturnType<typeof listDebatesByBucket>> = [];
-  let openDebates: Awaited<ReturnType<typeof listDebatesByBucket>> = [];
+  let liveDebates: Awaited<
+    ReturnType<typeof listHomepageDebateBuckets>
+  >["live"] = [];
+  let openDebates: Awaited<
+    ReturnType<typeof listHomepageDebateBuckets>
+  >["open"] = [];
   let dbConfigError = false;
   let dbTransientError = false;
   let dbLoadFailed = false;
@@ -47,13 +51,9 @@ export default async function HomePage({ searchParams }: Props) {
   }
 
   try {
-    [liveDebates, openDebates] = await withDbRetry(async () => {
-      const [live, open] = await Promise.all([
-        listDebatesByBucket("live", "new"),
-        listDebatesByBucket("open", "new"),
-      ]);
-      return [live, open] as const;
-    });
+    const buckets = await withDbRetry(() => listHomepageDebateBuckets());
+    liveDebates = buckets.live;
+    openDebates = buckets.open;
   } catch (error) {
     console.error("HomePage DB error:", error);
     dbConfigError = isDatabaseConfigError(error);
