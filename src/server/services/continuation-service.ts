@@ -8,16 +8,9 @@ import type { ContinuationRequestRecord, RoundUnlockRule } from "@/domain/types"
 import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
-import {
-  createPasskeyAuthenticationOptions,
-  userHasPasskey,
-  verifyPasskeyAuthentication,
-} from "@/server/services/passkey-service";
-import { isPhoneVerified } from "@/server/services/phone-service";
+import { isPhoneVerified, startContinuationSmsOtp, verifyContinuationSmsOtp } from "@/server/services/phone-service";
 import { logSecurityEvent } from "@/server/services/security-event-service";
 import { notifyNewRoundOpened } from "@/server/services/user-notification-service";
-import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
-import type { WebAuthnContext } from "@/server/webauthn-config";
 
 const CHALLENGE_TTL_MINUTES = 10;
 const CONTINUATION_RATE_LIMIT_PER_DAY = 20;
@@ -25,7 +18,7 @@ const ROUND_DEADLINE_HOURS = 72;
 
 const submitBodySchema = z.object({
   challenge_id: z.string().uuid(),
-  passkey_assertion: z.custom<AuthenticationResponseJSON>(),
+  sms_code: z.string().regex(/^\d{6}$/),
 });
 
 export function parseContinuationSubmitBody(body: unknown) {
@@ -271,9 +264,6 @@ export async function getContinuationStatus(
     viewer_is_participant: viewerIsParticipant,
     viewer_can_request: viewerCanRequest,
     viewer_block_reason: viewerBlockReason,
-    viewer_has_passkey: viewerUserId
-      ? await userHasPasskey(viewerUserId)
-      : false,
     viewer_phone_verified: viewerUserId
       ? await isPhoneVerified(viewerUserId)
       : false,
@@ -283,7 +273,6 @@ export async function getContinuationStatus(
 export async function issueContinuationChallenge(
   completedRoundId: string,
   userId: string,
-  webAuthnContext?: WebAuthnContext,
 ) {
   const sql = getSql();
   const [round] = await sql<{ id: string; debate_id: string }[]>`
@@ -294,14 +283,6 @@ export async function issueContinuationChallenge(
   }
 
   await assertCanRequestContinuation(userId, round.debate_id, completedRoundId);
-
-  if (!(await userHasPasskey(userId))) {
-    throw new ApiError(
-      403,
-      "PASSKEY_REQUIRED",
-      "Előbb regisztrálj biztonságos azonosítást (Passkey)",
-    );
-  }
 
   const [existingRequest] = await sql<{ id: string }[]>`
     SELECT id FROM continuation_requests
@@ -331,17 +312,15 @@ export async function issueContinuationChallenge(
     RETURNING id, challenge_token, expires_at
   `;
 
-  const passkeyOptions = await createPasskeyAuthenticationOptions(
-    userId,
-    challenge.challenge_token,
-    webAuthnContext,
-  );
+  const sms = await startContinuationSmsOtp(userId, challenge.id);
 
   return {
     already_requested: false as const,
     challenge_id: challenge.id,
     expires_at: challenge.expires_at.toISOString(),
-    passkey_options: passkeyOptions,
+    phone_masked: sms.phone_masked,
+    delivery: sms.delivery,
+    dev_code: "dev_code" in sms ? sms.dev_code : undefined,
   };
 }
 
@@ -349,7 +328,6 @@ export async function submitContinuationRequest(
   completedRoundId: string,
   userId: string,
   input: z.infer<typeof submitBodySchema>,
-  webAuthnContext?: WebAuthnContext,
 ) {
   const sql = getSql();
 
@@ -426,12 +404,7 @@ export async function submitContinuationRequest(
     throw new ApiError(410, "CHALLENGE_EXPIRED", "A challenge lejárt");
   }
 
-  await verifyPasskeyAuthentication(
-    userId,
-    input.passkey_assertion,
-    challenge.challenge_token,
-    webAuthnContext,
-  );
+  await verifyContinuationSmsOtp(userId, challenge.id, input.sms_code);
 
   const unlockRules = await loadUnlockRules();
 

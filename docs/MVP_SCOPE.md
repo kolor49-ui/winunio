@@ -22,7 +22,7 @@ Működő páros vita életciklus: vitaindítás → jelentkezés → meghívás
 | Jutalom | `DebateReward`: **függő** küszöbön; **simulated** (kifizethető megjelenítés) csak teljes lezáráskor |
 | Jutalom UI | Küszöb után függő összeg; küszöb előtt semmi (nincs „0 Ft”) |
 | Vita lezárás | `awaiting_closure` → kötelező zárógondolatok (egyidejű publikálás) → `completed` |
-| Abuse — folytatás | Egyszer használható challenge + **kötelező Passkey minden kérésnél** + telefon (első alkalom) |
+| Abuse — folytatás | Egyszer használható challenge + **SMS OTP minden kérésnél** + telefon (első alkalom) |
 | Abuse — telefon | **Első folytatáskérés előtt** kötelező ellenőrzés |
 | Listák | „Új viták” (`created_at DESC`); „Népszerű” (7 napos folytatáskérések, nem személyre szabott) |
 | Moderálás | Alap jelentés, admin, `under_review` állapot |
@@ -58,7 +58,7 @@ Működő páros vita életciklus: vitaindítás → jelentkezés → meghívás
 3. Közönség látja a várakozást B-re; értesítés kérhető (nem követőrendszer).
 4. Teljes forduló (`published`, kétoldalú) után folytatáskérés nyílik.
 5. Timeout három ága: mindkét fél / egy fél / senki — spec szerint.
-6. Folytatáskérés csak teljes `published` forduló után; challenge + Passkey + telefon (első alkalom).
+6. Folytatáskérés csak teljes `published` forduló után; challenge + SMS OTP + telefon (első alkalom).
 7. Ugyanaz a fiók nem kérhet kétszer ugyanarra a lezárt fordulóra folytatást.
 8. Küszöbök teljesülése után következő forduló + `DebateReward` **pending** atomikusan.
 9. Küszöb előtt nincs jutalom UI.

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatHuPhoneDisplay, formatHuPhoneForApi } from "../../phone-hu";
@@ -17,7 +16,6 @@ export type ContinuationStatusView = {
   viewer_is_participant: boolean;
   viewer_can_request: boolean;
   viewer_block_reason: string | null;
-  viewer_has_passkey: boolean;
   viewer_phone_verified: boolean;
 };
 
@@ -26,24 +24,6 @@ type Props = {
   viewerUserId: string | null;
   variant?: "card" | "bar";
 };
-
-function mapWebAuthnError(err: unknown): string {
-  if (!(err instanceof Error)) return "Az azonosítás megszakadt.";
-  const msg = err.message.toLowerCase();
-  if (
-    msg.includes("credential manager") ||
-    msg.includes("unknown error occurred")
-  ) {
-    return "A telefon azonosító rendszere nem válaszolt. Zárd be a lapot, nyisd meg újra: winunio.com — majd Passkey újrabeállítása.";
-  }
-  if (msg.includes("timed out") || msg.includes("not allowed")) {
-    return "Az azonosítás megszakadt vagy lejárt. Ne használj QR-olvasót — a böngésző Face ID / ujjlenyomat ablakát erősítsd meg.";
-  }
-  if (msg.includes("cancel") || msg.includes("abort")) {
-    return "Az azonosítás megszakadt.";
-  }
-  return err.message;
-}
 
 function counterText(status: ContinuationStatusView): string {
   const count = status.request_count;
@@ -70,10 +50,11 @@ export function ContinuationPanel({
   const [phoneVerified, setPhoneVerified] = useState(
     initialStatus.viewer_phone_verified,
   );
-  const [hasPasskey, setHasPasskey] = useState(initialStatus.viewer_has_passkey);
   const [phoneLocal, setPhoneLocal] = useState("");
   const [pendingPhoneE164, setPendingPhoneE164] = useState<string | null>(null);
-  const [smsCode, setSmsCode] = useState("");
+  const [phoneSetupCode, setPhoneSetupCode] = useState("");
+  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
+  const [continuationCode, setContinuationCode] = useState("");
 
   async function startPhone(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -100,7 +81,7 @@ export function ContinuationPanel({
         return;
       }
       setPendingPhoneE164(data.phone_e164 ?? phone);
-      setSmsCode("");
+      setPhoneSetupCode("");
       setInfo(
         data.delivery === "sms"
           ? `SMS elküldve: ${formatHuPhoneDisplay(data.phone_e164 ?? phone)}`
@@ -118,7 +99,7 @@ export function ContinuationPanel({
   async function confirmPhone(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!viewerUserId || !pendingPhoneE164) return;
-    if (!/^\d{6}$/.test(smsCode)) {
+    if (!/^\d{6}$/.test(phoneSetupCode)) {
       setError("A kód 6 számjegy.");
       return;
     }
@@ -130,7 +111,7 @@ export function ContinuationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: pendingPhoneE164,
-          code: smsCode,
+          code: phoneSetupCode,
         }),
       });
       const data = await res.json();
@@ -140,7 +121,7 @@ export function ContinuationPanel({
       }
       setPhoneVerified(true);
       setPendingPhoneE164(null);
-      setSmsCode("");
+      setPhoneSetupCode("");
       setInfo("Telefonszám megerősítve.");
     } catch {
       setError("Hálózati hiba");
@@ -151,58 +132,17 @@ export function ContinuationPanel({
 
   function resetPhoneFlow() {
     setPendingPhoneE164(null);
-    setSmsCode("");
+    setPhoneSetupCode("");
     setError(null);
     setInfo(null);
   }
 
-  async function registerPasskey() {
-    if (!viewerUserId) return;
-    const isReregister = hasPasskey;
-    setError(null);
-    setLoading("passkey");
-    try {
-      const optionsUrl = isReregister
-        ? "/api/v1/passkeys/register?action=options&replace=true"
-        : "/api/v1/passkeys/register?action=options";
-      const optionsRes = await fetch(optionsUrl, { method: "POST" });
-      const options = await optionsRes.json();
-      if (!optionsRes.ok) {
-        setError(options.error?.message ?? "Passkey indítás sikertelen");
-        return;
-      }
-
-      const attestation = await startRegistration({ optionsJSON: options });
-      const verifyRes = await fetch(
-        "/api/v1/passkeys/register?action=verify",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(attestation),
-        },
-      );
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok) {
-        setError(verifyData.error?.message ?? "Passkey regisztráció sikertelen");
-        return;
-      }
-      setHasPasskey(true);
-      setInfo(
-        isReregister
-          ? "Új Passkey rögzítve — most nyomd meg újra: KÉREM A FOLYTATÁST."
-          : "Biztonságos azonosítás (Passkey) beállítva.",
-      );
-    } catch (err) {
-      setError(mapWebAuthnError(err));
-    } finally {
-      setLoading(null);
-    }
+  function resetContinuationFlow() {
+    setPendingChallengeId(null);
+    setContinuationCode("");
   }
 
-  async function submitContinuation(
-    challengeId: string,
-    passkeyAssertion: unknown,
-  ) {
+  async function submitContinuation(challengeId: string, smsCode: string) {
     const res = await fetch(
       `/api/v1/rounds/${status.completed_round_id}/continuation-requests`,
       {
@@ -210,7 +150,7 @@ export function ContinuationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challenge_id: challengeId,
-          passkey_assertion: passkeyAssertion,
+          sms_code: smsCode,
         }),
       },
     );
@@ -227,6 +167,8 @@ export function ContinuationPanel({
       viewer_already_requested: true,
       viewer_can_request: false,
     }));
+
+    resetContinuationFlow();
 
     if (data.threshold_met) {
       setInfo("Küszöb teljesült — a vita folytatódik.");
@@ -256,7 +198,7 @@ export function ContinuationPanel({
       );
       const challengeData = await challengeRes.json();
       if (!challengeRes.ok) {
-        throw new Error(challengeData.error?.message ?? "Challenge sikertelen");
+        throw new Error(challengeData.error?.message ?? "SMS indítás sikertelen");
       }
 
       if (challengeData.already_requested) {
@@ -269,22 +211,35 @@ export function ContinuationPanel({
         return;
       }
 
-      const assertion = await startAuthentication({
-        optionsJSON: challengeData.passkey_options,
-      });
-
-      await submitContinuation(challengeData.challenge_id, assertion);
+      setPendingChallengeId(challengeData.challenge_id);
+      setContinuationCode("");
+      setInfo(
+        challengeData.delivery === "sms"
+          ? `SMS kódot küldtünk ide: ${challengeData.phone_masked ?? "a regisztrált számodra"}.`
+          : challengeData.dev_code
+            ? `Fejlesztői kód: ${challengeData.dev_code}`
+            : "Írd be az SMS-ben kapott 6 jegyű kódot.",
+      );
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : mapWebAuthnError(err);
-      setError(message);
-      if (
-        /passkey|azonosítás|webauthn|ellenőrzés/i.test(message)
-      ) {
-        setInfo(
-          "Ha a telefonon megváltozott a képernyőzár vagy a Google azonosítókulcs, előbb: Passkey újrabeállítása.",
-        );
-      }
+      setError(err instanceof Error ? err.message : "Hálózati hiba");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function confirmContinuation(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!pendingChallengeId) return;
+    if (!/^\d{6}$/.test(continuationCode)) {
+      setError("A kód 6 számjegy.");
+      return;
+    }
+    setError(null);
+    setLoading("continuation-confirm");
+    try {
+      await submitContinuation(pendingChallengeId, continuationCode);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Folytatáskérés sikertelen");
     } finally {
       setLoading(null);
     }
@@ -320,7 +275,7 @@ export function ContinuationPanel({
             {!phoneVerified && (
               <div className="continuation-setup">
                 <p className="hint">
-                  Első folytatáskérés előtt telefonszám megerősítés szükséges.
+                  Első folytatáskérés előtt telefonszám megerősítés szükséges (egyszeri).
                 </p>
 
                 {!pendingPhoneE164 ? (
@@ -348,10 +303,10 @@ export function ContinuationPanel({
                       Kódot küldtünk ide:{" "}
                       <strong>{formatHuPhoneDisplay(pendingPhoneE164)}</strong>
                     </p>
-                    <label htmlFor="continuation-sms-code">
+                    <label htmlFor="continuation-phone-setup-code">
                       6 jegyű SMS kód
                       <input
-                        id="continuation-sms-code"
+                        id="continuation-phone-setup-code"
                         name="code"
                         type="text"
                         inputMode="numeric"
@@ -359,9 +314,9 @@ export function ContinuationPanel({
                         pattern="\d{6}"
                         maxLength={6}
                         placeholder="123456"
-                        value={smsCode}
+                        value={phoneSetupCode}
                         onChange={(e) =>
-                          setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                          setPhoneSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))
                         }
                         required
                         disabled={loading !== null}
@@ -372,7 +327,7 @@ export function ContinuationPanel({
                       <button
                         type="submit"
                         className="btn btn-secondary"
-                        disabled={loading !== null || smsCode.length !== 6}
+                        disabled={loading !== null || phoneSetupCode.length !== 6}
                       >
                         {loading === "phone-confirm"
                           ? "Ellenőrzés…"
@@ -392,50 +347,63 @@ export function ContinuationPanel({
               </div>
             )}
 
-            {phoneVerified && !hasPasskey && (
-              <div className="continuation-setup">
-                <p className="hint">
-                  Egyszeri beállítás: az eszközöd biztonságos azonosítása (Face ID,
-                  ujjlenyomat vagy PIN). Ne töröld a képernyőzárat — ahhoz kötődik.
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => void registerPasskey()}
-                  disabled={loading !== null}
-                >
-                  Passkey beállítása
-                </button>
-              </div>
+            {phoneVerified && !pendingChallengeId && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void requestContinuation()}
+                disabled={loading !== null}
+              >
+                {loading === "continuation" ? "SMS küldése…" : "KÉREM A FOLYTATÁST"}
+              </button>
             )}
 
-            {phoneVerified && hasPasskey && (
-              <div className="continuation-setup">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void requestContinuation()}
-                  disabled={loading !== null}
-                >
-                  {loading === "continuation"
-                    ? "Azonosítás…"
-                    : "KÉREM A FOLYTATÁST"}
-                </button>
-                <p className="hint">
-                  Ha új telefonon vagy képernyőzárat állítottál be, előbb állítsd
-                  be újra a Passkey-t a Winunióban (nem elég a Google beállítások).
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => void registerPasskey()}
-                  disabled={loading !== null}
-                >
-                  {loading === "passkey"
-                    ? "Beállítás…"
-                    : "Passkey újrabeállítása"}
-                </button>
-              </div>
+            {phoneVerified && pendingChallengeId && (
+              <form onSubmit={confirmContinuation} className="form phone-verify-form">
+                <label htmlFor="continuation-sms-code">
+                  6 jegyű SMS kód
+                  <input
+                    id="continuation-sms-code"
+                    name="code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="\d{6}"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={continuationCode}
+                    onChange={(e) =>
+                      setContinuationCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    required
+                    disabled={loading !== null}
+                    autoFocus
+                  />
+                </label>
+                <div className="phone-verify-actions">
+                  <button
+                    type="submit"
+                    className="btn"
+                    disabled={loading !== null || continuationCode.length !== 6}
+                  >
+                    {loading === "continuation-confirm"
+                      ? "Rögzítés…"
+                      : "Folytatáskérés megerősítése"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={loading !== null}
+                    onClick={() => {
+                      resetContinuationFlow();
+                      setInfo(null);
+                      setError(null);
+                    }}
+                  >
+                    Új SMS
+                  </button>
+                </div>
+              </form>
             )}
 
             {status.viewer_block_reason &&

@@ -302,10 +302,20 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 ## ADR-035 — Folytatáskérés: Turnstile kivéve MVP UI-ból
 
 **Dátum:** 2026-07-28  
+**Státusz:** Elfogadva (részben felülírva: ADR-036)  
+**Döntés:** Cloudflare Turnstile **nincs** a folytatáskérés felhasználói folyamatában.  
+**Kapcsolat:** ADR-018.
+
+---
+
+## ADR-036 — Folytatáskérés: SMS OTP indulás; Passkey későbbi natív apphoz
+
+**Dátum:** 2026-07-28  
 **Státusz:** Elfogadva  
-**Döntés:** Cloudflare Turnstile **nincs** a folytatáskérés felhasználói folyamatában. Botvédelem: e-mail + telefon (első alkalom) + **Passkey minden kérésnél** + egyszer használható challenge + rate limit.  
-**Indok:** Turnstile mobilon (Android Chrome) megbízhatatlanul elhasalt; Troubleshoot / halott gomb elfogadhatatlan UX.  
-**Kapcsolat:** ADR-018 (Turnstile eredetileg benne volt) — Passkey + telefon marad kötelező.
+**Döntés:** Folytatáskérés megerősítése **SMS OTP** (6 jegy, a fiókhoz kötött telefonra) minden kérésnél. **Passkey nincs** a webes folytatás UI-ban. Egyszer használható challenge + rate limit marad.  
+**Indok:** Webes Passkey Androidon megbízhatatlan; SMS minden telefonon működik, Twilio Verify már él.  
+**Később:** piaci fogadtatás / forgalom után natív app bank-szintű ujjlenyomattal (MVP-n kívül).  
+**Felülírja:** ADR-018 Passkey kötelező minden webes kérésnél; ADR-035 botvédelem sor Passkey.
 
 ---
 

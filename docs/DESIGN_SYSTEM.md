@@ -104,7 +104,7 @@ Passkey lépés copy:
 | `RoundStatus` | Aktív forduló fázisok (`awaiting_a` / `awaiting_b`), timeout — jutalom nélkül küszöb előtt |
 | `RoundAwaitingB` | A publikálva; várakozás + értesítés kérés gomb |
 | `ClosingStatementForm` | Zárásra vár — rejtett partner szöveg |
-| `ContinuationRequestFlow` | challenge + Passkey + telefon gate |
+| `ContinuationRequestFlow` | challenge + SMS OTP + telefon gate (első alkalom) |
 | `DebateRewardReveal` | Függő összeg küszöb után; kifizethető megjelenítés lezáráskor |
 | `DebateEditor` | **Tervezett** — saját érvelés + idézet + forrás; paste tiltás; piszkozat |
 | `ContentReviewFeedback` | **Tervezett** — megjelölt problémák, szabály-hivatkozás; **nincs** AI-szöveg |

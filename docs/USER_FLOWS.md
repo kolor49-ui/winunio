@@ -147,16 +147,16 @@ Vita olvasása (A már publikálva, B még nem)
 ```
 Vita olvasása (teljes published forduló után)
   → KÉREM A FOLYTATÁST
-  → [első alkalom: telefon OTP]
-  → challenge kiadás
-  → Passkey (biztonságos azonosítás)
+  → [első alkalom: telefon OTP egyszer]
+  → challenge kiadás + SMS kód
+  → 6 jegy beírása
   → kérés rögzítve
   → számláló frissül
 ```
 
 | Dimenzió | Viselkedés |
 |----------|------------|
-| Hiba | Már kért / nem teljes published / rate limit / Passkey fail |
+| Hiba | Már kért / nem teljes published / rate limit / SMS hiba |
 | Idempotens | Ismételt kattintás → ugyanaz a rekord, számláló nem nő |
 | Jogosultság | Bejelentkezett + verified e-mail + telefon (első) |
 

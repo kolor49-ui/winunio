@@ -13,7 +13,7 @@ Minden végpontnál dokumentálandó: cél, bemenet, válasz, jogosultság, üzl
 | Session / JWT | Általános bejelentkezett műveletek |
 | WebAuthn assertion | Folytatáskérés véglegesítése (kötelező) |
 
-Vitázók: e-mail + jelszó (MVP). Passkey regisztráció folytatáskéréshez.
+Vitázók: e-mail + jelszó (MVP). Passkey API megmarad későbbi natív apphoz.
 
 ### `DELETE /api/v1/auth/account`
 
@@ -198,18 +198,18 @@ A `POST …/arguments`, `POST …/closing-statements`, `POST …/debates`, `POST
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests/challenge`
 
-Challenge kiadása (bejelentkezett, telefon + Passkey előfeltételekkel).
+Challenge kiadása + SMS OTP küldése (bejelentkezett, telefon megerősítve).
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests`
 
 | | |
 |---|---|
-| **Bemenet** | `challenge_id`, `passkey_assertion` |
+| **Bemenet** | `challenge_id`, `sms_code` (6 jegy) |
 | **Üzleti szabály** | ABUSE_PREVENTION teljes pipeline |
 | **Idempotencia** | **Kötelező** — `UNIQUE(user_id, completed_round_id)`; retry → `200` meglévő |
 | **Mellékhatás** | Számláló +1; esetleg atomi küszöb-esemény |
 
-**Hibakódok:** `401` auth; `403` telefon/e-mail; `409` duplicate; `422` Passkey/challenge; `429` rate limit.
+**Hibakódok:** `401` auth; `403` telefon/e-mail; `409` duplicate; `422` SMS/challenge; `429` rate limit.
 
 ---
 

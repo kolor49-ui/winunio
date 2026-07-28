@@ -18,12 +18,12 @@ A folytatáskérés **nem** rögzíthető kizárólag kliensoldali gombnyomás v
 2. **megerősített e-mail-cím**;
 3. **megerősített telefonszám** (első folytatáskérés előtt kötelező; utána a fiókhoz kötött);
 4. szerver által kiadott, **egyszer használható** challenge;
-5. **Passkey assertion** (WebAuthn, `userVerification = required`) — emberi jelenlét, eszközön;
+5. **SMS OTP** (6 jegy, a fiókhoz kötött telefonra) — emberi jelenlét, eszközön;
 6. challenge **szerveroldali** ellenőrzése;
 7. felhasználó + lezárt forduló **egyediségének** ellenőrzése (`UNIQUE(user_id, completed_round_id)`);
 8. **sebességkorlát** teljesítése.
 
-> **MVP (2026-07):** Cloudflare Turnstile **nincs** a folytatáskérés UI-ban — mobilon (Android Chrome) megbízhatatlanul elhasalt. A botvédelem helyett: e-mail + telefon + **kötelező Passkey minden kérésnél** + challenge + rate limit. Turnstile későbbi fázisban visszahozható, ha megbízható beágyazás van.
+> **MVP (2026-07):** Webes folytatáskérés megerősítése **SMS OTP** (ADR-036). Passkey a web UI-ból kikerült; natív app későbbi fázis. Turnstile nincs. Botvédelem: e-mail + telefon (első alkalom) + SMS minden kérésnél + challenge + rate limit.
 
 ### Challenge szabályok
 
@@ -37,30 +37,20 @@ A kliens **nem** küldhet érvényes folytatáskérést előzetesen kiadott chal
 
 ---
 
-## 2. Kötelező Passkey-megerősítés (MVP)
+## 2. SMS OTP megerősítés minden folytatáskérésnél (MVP web)
 
-**Döntés:** Passkey **minden** folytatáskérésnél kötelező (nem csak gyanús esetben).
-
-A folytatáskérés véglegesítéséhez **WebAuthn assertion** szükséges.
-
-### WebAuthn követelmények
-
-- `userVerification = required`;
-- challenge szerver által generált;
-- challenge felhasználóhoz és lezárt fordulóhoz kötött;
-- challenge egyszer használható;
-- `origin` és `RP ID` ellenőrzése kötelező;
-- signature **counter** ellenőrzése, ha az authenticator támogatja.
-
-A folytatáskérés csak sikeres szerveroldali WebAuthn-ellenőrzés után kerülhet az adatbázisba.
+**Döntés:** Minden folytatáskérés véglegesítéséhez **SMS OTP** szükséges a fiókhoz kötött telefonra (ADR-036).
 
 ### UI folyamat
 
 ```
 KÉREM A FOLYTATÁST
-  → „Az eszközödön beállított biztonságos azonosítás” (ne írjuk: „biometria kötelező”)
+  → SMS kód a regisztrált telefonra
+  → 6 jegy beírása
   → kérés rögzítve
 ```
+
+**Passkey (WebAuthn):** későbbi **natív app** — nem része a webes MVP folytatás UI-nak.
 
 ---
 
@@ -80,7 +70,7 @@ Az MVP-ben **nincs** külön nyilvános „függő” és „megerősített” s
 - Minden szabályosan rögzített kérés érvényesnek minősül és beleszámít a küszöbbe.
 - Utólagos csalásvizsgálat, függő státusz és külön „megerősített aktivitás” számláló **nem** része az MVP-nek.
 
-A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-mail, telefon, Passkey, rate limit) emelik.
+A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-mail, telefon, SMS OTP, rate limit) emelik.
 
 ---
 
@@ -115,7 +105,7 @@ Lájk és résztvevő-szavazat **nem** implementálandó — nincs alternatív �
 Minden folytatáskérés-kísérlet (siker és sikertelen) → `SecurityEvent` / `AuditLog`:
 
 - user_id, completed_round_id, challenge_id;
-- Turnstile / Passkey eredmény;
+- SMS OTP eredmény;
 - rate limit elutasítás;
 - időbélyeg, IP hash (GDPR-kompatibilis tárolás).
 
@@ -125,8 +115,8 @@ Minden folytatáskérés-kísérlet (siker és sikertelen) → `SecurityEvent` /
 
 | Réteg | MVP javaslat |
 |-------|----------------|
-| Passkey | SimpleWebAuthn |
-| Botvédelem | Passkey + rate limit (Turnstile későbbi fázis) |
+| SMS OTP | Twilio Verify |
+| Botvédelem | SMS OTP + rate limit |
 | Telefon OTP | Twilio Verify, Sinch vagy más |
 | Rate limit | Redis / Upstash |
 | Adatbázis | Postgres + egyedi kulcsok |
@@ -145,7 +135,7 @@ A pontos szolgáltató később cserélhető; a **biztonsági követelmény** ne
 5. Még nincs kérés ebből a fiókból erre a completed_round_id-re
 6. Rate limit OK
 7. Challenge issued, nem expired, nem consumed
-8. Passkey assertion OK
+8. SMS OTP OK
 9. INSERT ContinuationRequest (tranzakció: számlálás + esetleges küszöb)
 ```
 
