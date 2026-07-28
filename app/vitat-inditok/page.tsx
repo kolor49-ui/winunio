@@ -9,21 +9,6 @@ export const metadata: Metadata = {
     "Vitát indítani fiók kell. Ingyenes regisztráció — te fogalmazod a kérdést és választod ki a vitapartnert.",
 };
 
-const REASONS = [
-  {
-    title: "Te indítod a vitát",
-    text: "Megfogalmazod a kérdést és a kiinduló álláspontodat — partnerre vársz, majd te választasz a jelentkezők közül.",
-  },
-  {
-    title: "Ingyenes indulás",
-    text: "Regisztráció és részvétel díjmentes. Vitát olvasni fiók nélkül is lehet.",
-  },
-  {
-    title: "Nincs verseny a vitázók között",
-    text: "A közönség nem ítélkezik — csak folytatást kérhet. Mindkét résztvevő azonos jutalmat kap.",
-  },
-] as const;
-
 const DEBATE_START_PATH = "/debates/new";
 
 export default async function VitatInditokPage() {
@@ -51,13 +36,19 @@ export default async function VitatInditokPage() {
         <h2 id="vitat-inditok-why" className="layout-panel-title">
           Miért érdemes?
         </h2>
-        <ul className="hiw-not-list">
-          {REASONS.map((item) => (
-            <li key={item.title}>
-              <strong>{item.title}.</strong> {item.text}
-            </li>
-          ))}
-        </ul>
+        <p className="vitat-inditok-intro">
+          Regisztráció nélkül olvashatod a vitákat.
+        </p>
+        <p className="vitat-inditok-body">
+          Regisztrációval viszont alakíthatod is őket: kérheted a folytatást,
+          saját vitát indíthatsz, vagy vitázóként csatlakozhatsz. Ha a közönség
+          újabb fordulókat kér, a szabályosan befejezett vita mindkét
+          résztvevőjének növekvő pénzbeli díjazást hozhat.
+        </p>
+        <p className="vitat-inditok-tagline">
+          Ne csak nézd a vitát — légy részese: indíts vitát, csatlakozz
+          vitázóként, vagy kérj folytatást!
+        </p>
       </section>
 
       <section className="layout-panel layout-panel-accent">

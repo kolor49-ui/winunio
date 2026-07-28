@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SiteHeader } from "./site-header";
+import { AdminTopBar } from "./admin-top-bar";
 import { PwaSetup } from "./install-app-button";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body style={{ background: "#ffffff" }}>
         <PwaSetup />
         <SiteHeader />
+        <AdminTopBar />
         <main className="container">{children}</main>
       </body>
     </html>

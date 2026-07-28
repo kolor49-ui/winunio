@@ -23,7 +23,6 @@ export async function SiteHeader() {
             user
               ? {
                   email: user.email,
-                  is_admin: user.is_admin,
                   email_verified: user.email_verified,
                 }
               : null

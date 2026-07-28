@@ -5,11 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { LogoMark } from "./logo-mark";
 import { LogoutButton } from "./logout-button";
-import { AdminUnreadBadge } from "./admin/admin-unread-badge";
 
 export type SiteHeaderUser = {
   email: string;
-  is_admin: boolean;
   email_verified: boolean;
 };
 
@@ -51,17 +49,6 @@ function NavLinks({
           <Link href="/account" {...closeOnClick}>
             Fiók
           </Link>
-          {user.is_admin && (
-            <>
-              <Link href="/admin" className="nav-admin-link" {...closeOnClick}>
-                Admin
-              </Link>
-              <AdminUnreadBadge />
-              <Link href="/admin/moderation" {...closeOnClick}>
-                Moderáció
-              </Link>
-            </>
-          )}
           {!user.email_verified && (
             <Link href="/verify-email" className="nav-verify" {...closeOnClick}>
               E-mail megerősítés

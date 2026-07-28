@@ -848,13 +848,21 @@ a {
   z-index: 100;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
-  margin-bottom: 2rem;
+  margin-bottom: 0;
 }
 
 .site-header .container {
   padding-top: 1rem;
   padding-bottom: 1rem;
   margin-bottom: 0;
+}
+
+.site-header + main.container {
+  margin-top: 2rem;
+}
+
+.admin-top-bar + main.container {
+  margin-top: 0;
 }
 
 .site-header-inner {
@@ -947,13 +955,14 @@ a {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
+  gap: 0.75rem 1rem;
+  font-size: 0.9375rem;
   min-width: 0;
   width: 100%;
 }
 
 .nav-links a {
+  margin-right: 0.25rem;
   flex-shrink: 0;
   white-space: nowrap;
   text-decoration: none;
@@ -1123,9 +1132,69 @@ a {
 }
 
 .nav-badge-inline {
-  margin-left: -0.5rem;
-  margin-right: 0.25rem;
+  margin-left: 0;
+  margin-right: 0;
   vertical-align: middle;
+}
+
+.admin-top-bar {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-a-muted);
+  margin-bottom: 1.5rem;
+}
+
+.admin-top-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.625rem 0;
+}
+
+.admin-top-bar-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-a);
+}
+
+.admin-top-bar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.admin-top-bar-link {
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.admin-top-bar-link:hover {
+  color: var(--color-a);
+}
+
+.vitat-inditok-intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.vitat-inditok-body {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.vitat-inditok-tagline {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  font-weight: 600;
 }
 
 .admin-section-head {
