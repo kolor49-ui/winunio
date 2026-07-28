@@ -43,6 +43,25 @@ function hostsMatch(a: string, b: string): boolean {
   return normalize(a) === normalize(b);
 }
 
+/** www és apex (winunio.com ↔ www.winunio.com) elfogadása WebAuthn ellenőrzésnél. */
+export function expandWebAuthnOrigins(origin: string): string[] {
+  const normalized = normalizeOrigin(origin);
+  const origins = new Set<string>([normalized]);
+  try {
+    const url = new URL(normalized);
+    if (url.hostname === "localhost") return [normalized];
+    if (url.hostname.endsWith(".vercel.app")) return [normalized];
+    if (url.hostname.startsWith("www.")) {
+      origins.add(`${url.protocol}//${url.hostname.slice(4)}`);
+    } else {
+      origins.add(`${url.protocol}//www.${url.hostname}`);
+    }
+  } catch {
+    // Keep single origin when malformed.
+  }
+  return [...origins];
+}
+
 export function getWebAuthnContextFromRequest(request: Request): WebAuthnContext {
   const configured = normalizeOrigin(configuredAppOrigin());
   const originHeader = request.headers.get("origin")?.trim();

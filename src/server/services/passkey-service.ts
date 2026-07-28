@@ -11,6 +11,7 @@ import type {
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
 import {
+  expandWebAuthnOrigins,
   getWebAuthnOrigin,
   getWebAuthnRpId,
   getWebAuthnRpName,
@@ -121,7 +122,7 @@ export async function verifyPasskeyRegistration(
     verification = await verifyRegistrationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: origin,
+      expectedOrigin: expandWebAuthnOrigins(origin),
       expectedRPID: rpId,
       requireUserVerification: true,
     });
@@ -218,7 +219,7 @@ export async function verifyPasskeyAuthentication(
     verification = await verifyAuthenticationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: origin,
+      expectedOrigin: expandWebAuthnOrigins(origin),
       expectedRPID: rpId,
       credential: {
         id: credential.credential_id,
@@ -232,7 +233,7 @@ export async function verifyPasskeyAuthentication(
     throw new ApiError(
       422,
       "PASSKEY_INVALID",
-      "Passkey ellenőrzés sikertelen — nyisd meg ugyanazt a címet (pl. www.winunio.com), ahol beállítottad.",
+      "Passkey ellenőrzés sikertelen — próbáld újra, vagy állítsd be újra a Passkey-t.",
     );
   }
 

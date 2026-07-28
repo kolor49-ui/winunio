@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { SiteHeader } from "./site-header";
 import { AdminTopBar } from "./admin-top-bar";
 import { PwaSetup } from "./install-app-button";
+import { CanonicalHostRedirect } from "./canonical-host-redirect";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="hu" style={{ background: "#ffffff" }}>
       <body style={{ background: "#ffffff" }}>
+        <CanonicalHostRedirect />
         <PwaSetup />
         <SiteHeader />
         <AdminTopBar />
