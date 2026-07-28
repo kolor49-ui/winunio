@@ -18,10 +18,12 @@ A folytatáskérés **nem** rögzíthető kizárólag kliensoldali gombnyomás v
 2. **megerősített e-mail-cím**;
 3. **megerősített telefonszám** (első folytatáskérés előtt kötelező; utána a fiókhoz kötött);
 4. szerver által kiadott, **egyszer használható** challenge;
-5. érvényes **Cloudflare Turnstile** token;
-6. challenge és Turnstile token **szerveroldali** ellenőrzése;
+5. **Passkey assertion** (WebAuthn, `userVerification = required`) — emberi jelenlét, eszközön;
+6. challenge **szerveroldali** ellenőrzése;
 7. felhasználó + lezárt forduló **egyediségének** ellenőrzése (`UNIQUE(user_id, completed_round_id)`);
 8. **sebességkorlát** teljesítése.
+
+> **MVP (2026-07):** Cloudflare Turnstile **nincs** a folytatáskérés UI-ban — mobilon (Android Chrome) megbízhatatlanul elhasalt. A botvédelem helyett: e-mail + telefon + **kötelező Passkey minden kérésnél** + challenge + rate limit. Turnstile későbbi fázisban visszahozható, ha megbízható beágyazás van.
 
 ### Challenge szabályok
 
@@ -78,7 +80,7 @@ Az MVP-ben **nincs** külön nyilvános „függő” és „megerősített” s
 - Minden szabályosan rögzített kérés érvényesnek minősül és beleszámít a küszöbbe.
 - Utólagos csalásvizsgálat, függő státusz és külön „megerősített aktivitás” számláló **nem** része az MVP-nek.
 
-A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-mail, telefon, Turnstile, Passkey, rate limit) emelik.
+A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-mail, telefon, Passkey, rate limit) emelik.
 
 ---
 
@@ -124,7 +126,7 @@ Minden folytatáskérés-kísérlet (siker és sikertelen) → `SecurityEvent` /
 | Réteg | MVP javaslat |
 |-------|----------------|
 | Passkey | SimpleWebAuthn |
-| Botvédelem | Cloudflare Turnstile |
+| Botvédelem | Passkey + rate limit (Turnstile későbbi fázis) |
 | Telefon OTP | Twilio Verify, Sinch vagy más |
 | Rate limit | Redis / Upstash |
 | Adatbázis | Postgres + egyedi kulcsok |
@@ -143,9 +145,8 @@ A pontos szolgáltató később cserélhető; a **biztonsági követelmény** ne
 5. Még nincs kérés ebből a fiókból erre a completed_round_id-re
 6. Rate limit OK
 7. Challenge issued, nem expired, nem consumed
-8. Turnstile OK (szerveroldali verify)
-9. Passkey assertion OK
-10. INSERT ContinuationRequest (tranzakció: számlálás + esetleges küszöb)
+8. Passkey assertion OK
+9. INSERT ContinuationRequest (tranzakció: számlálás + esetleges küszöb)
 ```
 
 Kapcsolódó: [BUSINESS_RULES.md](BUSINESS_RULES.md), [MODERATION.md](MODERATION.md), [DECISIONS.md](DECISIONS.md) ADR-011–012, ADR-018–021.

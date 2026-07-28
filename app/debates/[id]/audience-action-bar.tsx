@@ -17,7 +17,6 @@ type ContinuationProps = {
   mode: "continuation";
   initialStatus: ContinuationStatusView;
   viewerUserId: string | null;
-  turnstileSiteKey: string;
 };
 
 type Props = NotifyProps | ContinuationProps;
@@ -35,7 +34,6 @@ export function AudienceActionBar(props: Props) {
           <ContinuationPanel
             initialStatus={props.initialStatus}
             viewerUserId={props.viewerUserId}
-            turnstileSiteKey={props.turnstileSiteKey}
             variant="bar"
           />
         </div>

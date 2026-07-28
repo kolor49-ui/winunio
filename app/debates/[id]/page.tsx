@@ -21,7 +21,6 @@ import {
 import { getClosingStatementContext } from "@/server/services/closing-statement-service";
 import { getContinuationStatus } from "@/server/services/continuation-service";
 import { getViewerRoundContext } from "@/server/services/round-service";
-import { getTurnstileSiteKey } from "@/server/turnstile";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -77,8 +76,6 @@ export default async function DebatePage({ params }: Props) {
     debate.status === "awaiting_closure" || debate.status === "completed"
       ? await getClosingStatementContext(id, session?.userId ?? null)
       : null;
-
-  const turnstileSiteKey = getTurnstileSiteKey() ?? "";
 
   const showNotifyBar = shouldShowNotifyBar(
     debate.status,
@@ -208,7 +205,6 @@ export default async function DebatePage({ params }: Props) {
           mode="continuation"
           initialStatus={continuationStatus}
           viewerUserId={session?.userId ?? null}
-          turnstileSiteKey={turnstileSiteKey}
         />
       )}
       </div>

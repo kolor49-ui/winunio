@@ -29,7 +29,7 @@ Páros vitaplatform — két fél, közös jutalom, közönség csak folytatást
 - Szimulált jutalom, **nincs kifizetés**.
 - Nincs győztes/vesztes, lájk, résztvevő-szavazat.
 - Küszöb előtt **nincs jutalom UI** (nincs „0 Ft” sem).
-- Folytatáskérés: Turnstile + challenge + **Passkey minden kérésnél** + telefon (első alkalom).
+- Folytatáskérés: challenge + **Passkey minden kérésnél** + telefon (első alkalom).
 
 ## Repo struktúra
 

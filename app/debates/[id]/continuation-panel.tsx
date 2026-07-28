@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import { formatHuPhoneDisplay, formatHuPhoneForApi } from "../../phone-hu";
 import { PhoneInputHu } from "../../phone-input-hu";
-import { TurnstileWidget } from "./turnstile-widget";
-
-const TEST_TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
 
 export type ContinuationStatusView = {
   completed_round_id: string;
@@ -27,7 +24,6 @@ export type ContinuationStatusView = {
 type Props = {
   initialStatus: ContinuationStatusView;
   viewerUserId: string | null;
-  turnstileSiteKey: string;
   variant?: "card" | "bar";
 };
 
@@ -58,7 +54,6 @@ function counterText(status: ContinuationStatusView): string {
 export function ContinuationPanel({
   initialStatus,
   viewerUserId,
-  turnstileSiteKey,
   variant = "card",
 }: Props) {
   const router = useRouter();
@@ -66,9 +61,6 @@ export function ContinuationPanel({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const [turnstileActive, setTurnstileActive] = useState(false);
-  const [turnstileReset, setTurnstileReset] = useState(0);
-  const awaitingTurnstileRef = useRef(false);
   const [phoneVerified, setPhoneVerified] = useState(
     initialStatus.viewer_phone_verified,
   );
@@ -76,16 +68,6 @@ export function ContinuationPanel({
   const [phoneLocal, setPhoneLocal] = useState("");
   const [pendingPhoneE164, setPendingPhoneE164] = useState<string | null>(null);
   const [smsCode, setSmsCode] = useState("");
-
-  const handleTurnstileError = useCallback((message: string) => {
-    if (!message) {
-      setError(null);
-      return;
-    }
-    awaitingTurnstileRef.current = false;
-    setLoading(null);
-    setError(message);
-  }, []);
 
   async function startPhone(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -246,54 +228,6 @@ export function ContinuationPanel({
     router.refresh();
   }
 
-  async function finishContinuation(turnstileToken: string) {
-    const challengeRes = await fetch(
-      `/api/v1/rounds/${status.completed_round_id}/continuation-requests/challenge`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnstile_token: turnstileToken }),
-      },
-    );
-    const challengeData = await challengeRes.json();
-    if (!challengeRes.ok) {
-      throw new Error(challengeData.error?.message ?? "Challenge sikertelen");
-    }
-
-    if (challengeData.already_requested) {
-      setStatus((prev) => ({
-        ...prev,
-        viewer_already_requested: true,
-        viewer_can_request: false,
-      }));
-      setInfo("Már leadtad a folytatáskérésed erre a fordulóra.");
-      return;
-    }
-
-    const assertion = await startAuthentication({
-      optionsJSON: challengeData.passkey_options,
-    });
-
-    await submitContinuation(challengeData.challenge_id, assertion);
-  }
-
-  async function handleTurnstileToken(token: string) {
-    if (!awaitingTurnstileRef.current) return;
-    awaitingTurnstileRef.current = false;
-    setError(null);
-    setLoading("continuation");
-    try {
-      await finishContinuation(token);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : mapWebAuthnError(err),
-      );
-    } finally {
-      setLoading(null);
-      setTurnstileActive(false);
-    }
-  }
-
   async function requestContinuation() {
     if (!viewerUserId) {
       setError("Előbb jelentkezz be.");
@@ -303,30 +237,38 @@ export function ContinuationPanel({
     setError(null);
     setInfo(null);
     setLoading("continuation");
-    awaitingTurnstileRef.current = true;
 
-    const bypassTurnstile =
-      !turnstileSiteKey || turnstileSiteKey === TEST_TURNSTILE_SITE_KEY;
-
-    if (bypassTurnstile) {
-      try {
-        awaitingTurnstileRef.current = false;
-        await finishContinuation("dev-bypass");
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : mapWebAuthnError(err),
-        );
-      } finally {
-        setLoading(null);
+    try {
+      const challengeRes = await fetch(
+        `/api/v1/rounds/${status.completed_round_id}/continuation-requests/challenge`,
+        { method: "POST" },
+      );
+      const challengeData = await challengeRes.json();
+      if (!challengeRes.ok) {
+        throw new Error(challengeData.error?.message ?? "Challenge sikertelen");
       }
-      return;
-    }
 
-    if (turnstileActive) {
-      setTurnstileReset((n) => n + 1);
-    } else {
-      setTurnstileActive(true);
-      setInfo("Ellenőrzés…");
+      if (challengeData.already_requested) {
+        setStatus((prev) => ({
+          ...prev,
+          viewer_already_requested: true,
+          viewer_can_request: false,
+        }));
+        setInfo("Már leadtad a folytatáskérésed erre a fordulóra.");
+        return;
+      }
+
+      const assertion = await startAuthentication({
+        optionsJSON: challengeData.passkey_options,
+      });
+
+      await submitContinuation(challengeData.challenge_id, assertion);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : mapWebAuthnError(err),
+      );
+    } finally {
+      setLoading(null);
     }
   }
 
@@ -450,25 +392,16 @@ export function ContinuationPanel({
             )}
 
             {phoneVerified && hasPasskey && (
-              <>
-                <TurnstileWidget
-                  siteKey={turnstileSiteKey}
-                  active={turnstileActive}
-                  resetKey={turnstileReset}
-                  onToken={(token) => void handleTurnstileToken(token)}
-                  onError={handleTurnstileError}
-                />
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void requestContinuation()}
-                  disabled={loading !== null}
-                >
-                  {loading === "continuation"
-                    ? "Ellenőrzés…"
-                    : "KÉREM A FOLYTATÁST"}
-                </button>
-              </>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void requestContinuation()}
+                disabled={loading !== null}
+              >
+                {loading === "continuation"
+                  ? "Azonosítás…"
+                  : "KÉREM A FOLYTATÁST"}
+              </button>
             )}
 
             {status.viewer_block_reason &&

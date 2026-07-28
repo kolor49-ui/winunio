@@ -148,7 +148,6 @@ Vita olvasása (A már publikálva, B még nem)
 Vita olvasása (teljes published forduló után)
   → KÉREM A FOLYTATÁST
   → [első alkalom: telefon OTP]
-  → Turnstile
   → challenge kiadás
   → Passkey (biztonságos azonosítás)
   → kérés rögzítve

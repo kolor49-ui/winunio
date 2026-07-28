@@ -95,8 +95,8 @@ Forrásigazság: [BUSINESS_RULES.md](BUSINESS_RULES.md), [DECISIONS.md](DECISION
 
 | Kiinduló állapot | Esemény | Következő állapot | Mellékhatás |
 | ---------------- | ------- | ----------------- | ----------- |
-| `issued` | WebAuthn + Turnstile sikeres; kérés rögzítve | `consumed` | `ContinuationRequest` létrejön; számláló nő |
-| `issued` | WebAuthn / Turnstile sikertelen | `invalidated` | Nincs kérés; új challenge kell |
+| `issued` | WebAuthn sikeres; kérés rögzítve | `consumed` | `ContinuationRequest` létrejön; számláló nő |
+| `issued` | WebAuthn sikertelen | `invalidated` | Nincs kérés; új challenge kell |
 | `issued` | Lejárat (TTL) | `expired` | Nincs kérés; új challenge kell |
 | `issued` | Küszöb elérése ugyanabban a tranzakcióban | `consumed` | + következő forduló + `DebateReward` `pending` |
 

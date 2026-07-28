@@ -198,7 +198,7 @@ A `POST …/arguments`, `POST …/closing-statements`, `POST …/debates`, `POST
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests/challenge`
 
-Challenge kiadása (Turnstile token szükséges).
+Challenge kiadása (bejelentkezett, telefon + Passkey előfeltételekkel).
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests`
 
@@ -209,7 +209,7 @@ Challenge kiadása (Turnstile token szükséges).
 | **Idempotencia** | **Kötelező** — `UNIQUE(user_id, completed_round_id)`; retry → `200` meglévő |
 | **Mellékhatás** | Számláló +1; esetleg atomi küszöb-esemény |
 
-**Hibakódok:** `401` auth; `403` telefon/e-mail; `409` duplicate; `422` Turnstile/Passkey/challenge; `429` rate limit.
+**Hibakódok:** `401` auth; `403` telefon/e-mail; `409` duplicate; `422` Passkey/challenge; `429` rate limit.
 
 ---
 

@@ -8,7 +8,6 @@ import type { ContinuationRequestRecord, RoundUnlockRule } from "@/domain/types"
 import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
-import { verifyTurnstileToken } from "@/server/turnstile";
 import {
   createPasskeyAuthenticationOptions,
   userHasPasskey,
@@ -24,18 +23,10 @@ const CHALLENGE_TTL_MINUTES = 10;
 const CONTINUATION_RATE_LIMIT_PER_DAY = 20;
 const ROUND_DEADLINE_HOURS = 72;
 
-const challengeBodySchema = z.object({
-  turnstile_token: z.string().min(1),
-});
-
 const submitBodySchema = z.object({
   challenge_id: z.string().uuid(),
   passkey_assertion: z.custom<AuthenticationResponseJSON>(),
 });
-
-export function parseContinuationChallengeBody(body: unknown) {
-  return challengeBodySchema.parse(body);
-}
 
 export function parseContinuationSubmitBody(body: unknown) {
   return submitBodySchema.parse(body);
@@ -292,19 +283,8 @@ export async function getContinuationStatus(
 export async function issueContinuationChallenge(
   completedRoundId: string,
   userId: string,
-  turnstileToken: string,
   webAuthnContext?: WebAuthnContext,
 ) {
-  const turnstileOk = await verifyTurnstileToken(turnstileToken);
-  if (!turnstileOk) {
-    await logSecurityEvent({
-      userId,
-      eventType: "continuation_turnstile_fail",
-      metadata: { completed_round_id: completedRoundId },
-    });
-    throw new ApiError(422, "TURNSTILE_FAILED", "Turnstile ellenőrzés sikertelen");
-  }
-
   const sql = getSql();
   const [round] = await sql<{ id: string; debate_id: string }[]>`
     SELECT id, debate_id FROM rounds WHERE id = ${completedRoundId} LIMIT 1

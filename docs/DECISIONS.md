@@ -299,6 +299,16 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 ---
 
+## ADR-035 — Folytatáskérés: Turnstile kivéve MVP UI-ból
+
+**Dátum:** 2026-07-28  
+**Státusz:** Elfogadva  
+**Döntés:** Cloudflare Turnstile **nincs** a folytatáskérés felhasználói folyamatában. Botvédelem: e-mail + telefon (első alkalom) + **Passkey minden kérésnél** + egyszer használható challenge + rate limit.  
+**Indok:** Turnstile mobilon (Android Chrome) megbízhatatlanul elhasalt; Troubleshoot / halott gomb elfogadhatatlan UX.  
+**Kapcsolat:** ADR-018 (Turnstile eredetileg benne volt) — Passkey + telefon marad kötelező.
+
+---
+
 ## Nyitott döntések
 
 | ADR | Kérdés |
