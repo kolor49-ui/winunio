@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { DebateFeedSections } from "./debate-feed-sections";
-import { MyDebatesPreview } from "./my-debates-list";
 import { getSession } from "@/server/api/http";
 import {
   isDatabaseConfigError,
@@ -25,12 +24,10 @@ export default async function HomePage({ searchParams }: Props) {
   let dbLoadFailed = false;
   const session = await getSession();
   let user: HomepageData["user"] = null;
-  let myDebates: HomepageData["myDebates"] = [];
 
   try {
     const data = await withDbRetry(() => loadHomepageData(session));
     user = data.user;
-    myDebates = data.myDebates;
     liveDebates = data.liveDebates;
     openDebates = data.openDebates;
   } catch (error) {
@@ -110,21 +107,14 @@ export default async function HomePage({ searchParams }: Props) {
         </div>
       )}
 
-      <div className={`layout-main ${user ? "layout-main-with-sidebar" : ""}`}>
-        {user && (
-          <aside className="layout-sidebar">
-            <MyDebatesPreview debates={myDebates} />
-          </aside>
+      <div className="layout-main">
+        {!dbLoadFailed && !dbConfigError && (
+          <DebateFeedSections
+            liveDebates={liveDebates}
+            openDebates={openDebates}
+            isLoggedIn={isLoggedIn}
+          />
         )}
-        <div className="layout-content">
-          {!dbLoadFailed && !dbConfigError && (
-            <DebateFeedSections
-              liveDebates={liveDebates}
-              openDebates={openDebates}
-              isLoggedIn={isLoggedIn}
-            />
-          )}
-        </div>
       </div>
     </div>
   );

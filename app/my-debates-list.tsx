@@ -46,44 +46,6 @@ function UserDebateCard({ debate }: { debate: UserDebateListItem }) {
   );
 }
 
-export function MyDebatesPreview({ debates }: { debates: UserDebateListItem[] }) {
-  const sorted = sortUserDebates(debates);
-  const preview = sorted.slice(0, 4);
-
-  return (
-    <section className="layout-panel layout-panel-accent">
-      <div className="layout-panel-header layout-panel-header-row">
-        <div>
-          <h2 className="layout-panel-title">Vitáim</h2>
-          <p className="hint">Teendők és saját viták — rövid előnézet.</p>
-        </div>
-        <Link href="/vitaim" className="btn btn-secondary btn-sm">
-          Összes →
-        </Link>
-      </div>
-      {sorted.length === 0 ? (
-        <p className="meta">
-          Még nincs vitád.{" "}
-          <Link href="/debates/new">Vitát indítok</Link> vagy jelentkezz az alábbi
-          nyitott vitákra.
-        </p>
-      ) : (
-        <ul className="user-debate-list">
-          {preview.map((debate) => (
-            <UserDebateCard key={debate.id} debate={debate} />
-          ))}
-        </ul>
-      )}
-      {sorted.length > preview.length && (
-        <p className="hint">
-          +{sorted.length - preview.length} további vita —{" "}
-          <Link href="/vitaim">Vitáim oldal</Link>
-        </p>
-      )}
-    </section>
-  );
-}
-
 export function MyDebatesGrouped({ debates }: { debates: UserDebateListItem[] }) {
   const sorted = sortUserDebates(debates);
   const actionItems = sorted.filter(needsAction);
