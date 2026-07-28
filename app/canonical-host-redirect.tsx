@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const PRODUCTION_CANONICAL = "https://winunio.com";
+const PRODUCTION_CANONICAL = "https://www.winunio.com";
 
 function apexHost(hostname: string): string {
   return hostname.replace(/^www\./, "").toLowerCase();
@@ -25,7 +25,7 @@ function resolveCanonicalOrigin(): string | null {
   }
 }
 
-/** PWA / könyvjelző esetén is a kanonikus hostra irányít. */
+/** PWA esetén apex → www (Vercel fő domain). */
 export function CanonicalHostRedirect() {
   useEffect(() => {
     const canonicalOrigin = resolveCanonicalOrigin();

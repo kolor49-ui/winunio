@@ -1,12 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.winunio.com" }],
-      "destination": "https://winunio.com/:path*",
-      "permanent": true
-    }
-  ],
   "crons": [
     {
       "path": "/api/v1/cron/run",

@@ -11,7 +11,7 @@ export function getWebAuthnRpName(): string {
 
 function configuredAppOrigin(): string {
   if (process.env.VERCEL_ENV === "production") {
-    return "https://winunio.com";
+    return "https://www.winunio.com";
   }
   return readEnv("NEXT_PUBLIC_APP_URL") ?? "http://localhost:3001";
 }
