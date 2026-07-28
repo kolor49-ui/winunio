@@ -7,13 +7,7 @@ declare global {
     turnstile?: {
       render: (
         container: HTMLElement,
-        options: {
-          sitekey: string;
-          callback?: (token: string) => void;
-          "expired-callback"?: () => void;
-          "error-callback"?: () => void;
-          theme?: "light" | "dark" | "auto";
-        },
+        options: Record<string, unknown>,
       ) => string;
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
@@ -25,17 +19,51 @@ declare global {
 type Props = {
   siteKey: string;
   onToken: (token: string | null) => void;
+  onError?: (message: string | null) => void;
   resetKey?: number;
 };
 
-export function TurnstileWidget({ siteKey, onToken, resetKey = 0 }: Props) {
+function mapTurnstileError(code: string | undefined): string {
+  switch (code) {
+    case "110200":
+      return "A domain nincs engedélyezve a Turnstile widgetben (Cloudflare hostname lista).";
+    case "110100":
+    case "110110":
+      return "Érvénytelen Turnstile kulcs — ellenőrizd a Vercel env-et.";
+    case "110600":
+    case "110620":
+      return "Az ellenőrzés lejárt — frissítsd az oldalt, és próbáld újra.";
+    case "200500":
+      return "A Cloudflare ellenőrzés nem töltődött be (hálózat, VPN vagy reklámblokkoló).";
+    default:
+      return "Az ellenőrzés nem sikerült — frissítsd az oldalt. A kék „Troubleshoot” link nem a Winunio gombja.";
+  }
+}
+
+export function TurnstileWidget({
+  siteKey,
+  onToken,
+  onError,
+  resetKey = 0,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onTokenRef = useRef(onToken);
+  const onErrorRef = useRef(onError);
   const scriptId = useId().replace(/:/g, "");
 
   useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
     if (!siteKey) {
-      onToken("dev-bypass");
+      onTokenRef.current("dev-bypass");
+      onErrorRef.current?.(null);
       return;
     }
 
@@ -52,9 +80,29 @@ export function TurnstileWidget({ siteKey, onToken, resetKey = 0 }: Props) {
       widgetIdRef.current = window.turnstile.render(container, {
         sitekey: siteKey,
         theme: "auto",
-        callback: (token) => onToken(token),
-        "expired-callback": () => onToken(null),
-        "error-callback": () => onToken(null),
+        retry: "auto",
+        "refresh-expired": "auto",
+        callback: (token: string) => {
+          onErrorRef.current?.(null);
+          onTokenRef.current(token);
+        },
+        "expired-callback": () => {
+          onTokenRef.current(null);
+          onErrorRef.current?.("Az ellenőrzés lejárt — várj, amíg újra zöld lesz.");
+        },
+        "error-callback": (code?: string) => {
+          onTokenRef.current(null);
+          onErrorRef.current?.(mapTurnstileError(code));
+        },
+        "timeout-callback": () => {
+          onTokenRef.current(null);
+          onErrorRef.current?.(
+            "Az ellenőrzés túl sokáig tartott — érintsd meg a pipát, vagy frissítsd az oldalt.",
+          );
+          if (widgetIdRef.current && window.turnstile) {
+            window.turnstile.reset(widgetIdRef.current);
+          }
+        },
       });
     }
 
@@ -87,11 +135,19 @@ export function TurnstileWidget({ siteKey, onToken, resetKey = 0 }: Props) {
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, resetKey, onToken, scriptId]);
+  }, [siteKey, resetKey, scriptId]);
 
   if (!siteKey) {
     return <p className="hint">Turnstile dev módban kihagyva.</p>;
   }
 
-  return <div ref={containerRef} />;
+  return (
+    <div className="turnstile-widget-wrap">
+      <div ref={containerRef} />
+      <p className="hint turnstile-widget-hint">
+        Előbb a Cloudflare pipának zöldnek kell lennie — utána aktív a gomb. A kék
+        „Troubleshoot” a Cloudflare hibakeresője, ne azt nyomd a folytatáshoz.
+      </p>
+    </div>
+  );
 }

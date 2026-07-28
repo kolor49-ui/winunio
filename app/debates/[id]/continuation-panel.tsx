@@ -66,6 +66,7 @@ export function ContinuationPanel({
   const [loading, setLoading] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileReset, setTurnstileReset] = useState(0);
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(
     initialStatus.viewer_phone_verified,
   );
@@ -76,6 +77,10 @@ export function ContinuationPanel({
 
   const handleTurnstileToken = useCallback((token: string | null) => {
     setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileError = useCallback((message: string | null) => {
+    setTurnstileError(message);
   }, []);
 
   async function startPhone(e: React.FormEvent<HTMLFormElement>) {
@@ -414,16 +419,29 @@ export function ContinuationPanel({
                 <TurnstileWidget
                   siteKey={turnstileSiteKey}
                   onToken={handleTurnstileToken}
+                  onError={handleTurnstileError}
                   resetKey={turnstileReset}
                 />
+                {turnstileError && (
+                  <p className="error turnstile-inline-error">{turnstileError}</p>
+                )}
                 <button
                   type="button"
                   className="btn"
                   onClick={() => void requestContinuation()}
                   disabled={loading !== null || !turnstileToken}
+                  aria-disabled={loading !== null || !turnstileToken}
+                  title={
+                    !turnstileToken
+                      ? "Előbb várj a zöld pipára a fenti ellenőrzésnél"
+                      : undefined
+                  }
                 >
                   {loading === "continuation" ? "Ellenőrzés…" : "KÉREM A FOLYTATÁST"}
                 </button>
+                {!turnstileToken && !turnstileError && (
+                  <p className="hint">A gomb a zöld pipa után válik aktívvá.</p>
+                )}
               </>
             )}
 
