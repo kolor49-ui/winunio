@@ -78,11 +78,9 @@ Minden jutalmi megjelenítésnél:
 - **Tiltott szavak:** szavazat, szavazz, like, VS
 - Egy kérés / forduló — a UI jelezze az egyszeri limitet
 
-Passkey lépés copy:
+SMS megerősítés copy:
 
-> Az eszközödön beállított biztonságos azonosítás
-
-(Ne: „Biometria kötelező”.)
+> SMS kódot küldtünk a regisztrált telefonszámodra — írd be a 6 jegyű kódot.
 
 ---
 
