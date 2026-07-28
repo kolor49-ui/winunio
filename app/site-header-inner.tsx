@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { LogoMark } from "./logo-mark";
 import { LogoutButton } from "./logout-button";
@@ -83,8 +84,13 @@ function NavLinks({
 }
 
 export function SiteHeaderInner({ user }: Props) {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const panelId = useId();
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;

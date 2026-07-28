@@ -46,7 +46,7 @@ function getPoolMaxConnections(): number {
   if (Number.isFinite(parsed) && parsed > 0) {
     return Math.floor(parsed);
   }
-  return isServerlessRuntime() ? 1 : 10;
+  return isServerlessRuntime() ? 2 : 10;
 }
 
 export function isDatabaseConfigError(error: unknown): boolean {

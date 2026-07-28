@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import {
   COOKIE_NAME,
@@ -7,12 +8,12 @@ import {
 import { getSql } from "@/server/db";
 import { ensureBootstrapAdmin } from "@/server/services/bootstrap-admin-service";
 
-export async function getSession(): Promise<SessionPayload | null> {
+export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifySessionToken(token);
-}
+});
 
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { z } from "zod";
 import { getSql } from "@/server/db";
 import { hashPassword } from "@/server/auth/password";
@@ -101,7 +102,7 @@ export async function authenticateUser(email: string, password: string) {
   return { id: user.id, email: user.email };
 }
 
-export async function getUserById(userId: string) {
+export const getUserById = cache(async (userId: string) => {
   const sql = getSql();
   const [user] = await sql<
     {
@@ -111,38 +112,36 @@ export async function getUserById(userId: string) {
       phone_verified_at: Date | null;
       is_admin: boolean;
       created_at: Date;
+      display_name: string | null;
+      is_anonymous: boolean | null;
     }[]
   >`
-    SELECT id, email, email_verified_at, phone_verified_at, is_admin, created_at
-    FROM users
-    WHERE id = ${userId} AND status = 'active'
+    SELECT
+      u.id,
+      u.email,
+      u.email_verified_at,
+      u.phone_verified_at,
+      u.is_admin,
+      u.created_at,
+      p.display_name,
+      p.is_anonymous
+    FROM users u
+    LEFT JOIN public_profiles p ON p.user_id = u.id
+    WHERE u.id = ${userId} AND u.status = 'active'
     LIMIT 1
   `;
   if (!user) return null;
 
-  await ensureBootstrapAdmin(user.id, user.email);
-
-  const [profile] = await sql<
-    { display_name: string | null; is_anonymous: boolean }[]
-  >`
-    SELECT display_name, is_anonymous
-    FROM public_profiles
-    WHERE user_id = ${userId}
-    LIMIT 1
-  `;
-
-  const [fresh] = await sql<{ is_admin: boolean }[]>`
-    SELECT is_admin FROM users WHERE id = ${userId} LIMIT 1
-  `;
+  const promoted = await ensureBootstrapAdmin(user.id, user.email);
 
   return {
     id: user.id,
     email: user.email,
     email_verified: user.email_verified_at !== null,
     phone_verified: user.phone_verified_at !== null,
-    is_admin: fresh?.is_admin ?? false,
-    display_name: profile?.display_name ?? null,
-    is_anonymous: profile?.is_anonymous ?? true,
+    is_admin: promoted ? true : user.is_admin,
+    display_name: user.display_name ?? null,
+    is_anonymous: user.is_anonymous ?? true,
     created_at: user.created_at.toISOString(),
   };
-}
+});

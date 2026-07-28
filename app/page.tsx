@@ -7,11 +7,8 @@ import {
   isTransientDbError,
   withDbRetry,
 } from "@/server/db";
-import {
-  listHomepageDebateBuckets,
-  listUserDebates,
-} from "@/server/services/debate-service";
-import { getUserById } from "@/server/services/auth-service";
+import { loadHomepageData } from "@/server/services/homepage-service";
+import type { HomepageData } from "@/server/services/homepage-service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,39 +18,21 @@ type Props = {
 
 export default async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
-  let liveDebates: Awaited<
-    ReturnType<typeof listHomepageDebateBuckets>
-  >["live"] = [];
-  let openDebates: Awaited<
-    ReturnType<typeof listHomepageDebateBuckets>
-  >["open"] = [];
+  let liveDebates: HomepageData["liveDebates"] = [];
+  let openDebates: HomepageData["openDebates"] = [];
   let dbConfigError = false;
   let dbTransientError = false;
   let dbLoadFailed = false;
   const session = await getSession();
-  let user: Awaited<ReturnType<typeof getUserById>> = null;
-
-  if (session) {
-    try {
-      user = await withDbRetry(() => getUserById(session.userId));
-    } catch (error) {
-      console.error("HomePage user load failed:", error);
-    }
-  }
-
-  let myDebates: Awaited<ReturnType<typeof listUserDebates>> = [];
-  if (session) {
-    try {
-      myDebates = await withDbRetry(() => listUserDebates(session.userId));
-    } catch (error) {
-      console.error("HomePage my debates load failed:", error);
-    }
-  }
+  let user: HomepageData["user"] = null;
+  let myDebates: HomepageData["myDebates"] = [];
 
   try {
-    const buckets = await withDbRetry(() => listHomepageDebateBuckets());
-    liveDebates = buckets.live;
-    openDebates = buckets.open;
+    const data = await withDbRetry(() => loadHomepageData(session));
+    user = data.user;
+    myDebates = data.myDebates;
+    liveDebates = data.liveDebates;
+    openDebates = data.openDebates;
   } catch (error) {
     console.error("HomePage DB error:", error);
     dbConfigError = isDatabaseConfigError(error);
