@@ -2,8 +2,8 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "winunio.com" }],
-      "destination": "https://www.winunio.com/:path*",
+      "has": [{ "type": "host", "value": "www.winunio.com" }],
+      "destination": "https://winunio.com/:path*",
       "permanent": true
     }
   ],

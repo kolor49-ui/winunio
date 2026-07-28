@@ -2,19 +2,38 @@
 
 import { useEffect } from "react";
 
+const PRODUCTION_CANONICAL = "https://winunio.com";
+
 function apexHost(hostname: string): string {
   return hostname.replace(/^www\./, "").toLowerCase();
 }
 
-/** PWA / könyvjelző esetén is a kanonikus hostra irányít (pl. winunio.com → www.winunio.com). */
+function resolveCanonicalOrigin(): string | null {
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname.endsWith("winunio.com")
+  ) {
+    return PRODUCTION_CANONICAL;
+  }
+
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+}
+
+/** PWA / könyvjelző esetén is a kanonikus hostra irányít. */
 export function CanonicalHostRedirect() {
   useEffect(() => {
-    const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
-    if (!raw) return;
+    const canonicalOrigin = resolveCanonicalOrigin();
+    if (!canonicalOrigin) return;
 
     let canonical: URL;
     try {
-      canonical = new URL(raw);
+      canonical = new URL(canonicalOrigin);
     } catch {
       return;
     }

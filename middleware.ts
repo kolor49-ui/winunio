@@ -1,7 +1,13 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+const PRODUCTION_CANONICAL = "https://winunio.com";
+
 function canonicalAppUrl(): URL | null {
+  if (process.env.VERCEL_ENV === "production") {
+    return new URL(PRODUCTION_CANONICAL);
+  }
+
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (!raw) return null;
   try {

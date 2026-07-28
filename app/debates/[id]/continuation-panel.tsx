@@ -34,7 +34,7 @@ function mapWebAuthnError(err: unknown): string {
     msg.includes("credential manager") ||
     msg.includes("unknown error occurred")
   ) {
-    return "A telefon azonosító rendszere nem válaszolt. Nyisd meg: www.winunio.com — majd Passkey újrabeállítása.";
+    return "A telefon azonosító rendszere nem válaszolt. Zárd be a lapot, nyisd meg újra: winunio.com — majd Passkey újrabeállítása.";
   }
   if (msg.includes("timed out") || msg.includes("not allowed")) {
     return "Az azonosítás megszakadt vagy lejárt. Ne használj QR-olvasót — a böngésző Face ID / ujjlenyomat ablakát erősítsd meg.";

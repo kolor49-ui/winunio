@@ -34,7 +34,7 @@ if (!local.CRON_SECRET) {
 const productionValues = {
   DATABASE_URL: local.DATABASE_URL,
   AUTH_SECRET: local.AUTH_SECRET,
-  NEXT_PUBLIC_APP_URL: "https://www.winunio.com",
+  NEXT_PUBLIC_APP_URL: "https://winunio.com",
   RESEND_API_KEY: local.RESEND_API_KEY,
   EMAIL_FROM: "Winunio <noreply@winunio.com>",
   CRON_SECRET: local.CRON_SECRET,

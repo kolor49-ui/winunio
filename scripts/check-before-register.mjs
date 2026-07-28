@@ -4,7 +4,7 @@
  * Használat: node scripts/check-before-register.mjs [url]
  */
 const base =
-  process.argv[2]?.replace(/\/$/, "") || "https://www.winunio.com";
+  process.argv[2]?.replace(/\/$/, "") || "https://winunio.com";
 
 const res = await fetch(`${base}/api/v1/health/readiness`);
 const data = await res.json();
