@@ -1347,6 +1347,69 @@ a {
   border-top: 1px solid var(--color-border);
 }
 
+.phone-input-hu {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.phone-input-hu-prefix {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.625rem 0.75rem;
+  background: #f5f5f5;
+  border-right: 1px solid var(--color-border);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.phone-input-hu-flag {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.phone-input-hu input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.phone-input-hu input:focus {
+  outline: none;
+}
+
+.phone-input-hu:focus-within {
+  border-color: var(--color-a);
+  box-shadow: 0 0 0 2px rgb(111 143 114 / 0.2);
+}
+
+.phone-verify-form {
+  margin-top: 0.75rem;
+}
+
+.phone-verify-sent {
+  margin: 0 0 0.75rem;
+}
+
+.phone-verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.phone-verify-actions .btn {
+  margin-top: 0;
+}
+
 .continuation-panel .btn {
   margin-top: 1rem;
 }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatHuPhoneDisplay, formatHuPhoneForApi } from "../../phone-hu";
+import { PhoneInputHu } from "../../phone-input-hu";
 import { TurnstileWidget } from "./turnstile-widget";
 
 export type ContinuationStatusView = {
@@ -64,6 +66,9 @@ export function ContinuationPanel({
     initialStatus.viewer_phone_verified,
   );
   const [hasPasskey, setHasPasskey] = useState(initialStatus.viewer_has_passkey);
+  const [phoneLocal, setPhoneLocal] = useState("");
+  const [pendingPhoneE164, setPendingPhoneE164] = useState<string | null>(null);
+  const [smsCode, setSmsCode] = useState("");
   const finalizingRef = useRef(false);
 
   const handleTurnstileToken = useCallback((token: string | null) => {
@@ -75,21 +80,30 @@ export function ContinuationPanel({
     if (!viewerUserId) return;
     setError(null);
     setLoading("phone-start");
-    const form = new FormData(e.currentTarget);
+    let phone: string;
+    try {
+      phone = formatHuPhoneForApi(phoneLocal);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Érvénytelen telefonszám");
+      setLoading(null);
+      return;
+    }
     try {
       const res = await fetch("/api/v1/phone/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: form.get("phone") }),
+        body: JSON.stringify({ phone }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error?.message ?? "SMS indítás sikertelen");
         return;
       }
+      setPendingPhoneE164(data.phone_e164 ?? phone);
+      setSmsCode("");
       setInfo(
         data.delivery === "sms"
-          ? (data.message ?? "Ellenőrző kódot SMS-ben küldtünk.")
+          ? `SMS elküldve: ${formatHuPhoneDisplay(data.phone_e164 ?? phone)}`
           : data.dev_code
             ? `Fejlesztői kód: ${data.dev_code}`
             : (data.message ?? "Ellenőrző kódot küldtünk."),
@@ -103,17 +117,20 @@ export function ContinuationPanel({
 
   async function confirmPhone(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!viewerUserId) return;
+    if (!viewerUserId || !pendingPhoneE164) return;
+    if (!/^\d{6}$/.test(smsCode)) {
+      setError("A kód 6 számjegy.");
+      return;
+    }
     setError(null);
     setLoading("phone-confirm");
-    const form = new FormData(e.currentTarget);
     try {
       const res = await fetch("/api/v1/phone/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: form.get("phone"),
-          code: form.get("code"),
+          phone: pendingPhoneE164,
+          code: smsCode,
         }),
       });
       const data = await res.json();
@@ -122,12 +139,21 @@ export function ContinuationPanel({
         return;
       }
       setPhoneVerified(true);
+      setPendingPhoneE164(null);
+      setSmsCode("");
       setInfo("Telefonszám megerősítve.");
     } catch {
       setError("Hálózati hiba");
     } finally {
       setLoading(null);
     }
+  }
+
+  function resetPhoneFlow() {
+    setPendingPhoneE164(null);
+    setSmsCode("");
+    setError(null);
+    setInfo(null);
   }
 
   async function registerPasskey() {
@@ -332,54 +358,73 @@ export function ContinuationPanel({
                 <p className="hint">
                   Első folytatáskérés előtt telefonszám megerősítés szükséges.
                 </p>
-                <form onSubmit={startPhone} className="form">
-                  <label>
-                    Telefonszám
-                    <input
-                      name="phone"
-                      type="tel"
-                      placeholder="+36…"
-                      required
-                      disabled={loading !== null}
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="btn btn-secondary"
-                    disabled={loading !== null}
-                  >
-                    Kód küldése
-                  </button>
-                </form>
-                <form onSubmit={confirmPhone} className="form">
-                  <label>
-                    SMS kód
-                    <input
-                      name="phone"
-                      type="tel"
-                      placeholder="+36…"
-                      required
-                      disabled={loading !== null}
-                    />
-                  </label>
-                  <label>
-                    6 jegyű kód
-                    <input
-                      name="code"
-                      inputMode="numeric"
-                      pattern="\d{6}"
-                      required
-                      disabled={loading !== null}
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="btn btn-secondary"
-                    disabled={loading !== null}
-                  >
-                    Telefon megerősítése
-                  </button>
-                </form>
+
+                {!pendingPhoneE164 ? (
+                  <form onSubmit={startPhone} className="form phone-verify-form">
+                    <label htmlFor="continuation-phone-local">
+                      Telefonszám
+                      <PhoneInputHu
+                        id="continuation-phone-local"
+                        value={phoneLocal}
+                        onChange={setPhoneLocal}
+                        disabled={loading !== null}
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="btn btn-secondary"
+                      disabled={loading !== null || phoneLocal.replace(/\D/g, "").length < 9}
+                    >
+                      {loading === "phone-start" ? "Küldés…" : "Kód küldése SMS-ben"}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={confirmPhone} className="form phone-verify-form">
+                    <p className="hint phone-verify-sent">
+                      Kódot küldtünk ide:{" "}
+                      <strong>{formatHuPhoneDisplay(pendingPhoneE164)}</strong>
+                    </p>
+                    <label htmlFor="continuation-sms-code">
+                      6 jegyű SMS kód
+                      <input
+                        id="continuation-sms-code"
+                        name="code"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="\d{6}"
+                        maxLength={6}
+                        placeholder="123456"
+                        value={smsCode}
+                        onChange={(e) =>
+                          setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        required
+                        disabled={loading !== null}
+                        autoFocus
+                      />
+                    </label>
+                    <div className="phone-verify-actions">
+                      <button
+                        type="submit"
+                        className="btn btn-secondary"
+                        disabled={loading !== null || smsCode.length !== 6}
+                      >
+                        {loading === "phone-confirm"
+                          ? "Ellenőrzés…"
+                          : "Telefon megerősítése"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={loading !== null}
+                        onClick={resetPhoneFlow}
+                      >
+                        Másik szám
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
 
