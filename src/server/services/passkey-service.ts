@@ -79,13 +79,28 @@ export async function userHasPasskey(userId: string): Promise<boolean> {
   return Boolean(row);
 }
 
+export async function deleteUserPasskeys(userId: string): Promise<number> {
+  const sql = getSql();
+  const deleted = await sql`
+    DELETE FROM passkey_credentials WHERE user_id = ${userId}
+    RETURNING id
+  `;
+  return deleted.length;
+}
+
 export async function createPasskeyRegistrationOptions(
   userId: string,
   email: string,
   webAuthnContext?: WebAuthnContext,
+  replaceExisting = false,
 ) {
   const { rpId } = resolveWebAuthnContext(webAuthnContext);
   const sql = getSql();
+
+  if (replaceExisting) {
+    await deleteUserPasskeys(userId);
+  }
+
   const existing = await sql<{ credential_id: string }[]>`
     SELECT credential_id FROM passkey_credentials WHERE user_id = ${userId}
   `;
@@ -98,10 +113,9 @@ export async function createPasskeyRegistrationOptions(
     userDisplayName: email,
     excludeCredentials: existing.map((row) => ({
       id: row.credential_id,
-      transports: ["internal", "hybrid"],
     })),
     authenticatorSelection: {
-      residentKey: "preferred",
+      residentKey: "required",
       userVerification: "required",
     },
   });
@@ -184,10 +198,6 @@ export async function createPasskeyAuthenticationOptions(
     rpID: rpId,
     challenge: webAuthnChallenge,
     userVerification: "required",
-    allowCredentials: credentials.map((row) => ({
-      id: row.credential_id,
-      transports: ["internal", "hybrid"],
-    })),
   });
 
   return options;

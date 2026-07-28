@@ -30,6 +30,12 @@ type Props = {
 function mapWebAuthnError(err: unknown): string {
   if (!(err instanceof Error)) return "Az azonosítás megszakadt.";
   const msg = err.message.toLowerCase();
+  if (
+    msg.includes("credential manager") ||
+    msg.includes("unknown error occurred")
+  ) {
+    return "A telefon azonosító rendszere nem válaszolt. Nyisd meg: www.winunio.com — majd Passkey újrabeállítása.";
+  }
   if (msg.includes("timed out") || msg.includes("not allowed")) {
     return "Az azonosítás megszakadt vagy lejárt. Ne használj QR-olvasót — a böngésző Face ID / ujjlenyomat ablakát erősítsd meg.";
   }
@@ -156,10 +162,10 @@ export function ContinuationPanel({
     setError(null);
     setLoading("passkey");
     try {
-      const optionsRes = await fetch(
-        "/api/v1/passkeys/register?action=options",
-        { method: "POST" },
-      );
+      const optionsUrl = isReregister
+        ? "/api/v1/passkeys/register?action=options&replace=true"
+        : "/api/v1/passkeys/register?action=options";
+      const optionsRes = await fetch(optionsUrl, { method: "POST" });
       const options = await optionsRes.json();
       if (!optionsRes.ok) {
         setError(options.error?.message ?? "Passkey indítás sikertelen");
