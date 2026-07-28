@@ -36,18 +36,16 @@ export default async function VitatInditokPage() {
         <h2 id="vitat-inditok-why" className="layout-panel-title">
           Miért érdemes?
         </h2>
-        <p className="vitat-inditok-intro">
-          Regisztráció nélkül olvashatod a vitákat.
-        </p>
         <p className="vitat-inditok-body">
           Regisztrációval viszont alakíthatod is őket: kérheted a folytatást,
           saját vitát indíthatsz, vagy vitázóként csatlakozhatsz. Ha a közönség
           újabb fordulókat kér, a szabályosan befejezett vita mindkét
-          résztvevőjének növekvő pénzbeli díjazást hozhat.
+          résztvevőjének növekvő pénzdíjat hozhat, amelyet megtarthatnak, vagy
+          akár jótékony célra is felajánlhatnak.
         </p>
         <p className="vitat-inditok-tagline">
-          Ne csak nézd a vitát — légy részese: indíts vitát, csatlakozz
-          vitázóként, vagy kérj folytatást!
+          Ne csak nézd a vitát — légy a részese: indíts vitát, csatlakozz, vagy
+          kérd a folytatását!
         </p>
       </section>
 

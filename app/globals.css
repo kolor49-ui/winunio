@@ -1177,12 +1177,6 @@ a {
   color: var(--color-a);
 }
 
-.vitat-inditok-intro {
-  margin: 0 0 0.75rem;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-}
-
 .vitat-inditok-body {
   margin: 0 0 1rem;
   font-size: 0.9375rem;
