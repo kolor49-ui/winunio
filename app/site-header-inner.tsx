@@ -40,7 +40,7 @@ function NavLinks({
       <Link href="/hogyan-mukodik" {...closeOnClick}>
         Hogyan működik
       </Link>
-      <Link href="/debates/new" {...closeOnClick}>
+      <Link href={user ? "/debates/new" : "/vitat-inditok"} {...closeOnClick}>
         Vitát indítok
       </Link>
       {user ? (

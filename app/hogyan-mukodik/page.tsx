@@ -209,7 +209,7 @@ export default function HowItWorksPage() {
         <Link href="/" className="btn">
           Viták böngészése
         </Link>
-        <Link href="/debates/new" className="btn btn-secondary">
+        <Link href="/vitat-inditok" className="btn btn-secondary">
           Vitát indítok
         </Link>
       </footer>

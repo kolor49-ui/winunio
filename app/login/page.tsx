@@ -1,9 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function LoginPage() {
+function safeNextPath(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "/";
+  }
+  return raw;
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,14 +37,18 @@ export default function LoginPage() {
         setError(data.error?.message ?? "Bejelentkezés sikertelen");
         return;
       }
-      // Teljes oldal újratöltés — így a session cookie biztosan érvényesül
-      window.location.href = "/";
+      window.location.href = nextPath;
     } catch {
       setError("Hálózati hiba");
     } finally {
       setLoading(false);
     }
   }
+
+  const registerHref =
+    nextPath === "/"
+      ? "/register"
+      : `/register?next=${encodeURIComponent(nextPath)}`;
 
   return (
     <>
@@ -62,8 +76,16 @@ export default function LoginPage() {
         <Link href="/forgot-password">Elfelejtett jelszó</Link>
       </p>
       <p className="hint">
-        Nincs fiókod? <Link href="/register">Regisztráció</Link>
+        Nincs fiókod? <Link href={registerHref}>Regisztráció</Link>
       </p>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<p className="hint">Betöltés…</p>}>
+      <LoginForm />
+    </Suspense>
   );
 }
