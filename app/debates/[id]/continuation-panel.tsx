@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { formatHuPhoneDisplay, formatHuPhoneForApi } from "../../phone-hu";
 import { PhoneInputHu } from "../../phone-input-hu";
-import { TurnstileWidget } from "./turnstile-widget";
+import { TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 
 export type ContinuationStatusView = {
   completed_round_id: string;
@@ -64,9 +64,7 @@ export function ContinuationPanel({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
-  const [turnstileError, setTurnstileError] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const [phoneVerified, setPhoneVerified] = useState(
     initialStatus.viewer_phone_verified,
   );
@@ -75,12 +73,8 @@ export function ContinuationPanel({
   const [pendingPhoneE164, setPendingPhoneE164] = useState<string | null>(null);
   const [smsCode, setSmsCode] = useState("");
 
-  const handleTurnstileToken = useCallback((token: string | null) => {
-    setTurnstileToken(token);
-  }, []);
-
   const handleTurnstileError = useCallback((message: string | null) => {
-    setTurnstileError(message);
+    if (message) setError(message);
   }, []);
 
   async function startPhone(e: React.FormEvent<HTMLFormElement>) {
@@ -230,8 +224,6 @@ export function ContinuationPanel({
       viewer_already_requested: true,
       viewer_can_request: false,
     }));
-    setTurnstileToken(null);
-    setTurnstileReset((n) => n + 1);
 
     if (data.threshold_met) {
       setInfo("Küszöb teljesült — a vita folytatódik.");
@@ -249,16 +241,18 @@ export function ContinuationPanel({
       setError("Előbb jelentkezz be.");
       return;
     }
-    if (!turnstileToken) {
-      setError("Előbb fejezd be a Turnstile ellenőrzést.");
-      return;
-    }
 
     setError(null);
     setInfo(null);
     setLoading("continuation");
 
     try {
+      if (!turnstileRef.current) {
+        setError("Az ellenőrzés még nem áll készen — frissítsd az oldalt.");
+        return;
+      }
+      const turnstileToken = await turnstileRef.current.run();
+
       const challengeRes = await fetch(
         `/api/v1/rounds/${status.completed_round_id}/continuation-requests/challenge`,
         {
@@ -289,7 +283,9 @@ export function ContinuationPanel({
 
       await submitContinuation(challengeData.challenge_id, assertion);
     } catch (err) {
-      setError(mapWebAuthnError(err));
+      setError(
+        err instanceof Error ? err.message : mapWebAuthnError(err),
+      );
     } finally {
       setLoading(null);
     }
@@ -417,31 +413,20 @@ export function ContinuationPanel({
             {phoneVerified && hasPasskey && (
               <>
                 <TurnstileWidget
+                  ref={turnstileRef}
                   siteKey={turnstileSiteKey}
-                  onToken={handleTurnstileToken}
                   onError={handleTurnstileError}
-                  resetKey={turnstileReset}
                 />
-                {turnstileError && (
-                  <p className="error turnstile-inline-error">{turnstileError}</p>
-                )}
                 <button
                   type="button"
                   className="btn"
                   onClick={() => void requestContinuation()}
-                  disabled={loading !== null || !turnstileToken}
-                  aria-disabled={loading !== null || !turnstileToken}
-                  title={
-                    !turnstileToken
-                      ? "Előbb várj a zöld pipára a fenti ellenőrzésnél"
-                      : undefined
-                  }
+                  disabled={loading !== null}
                 >
-                  {loading === "continuation" ? "Ellenőrzés…" : "KÉREM A FOLYTATÁST"}
+                  {loading === "continuation"
+                    ? "Ellenőrzés…"
+                    : "KÉREM A FOLYTATÁST"}
                 </button>
-                {!turnstileToken && !turnstileError && (
-                  <p className="hint">A gomb a zöld pipa után válik aktívvá.</p>
-                )}
               </>
             )}
 
