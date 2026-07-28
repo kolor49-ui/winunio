@@ -152,6 +152,7 @@ export function ContinuationPanel({
 
   async function registerPasskey() {
     if (!viewerUserId) return;
+    const isReregister = hasPasskey;
     setError(null);
     setLoading("passkey");
     try {
@@ -180,7 +181,11 @@ export function ContinuationPanel({
         return;
       }
       setHasPasskey(true);
-      setInfo("Biztonságos azonosítás (Passkey) beállítva.");
+      setInfo(
+        isReregister
+          ? "Új Passkey rögzítve — most nyomd meg újra: KÉREM A FOLYTATÁST."
+          : "Biztonságos azonosítás (Passkey) beállítva.",
+      );
     } catch (err) {
       setError(mapWebAuthnError(err));
     } finally {
@@ -264,9 +269,16 @@ export function ContinuationPanel({
 
       await submitContinuation(challengeData.challenge_id, assertion);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : mapWebAuthnError(err),
-      );
+      const message =
+        err instanceof Error ? err.message : mapWebAuthnError(err);
+      setError(message);
+      if (
+        /passkey|azonosítás|webauthn|ellenőrzés/i.test(message)
+      ) {
+        setInfo(
+          "Ha a telefonon megváltozott a képernyőzár vagy a Google azonosítókulcs, előbb: Passkey újrabeállítása.",
+        );
+      }
     } finally {
       setLoading(null);
     }
@@ -392,16 +404,32 @@ export function ContinuationPanel({
             )}
 
             {phoneVerified && hasPasskey && (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => void requestContinuation()}
-                disabled={loading !== null}
-              >
-                {loading === "continuation"
-                  ? "Azonosítás…"
-                  : "KÉREM A FOLYTATÁST"}
-              </button>
+              <div className="continuation-setup">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void requestContinuation()}
+                  disabled={loading !== null}
+                >
+                  {loading === "continuation"
+                    ? "Azonosítás…"
+                    : "KÉREM A FOLYTATÁST"}
+                </button>
+                <p className="hint">
+                  Ha új telefonon vagy képernyőzárat állítottál be, előbb állítsd
+                  be újra a Passkey-t a Winunióban (nem elég a Google beállítások).
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => void registerPasskey()}
+                  disabled={loading !== null}
+                >
+                  {loading === "passkey"
+                    ? "Beállítás…"
+                    : "Passkey újrabeállítása"}
+                </button>
+              </div>
             )}
 
             {status.viewer_block_reason &&
