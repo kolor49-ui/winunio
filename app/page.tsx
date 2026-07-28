@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DebateFeed } from "./debate-feed";
+import { DebateFeedSections } from "./debate-feed-sections";
 import { MyDebatesPreview } from "./my-debates-list";
 import { getSession } from "@/server/api/http";
 import {
@@ -7,20 +7,22 @@ import {
   isTransientDbError,
   withDbRetry,
 } from "@/server/db";
-import { listDebates, listUserDebates } from "@/server/services/debate-service";
+import {
+  listDebatesByBucket,
+  listUserDebates,
+} from "@/server/services/debate-service";
 import { getUserById } from "@/server/services/auth-service";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ account_deleted?: string; sort?: string }>;
+  searchParams: Promise<{ account_deleted?: string }>;
 };
 
 export default async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
-  const sort = params.sort === "popular" ? "popular" : "new";
-
-  let debates: Awaited<ReturnType<typeof listDebates>> = [];
+  let liveDebates: Awaited<ReturnType<typeof listDebatesByBucket>> = [];
+  let openDebates: Awaited<ReturnType<typeof listDebatesByBucket>> = [];
   let dbConfigError = false;
   let dbTransientError = false;
   let dbLoadFailed = false;
@@ -45,7 +47,13 @@ export default async function HomePage({ searchParams }: Props) {
   }
 
   try {
-    debates = await withDbRetry(() => listDebates(sort));
+    [liveDebates, openDebates] = await withDbRetry(async () => {
+      const [live, open] = await Promise.all([
+        listDebatesByBucket("live", "new"),
+        listDebatesByBucket("open", "new"),
+      ]);
+      return [live, open] as const;
+    });
   } catch (error) {
     console.error("HomePage DB error:", error);
     dbConfigError = isDatabaseConfigError(error);
@@ -53,14 +61,14 @@ export default async function HomePage({ searchParams }: Props) {
     dbLoadFailed = true;
   }
 
+  const isLoggedIn = Boolean(user);
+
   return (
     <div className="page-layout">
       <header className="page-hero">
         <div className="page-hero-copy">
           <p className="page-eyebrow">Páros vitaplatform</p>
-          <h1 className="page-title">
-            Mindenki nyer!
-          </h1>
+          <h1 className="page-title">Mindenki nyer!</h1>
           <p className="page-lead">
             A közönség nem szavaz vitázóra — csak folytatást kérhet. A viták
             aszinkron fordulókban futnak: A megszólal, majd B válaszol.
@@ -71,10 +79,16 @@ export default async function HomePage({ searchParams }: Props) {
             </p>
           ) : (
             <p className="hint">
+              Böngéssz nyilvánosan.{" "}
               <Link href="/login">Jelentkezz be</Link>, ha partnernek szeretnél
               jelentkezni vagy vitát indítani.
             </p>
           )}
+          <p className="home-hero-jumps hint">
+            <a href="#folyamatban">↓ Folyamatban</a>
+            {" · "}
+            <a href="#partnerre-var">↓ Partnerre vár</a>
+          </p>
         </div>
         <div className="page-hero-badges">
           <span className="side-badge side-a">A</span>
@@ -124,7 +138,13 @@ export default async function HomePage({ searchParams }: Props) {
           </aside>
         )}
         <div className="layout-content">
-          <DebateFeed debates={debates} sort={sort} />
+          {!dbLoadFailed && !dbConfigError && (
+            <DebateFeedSections
+              liveDebates={liveDebates}
+              openDebates={openDebates}
+              isLoggedIn={isLoggedIn}
+            />
+          )}
         </div>
       </div>
     </div>

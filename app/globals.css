@@ -526,6 +526,139 @@ a {
   font-weight: 600;
 }
 
+.home-hero-jumps {
+  margin-top: 0.75rem;
+}
+
+.home-hero-jumps a {
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.debate-feed-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.debate-feed-section {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.debate-feed-section-live {
+  border-left: 4px solid var(--color-b);
+}
+
+.debate-feed-section-open {
+  border-left: 4px solid var(--color-a);
+  background: var(--color-a-muted);
+}
+
+.debate-feed-section-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  background: rgb(255 255 255 / 0.55);
+}
+
+.debate-feed-section-open .debate-feed-section-header {
+  background: rgb(255 255 255 / 0.35);
+}
+
+.debate-feed-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.debate-feed-section-title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.debate-feed-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.debate-feed-section-desc {
+  margin: 0;
+}
+
+.debate-feed-section .debate-grid,
+.debate-feed-section-empty,
+.debate-feed-section-preview-note,
+.debate-feed-section-all {
+  margin-left: 1.25rem;
+  margin-right: 1.25rem;
+}
+
+.debate-feed-section .debate-grid {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.debate-feed-section-empty {
+  padding: 1rem 0 1.25rem;
+}
+
+.debate-feed-section-preview-note {
+  margin: 0 1.25rem 0.75rem;
+  text-align: center;
+}
+
+.debate-feed-section-all {
+  display: flex;
+  justify-content: center;
+  width: calc(100% - 2.5rem);
+  margin-bottom: 1.25rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.debate-card-open {
+  border-left: 3px solid var(--color-a);
+}
+
+.debate-card-sides {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.debate-card-sides .side-badge {
+  font-size: 0.625rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.debate-card-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.debate-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
 .debate-grid {
   display: grid;
   grid-template-columns: 1fr;

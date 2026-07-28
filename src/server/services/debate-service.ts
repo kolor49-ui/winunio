@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { debateCategorySchema } from "@/domain/debate-categories";
+import {
+  type DebateListBucket,
+} from "@/domain/debate-list-buckets";
 import { transitionDebate } from "@/domain/debate";
 import { transitionDebateApplication } from "@/domain/debate-application";
 import { DomainError } from "@/domain/types";
@@ -185,6 +188,112 @@ export async function listDebates(sort: "new" | "popular" = "new") {
     ORDER BY created_at DESC
   `;
   return rows.map(formatDebateListItem);
+}
+
+export type DebateListItem = ReturnType<typeof formatDebateListItem>;
+
+export async function listDebatesByBucket(
+  bucket: DebateListBucket,
+  sort: "new" | "popular" = "new",
+): Promise<DebateListItem[]> {
+  const sql = getSql();
+  const effectiveSort = bucket === "open" ? "new" : sort;
+
+  if (effectiveSort === "popular" && bucket === "live") {
+    const rows = await sql<
+      {
+        id: string;
+        question: string;
+        category: string;
+        status: string;
+        created_at: Date;
+        continuation_count_7d: number;
+      }[]
+    >`
+      SELECT
+        d.id,
+        d.question,
+        d.category,
+        d.status::text AS status,
+        d.created_at,
+        COALESCE(cr.cnt, 0)::int AS continuation_count_7d
+      FROM debates d
+      LEFT JOIN (
+        SELECT debate_id, COUNT(*)::int AS cnt
+        FROM continuation_requests
+        WHERE created_at >= now() - interval '7 days'
+        GROUP BY debate_id
+      ) cr ON cr.debate_id = d.id
+      WHERE d.status IN (
+        'active'::debate_status,
+        'waiting_for_continuation'::debate_status,
+        'awaiting_closure'::debate_status,
+        'invitation_pending'::debate_status,
+        'under_review'::debate_status
+      )
+      ORDER BY continuation_count_7d DESC, d.created_at DESC
+    `;
+    return rows.map(formatDebateListItem);
+  }
+
+  if (bucket === "open") {
+    const rows = await sql<
+      {
+        id: string;
+        question: string;
+        category: string;
+        status: string;
+        created_at: Date;
+      }[]
+    >`
+      SELECT id, question, category, status::text AS status, created_at
+      FROM debates
+      WHERE status = 'waiting_for_partner'::debate_status
+      ORDER BY created_at DESC
+    `;
+    return rows.map(formatDebateListItem);
+  }
+
+  const rows = await sql<
+    {
+      id: string;
+      question: string;
+      category: string;
+      status: string;
+      created_at: Date;
+    }[]
+  >`
+    SELECT id, question, category, status::text AS status, created_at
+    FROM debates
+    WHERE status IN (
+      'active'::debate_status,
+      'waiting_for_continuation'::debate_status,
+      'awaiting_closure'::debate_status,
+      'invitation_pending'::debate_status,
+      'under_review'::debate_status
+    )
+    ORDER BY created_at DESC
+  `;
+  const ids = rows.map((row) => row.id);
+  if (ids.length === 0) {
+    return rows.map(formatDebateListItem);
+  }
+
+  const counts = await sql<{ debate_id: string; cnt: number }[]>`
+    SELECT debate_id, COUNT(*)::int AS cnt
+    FROM continuation_requests
+    WHERE debate_id IN ${sql(ids)}
+      AND created_at >= now() - interval '7 days'
+    GROUP BY debate_id
+  `;
+  const countByDebate = new Map(counts.map((c) => [c.debate_id, c.cnt]));
+
+  return rows.map((row) =>
+    formatDebateListItem({
+      ...row,
+      continuation_count_7d: countByDebate.get(row.id) ?? 0,
+    }),
+  );
 }
 
 export type UserDebateListItem = {
