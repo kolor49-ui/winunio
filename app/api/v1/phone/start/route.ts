@@ -1,11 +1,6 @@
 import { handleRouteError } from "@/server/api/errors";
 import { jsonOk, requireActiveUser, requireSession } from "@/server/api/http";
-import {
-  confirmPhoneVerification,
-  parseConfirmPhoneBody,
-  parseStartPhoneBody,
-  startPhoneVerification,
-} from "@/server/services/phone-service";
+import { parseStartPhoneBody, startPhoneVerification } from "@/server/services/phone-service";
 
 export async function POST(request: Request) {
   try {

@@ -88,9 +88,11 @@ export function ContinuationPanel({
         return;
       }
       setInfo(
-        data.dev_code
-          ? `Fejlesztői kód: ${data.dev_code}`
-          : "Ellenőrző kódot küldtünk.",
+        data.delivery === "sms"
+          ? (data.message ?? "Ellenőrző kódot SMS-ben küldtünk.")
+          : data.dev_code
+            ? `Fejlesztői kód: ${data.dev_code}`
+            : (data.message ?? "Ellenőrző kódot küldtünk."),
       );
     } catch {
       setError("Hálózati hiba");

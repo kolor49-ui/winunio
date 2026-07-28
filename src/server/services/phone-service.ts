@@ -2,8 +2,15 @@ import { createHash, randomInt } from "node:crypto";
 import { z } from "zod";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
+import { getSmsReadiness } from "@/server/sms/sms-readiness";
+import {
+  checkTwilioVerification,
+  mapTwilioError,
+  sendTwilioVerification,
+} from "@/server/sms/twilio-verify";
 
 const OTP_TTL_MINUTES = 10;
+const TWILIO_PENDING_MARKER = "twilio-verify";
 
 const startPhoneSchema = z.object({
   phone: z.string().min(8).max(20),
@@ -35,58 +42,9 @@ function hashOtp(code: string): string {
   return createHash("sha256").update(code).digest("hex");
 }
 
-export async function startPhoneVerification(userId: string, phone: string) {
+async function markPhoneVerificationComplete(userId: string, phoneE164: string) {
   const sql = getSql();
-  const phoneE164 = normalizePhoneE164(phone);
-  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
-
-  await sql`DELETE FROM phone_otp_pending WHERE user_id = ${userId}`;
-
-  await sql`
-    INSERT INTO phone_otp_pending (user_id, phone_e164, code_hash, expires_at)
-    VALUES (${userId}, ${phoneE164}, ${hashOtp(code)}, ${expiresAt})
-  `;
-
-  console.info(`[phone-otp] ${phoneE164} → ${code} (dev)`);
-
-  return {
-    phone_e164: phoneE164,
-    expires_at: expiresAt.toISOString(),
-    dev_code: process.env.NODE_ENV === "development" ? code : undefined,
-  };
-}
-
-export async function confirmPhoneVerification(
-  userId: string,
-  phone: string,
-  code: string,
-) {
-  const sql = getSql();
-  const phoneE164 = normalizePhoneE164(phone);
-
   return sql.begin(async (tx) => {
-    const [pending] = await tx<
-      { id: string; code_hash: string; expires_at: Date }[]
-    >`
-      SELECT id, code_hash, expires_at
-      FROM phone_otp_pending
-      WHERE user_id = ${userId} AND phone_e164 = ${phoneE164}
-      ORDER BY created_at DESC
-      LIMIT 1
-      FOR UPDATE
-    `;
-
-    if (!pending) {
-      throw new ApiError(404, "OTP_NOT_FOUND", "Nincs folyamatban lévő kód");
-    }
-    if (pending.expires_at.getTime() <= Date.now()) {
-      throw new ApiError(410, "OTP_EXPIRED", "A kód lejárt — kérj újat");
-    }
-    if (pending.code_hash !== hashOtp(code)) {
-      throw new ApiError(401, "OTP_INVALID", "Hibás kód");
-    }
-
     await tx`DELETE FROM phone_otp_pending WHERE user_id = ${userId}`;
 
     await tx`
@@ -102,6 +60,109 @@ export async function confirmPhoneVerification(
 
     return { phone_verified: true as const, phone_e164: phoneE164 };
   });
+}
+
+export async function startPhoneVerification(userId: string, phone: string) {
+  const sql = getSql();
+  const phoneE164 = normalizePhoneE164(phone);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+  const sms = getSmsReadiness();
+
+  if (sms.provider === "twilio_verify") {
+    try {
+      await sendTwilioVerification(phoneE164);
+    } catch (error) {
+      console.error("[phone-otp] Twilio send failed:", error);
+      throw new ApiError(502, "SMS_SEND_FAILED", mapTwilioError(error));
+    }
+
+    await sql`DELETE FROM phone_otp_pending WHERE user_id = ${userId}`;
+    await sql`
+      INSERT INTO phone_otp_pending (user_id, phone_e164, code_hash, expires_at)
+      VALUES (${userId}, ${phoneE164}, ${TWILIO_PENDING_MARKER}, ${expiresAt})
+    `;
+
+    return {
+      phone_e164: phoneE164,
+      expires_at: expiresAt.toISOString(),
+      delivery: "sms" as const,
+      message: "Ellenőrző kódot SMS-ben küldtünk.",
+    };
+  }
+
+  if (sms.provider === "none") {
+    throw new ApiError(
+      503,
+      "SMS_NOT_CONFIGURED",
+      "Telefonos megerősítés élesben még nincs beállítva (Twilio Verify).",
+    );
+  }
+
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+
+  await sql`DELETE FROM phone_otp_pending WHERE user_id = ${userId}`;
+  await sql`
+    INSERT INTO phone_otp_pending (user_id, phone_e164, code_hash, expires_at)
+    VALUES (${userId}, ${phoneE164}, ${hashOtp(code)}, ${expiresAt})
+  `;
+
+  console.info(`[phone-otp] ${phoneE164} → ${code} (dev)`);
+
+  return {
+    phone_e164: phoneE164,
+    expires_at: expiresAt.toISOString(),
+    delivery: "dev" as const,
+    dev_code: process.env.NODE_ENV === "development" ? code : undefined,
+    message: "Fejlesztői mód: a kód a képernyőn jelenik meg.",
+  };
+}
+
+export async function confirmPhoneVerification(
+  userId: string,
+  phone: string,
+  code: string,
+) {
+  const sql = getSql();
+  const phoneE164 = normalizePhoneE164(phone);
+  const sms = getSmsReadiness();
+
+  const [pending] = await sql<
+    { id: string; code_hash: string; expires_at: Date }[]
+  >`
+    SELECT id, code_hash, expires_at
+    FROM phone_otp_pending
+    WHERE user_id = ${userId} AND phone_e164 = ${phoneE164}
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  if (!pending) {
+    throw new ApiError(404, "OTP_NOT_FOUND", "Nincs folyamatban lévő kód — kérj újat");
+  }
+  if (pending.expires_at.getTime() <= Date.now()) {
+    throw new ApiError(410, "OTP_EXPIRED", "A kód lejárt — kérj új SMS-t");
+  }
+
+  if (sms.provider === "twilio_verify" || pending.code_hash === TWILIO_PENDING_MARKER) {
+    try {
+      const approved = await checkTwilioVerification(phoneE164, code);
+      if (!approved) {
+        throw new ApiError(401, "OTP_INVALID", "Hibás vagy lejárt kód");
+      }
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      console.error("[phone-otp] Twilio check failed:", error);
+      throw new ApiError(502, "SMS_VERIFY_FAILED", mapTwilioError(error));
+    }
+
+    return markPhoneVerificationComplete(userId, phoneE164);
+  }
+
+  if (pending.code_hash !== hashOtp(code)) {
+    throw new ApiError(401, "OTP_INVALID", "Hibás kód");
+  }
+
+  return markPhoneVerificationComplete(userId, phoneE164);
 }
 
 export async function isPhoneVerified(userId: string): Promise<boolean> {

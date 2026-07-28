@@ -10,6 +10,9 @@
 | `CRON_SECRET` | `openssl rand -base64 32` — Vercel Cron hitelesítéshez |
 | `OPENAI_API_KEY` | OpenAI → [API Keys](https://platform.openai.com/api-keys) — `sk-…` |
 | `OPENAI_MODEL` | Alapértelmezés: `gpt-4o-mini` (tartalom-ellenőrzés) |
+| `TWILIO_ACCOUNT_SID` | Twilio Console → Account Info |
+| `TWILIO_AUTH_TOKEN` | Twilio Console → Auth Token |
+| `TWILIO_VERIFY_SERVICE_SID` | Verify → Services → `VA…` (SMS OTP) |
 
 Mind: **Production** + **Preview**.
 
@@ -46,7 +49,20 @@ Vagy Vercel → **Redeploy**.
 https://TE-DOMAIN.vercel.app/api/v1/health
 ```
 
-Válasz: `{"status":"ok","database":"connected", "content_review": { "ready": true, ... }}`
+Válasz: `{"status":"ok","database":"connected", "content_review": { "ready": true, ... }, "sms": { "ready": true, "provider": "twilio_verify" }}`
+
+## 6. Twilio Verify (telefonos SMS)
+
+1. Regisztráció: [twilio.com/try-twilio](https://www.twilio.com/try-twilio)
+2. Console → **Account Info** → másold: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
+3. **Verify** → **Services** → **Create** → Service neve: `Winunio` → másold a **Service SID** (`VA…`) → `TWILIO_VERIFY_SERVICE_SID`
+4. Trial fióknál: **Phone Numbers** → **Verified Caller IDs** → add hozzá a **saját** mobilszámod (csak erre megy SMS trialban)
+5. Vercel → **Settings → Environment Variables** → mindhárom Twilio env → **Production** + **Preview**
+6. **Redeploy**
+7. Ellenőrzés: `GET /api/v1/health` → `"sms": { "ready": true, "provider": "twilio_verify" }`
+8. Vitánál: telefonszám → SMS a telefonodra → 6 jegyű kód beírása
+
+Trial korlát: SMS csak **Twilio-ban regisztrált** számokra megy, amíg nincs fizetős upgrade.
 
 OpenAI külön:
 
