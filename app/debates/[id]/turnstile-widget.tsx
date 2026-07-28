@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  forwardRef,
-  useEffect,
-  useId,
-  useImperativeHandle,
-  useRef,
-} from "react";
+import { useEffect, useId, useRef } from "react";
 
 declare global {
   interface Window {
@@ -15,7 +9,6 @@ declare global {
         container: HTMLElement,
         options: Record<string, unknown>,
       ) => string;
-      execute: (widgetId: string) => void;
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
     };
@@ -23,19 +16,27 @@ declare global {
   }
 }
 
-export type TurnstileHandle = {
-  run: () => Promise<string>;
-};
-
 type Props = {
   siteKey: string;
-  onError?: (message: string | null) => void;
+  active: boolean;
+  resetKey?: number;
+  onToken: (token: string) => void;
+  onError: (message: string) => void;
 };
 
-const RUN_TIMEOUT_MS = 45_000;
+const TEST_SITE_KEY = "1x00000000000000000000AA";
+
+function extractErrorCode(code: unknown): string | undefined {
+  if (code == null) return undefined;
+  if (typeof code === "string" || typeof code === "number") return String(code);
+  if (typeof code === "object" && "code" in code) {
+    return String((code as { code: unknown }).code);
+  }
+  return undefined;
+}
 
 function mapTurnstileError(code: unknown): string {
-  const normalized = code == null ? undefined : String(code);
+  const normalized = extractErrorCode(code);
   switch (normalized) {
     case "110200":
       return "Az ellenőrzés nem fut ezen a címen. Próbáld újra később.";
@@ -52,169 +53,106 @@ function mapTurnstileError(code: unknown): string {
   }
 }
 
-export const TurnstileWidget = forwardRef<TurnstileHandle, Props>(
-  function TurnstileWidget({ siteKey, onError }, ref) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const widgetIdRef = useRef<string | null>(null);
-    const onErrorRef = useRef(onError);
-    const pendingRef = useRef<{
-      resolve: (token: string) => void;
-      reject: (error: Error) => void;
-      timer: ReturnType<typeof setTimeout>;
-    } | null>(null);
-    const scriptId = useId().replace(/:/g, "");
+export function TurnstileWidget({
+  siteKey,
+  active,
+  resetKey = 0,
+  onToken,
+  onError,
+}: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+  const onTokenRef = useRef(onToken);
+  const onErrorRef = useRef(onError);
+  const scriptId = useId().replace(/:/g, "");
 
-    useEffect(() => {
-      onErrorRef.current = onError;
-    }, [onError]);
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
 
-    function clearPending(reject?: Error) {
-      const pending = pendingRef.current;
-      if (!pending) return;
-      clearTimeout(pending.timer);
-      pendingRef.current = null;
-      if (reject) pending.reject(reject);
-    }
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
-    function resolvePending(token: string) {
-      const pending = pendingRef.current;
-      if (!pending) return;
-      clearTimeout(pending.timer);
-      pendingRef.current = null;
-      onErrorRef.current?.(null);
-      pending.resolve(token);
-    }
+  useEffect(() => {
+    if (!active || !siteKey || siteKey === TEST_SITE_KEY) return;
 
-    function rejectPending(message: string) {
-      clearPending(new Error(message));
-      onErrorRef.current?.(message);
-    }
+    function renderWidget() {
+      const container = containerRef.current;
+      if (!container || !window.turnstile) return;
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        run: () => {
-          if (!siteKey) return Promise.resolve("dev-bypass");
+      if (widgetIdRef.current) {
+        window.turnstile.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+      }
 
-          if (!widgetIdRef.current || !window.turnstile) {
-            const message =
-              "Az ellenőrzés még nem áll készen — frissítsd az oldalt, majd próbáld újra.";
-            onErrorRef.current?.(message);
-            return Promise.reject(new Error(message));
-          }
-
-          clearPending();
-
-          return new Promise<string>((resolve, reject) => {
-            const timer = setTimeout(() => {
-              pendingRef.current = null;
-              const message = "Az ellenőrzés túl sokáig tartott — nyomd meg újra a gombot.";
-              onErrorRef.current?.(message);
-              reject(new Error(message));
-            }, RUN_TIMEOUT_MS);
-
-            pendingRef.current = { resolve, reject, timer };
-
-            try {
-              window.turnstile!.reset(widgetIdRef.current!);
-              window.turnstile!.execute(widgetIdRef.current!);
-            } catch {
-              clearTimeout(timer);
-              pendingRef.current = null;
-              const message =
-                "Az ellenőrzés nem indítható — frissítsd az oldalt, majd próbáld újra.";
-              onErrorRef.current?.(message);
-              reject(new Error(message));
-            }
-          });
+      container.innerHTML = "";
+      widgetIdRef.current = window.turnstile.render(container, {
+        sitekey: siteKey,
+        theme: "auto",
+        size: "flexible",
+        retry: "auto",
+        "refresh-expired": "auto",
+        callback: (token: string) => {
+          onErrorRef.current("");
+          onTokenRef.current(token);
         },
-      }),
-      [siteKey],
-    );
-
-    useEffect(() => {
-      if (!siteKey) return;
-
-      function renderWidget() {
-        const container = containerRef.current;
-        if (!container || !window.turnstile) return;
-
-        if (widgetIdRef.current) {
-          window.turnstile.remove(widgetIdRef.current);
-          widgetIdRef.current = null;
-        }
-
-        container.innerHTML = "";
-        widgetIdRef.current = window.turnstile.render(container, {
-          sitekey: siteKey,
-          theme: "auto",
-          size: "flexible",
-          appearance: "execute",
-          retry: "auto",
-          "refresh-expired": "auto",
-          callback: (token: string) => {
-            resolvePending(token);
-          },
-          "expired-callback": () => {
-            rejectPending("Az ellenőrzés lejárt — nyomd meg újra a gombot.");
-          },
-          "error-callback": (code?: unknown) => {
-            rejectPending(mapTurnstileError(code));
-            if (widgetIdRef.current && window.turnstile) {
-              window.turnstile.reset(widgetIdRef.current);
-            }
-          },
-          "timeout-callback": () => {
-            rejectPending("Az ellenőrzés túl sokáig tartott — nyomd meg újra a gombot.");
-            if (widgetIdRef.current && window.turnstile) {
-              window.turnstile.reset(widgetIdRef.current);
-            }
-          },
-        });
-      }
-
-      if (window.turnstile) {
-        renderWidget();
-        return () => {
-          clearPending();
+        "expired-callback": () => {
+          onErrorRef.current("Az ellenőrzés lejárt — nyomd meg újra a gombot.");
+        },
+        "error-callback": (code?: unknown) => {
+          console.warn("[turnstile] client error:", code);
+          onErrorRef.current(mapTurnstileError(code));
+        },
+        "timeout-callback": () => {
+          onErrorRef.current("Az ellenőrzés túl sokáig tartott — nyomd meg újra a gombot.");
           if (widgetIdRef.current && window.turnstile) {
-            window.turnstile.remove(widgetIdRef.current);
-            widgetIdRef.current = null;
+            window.turnstile.reset(widgetIdRef.current);
           }
-        };
-      }
+        },
+      });
+    }
 
-      window.onTurnstileLoad = renderWidget;
-
-      let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-      if (!script) {
-        script = document.createElement("script");
-        script.id = scriptId;
-        script.src =
-          "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }
-
+    if (window.turnstile) {
+      renderWidget();
       return () => {
-        clearPending();
         if (widgetIdRef.current && window.turnstile) {
           window.turnstile.remove(widgetIdRef.current);
           widgetIdRef.current = null;
         }
       };
-    }, [siteKey, scriptId]);
+    }
 
-    if (!siteKey) return null;
+    window.onTurnstileLoad = renderWidget;
 
-    return (
-      <div
-        className="turnstile-widget-wrap turnstile-widget-wrap-execute"
-        aria-hidden="true"
-      >
-        <div ref={containerRef} className="turnstile-widget-mount" />
-      </div>
-    );
-  },
-);
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+      }
+    };
+  }, [active, siteKey, resetKey, scriptId]);
+
+  if (!active || !siteKey) return null;
+
+  if (siteKey === TEST_SITE_KEY) {
+    return null;
+  }
+
+  return (
+    <div className="turnstile-widget-wrap">
+      <div ref={containerRef} className="turnstile-widget-mount" />
+    </div>
+  );
+}
