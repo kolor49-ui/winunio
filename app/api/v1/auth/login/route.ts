@@ -27,7 +27,10 @@ export async function POST(request: Request) {
     });
     const cookieStore = await cookies();
     cookieStore.set(sessionCookieOptions(token));
-    return jsonOk({ user: { id: user.id, email: user.email } });
+    return jsonOk({
+      user: { id: user.id, email: user.email },
+      access_token: token,
+    });
   } catch (error) {
     return handleRouteError(error);
   }

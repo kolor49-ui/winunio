@@ -306,3 +306,31 @@ export async function verifyContinuationSmsOtp(
   await sql`DELETE FROM phone_otp_pending WHERE id = ${pending.id}`;
   return { verified: true as const };
 }
+
+export async function startContinuationMobileCode(
+  userId: string,
+  challengeId: string,
+) {
+  const sql = getSql();
+  const phoneE164 = await getVerifiedPhoneE164(userId);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+  const marker = continuationOtpMarker(challengeId);
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+
+  await sql`DELETE FROM phone_otp_pending WHERE user_id = ${userId}`;
+  await sql`
+    INSERT INTO phone_otp_pending (user_id, phone_e164, code_hash, expires_at)
+    VALUES (${userId}, ${phoneE164}, ${`${marker}:${hashOtp(code)}`}, ${expiresAt})
+  `;
+
+  if (process.env.NODE_ENV === "development") {
+    console.info(
+      `[continuation-mobile] challenge=${challengeId} → ${code} (dev)`,
+    );
+  }
+
+  return {
+    verification_code: code,
+    expires_at: expiresAt.toISOString(),
+  };
+}

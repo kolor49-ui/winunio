@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   COOKIE_NAME,
   verifySessionToken,
@@ -9,6 +9,16 @@ import { getSql } from "@/server/db";
 import { ensureBootstrapAdmin } from "@/server/services/bootstrap-admin-service";
 
 export const getSession = cache(async (): Promise<SessionPayload | null> => {
+  const headerStore = await headers();
+  const authorization = headerStore.get("authorization");
+  if (authorization?.startsWith("Bearer ")) {
+    const bearer = authorization.slice("Bearer ".length).trim();
+    if (bearer) {
+      const fromBearer = await verifySessionToken(bearer);
+      if (fromBearer) return fromBearer;
+    }
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;

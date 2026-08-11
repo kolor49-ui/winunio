@@ -319,6 +319,17 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 ---
 
+## ADR-037 — Android natív app v1: teljes MVP paritás
+
+**Dátum:** 2026-08-11  
+**Státusz:** Elfogadva  
+**Döntés:** **Android-only** natív app (React Native + Expo). v1 = **teljes webes MVP** — vitaindítás, jelentkezés, vitázás, zárás, folytatáskérés, vitáim; **nem** kell böngészőbe lépkedni vitázóknak.  
+**Folytatáskérés appban:** **biometria** (ujjlenyomat / eszköz PIN), nem SMS. Web továbbra is SMS (ADR-036).  
+**Nincs v1-ben:** iOS, admin, push (FCM → v1.1).  
+**Részletek:** [MOBILE_APP.md](MOBILE_APP.md).
+
+---
+
 ## Nyitott döntések
 
 | ADR | Kérdés |
@@ -341,3 +352,5 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 | 024–028 | 2026-07-23 | Elfogadva |
 | 029–033 | 2026-07-23 | Elfogadva (spec); implementáció Tervezett |
 | 034 | 2026-07-23 | Elfogadva; implementálva |
+| 035–036 | 2026-07-28 | Elfogadva |
+| 037 | 2026-08-11 | Elfogadva; fázis 1 elindítva — [MOBILE_APP.md](MOBILE_APP.md), `apps/mobile` |

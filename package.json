@@ -10,7 +10,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/run-migrations.mjs",
-    "test:openai": "node scripts/test-openai.mjs"
+    "test:openai": "node scripts/test-openai.mjs",
+    "mobile:start": "npm start --prefix apps/mobile",
+    "mobile:android": "npm run android --prefix apps/mobile"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",

@@ -8,7 +8,7 @@ import type { ContinuationRequestRecord, RoundUnlockRule } from "@/domain/types"
 import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
-import { isPhoneVerified, startContinuationSmsOtp, verifyContinuationSmsOtp } from "@/server/services/phone-service";
+import { isPhoneVerified, startContinuationMobileCode, startContinuationSmsOtp, verifyContinuationSmsOtp } from "@/server/services/phone-service";
 import { logSecurityEvent } from "@/server/services/security-event-service";
 import { notifyNewRoundOpened } from "@/server/services/user-notification-service";
 
@@ -273,6 +273,7 @@ export async function getContinuationStatus(
 export async function issueContinuationChallenge(
   completedRoundId: string,
   userId: string,
+  options?: { mobileClient?: boolean },
 ) {
   const sql = getSql();
   const [round] = await sql<{ id: string; debate_id: string }[]>`
@@ -312,6 +313,15 @@ export async function issueContinuationChallenge(
     RETURNING id, challenge_token, expires_at
   `;
 
+  if (options?.mobileClient) {
+    return {
+      already_requested: false as const,
+      challenge_id: challenge.id,
+      expires_at: challenge.expires_at.toISOString(),
+      delivery: "mobile" as const,
+    };
+  }
+
   const sms = await startContinuationSmsOtp(userId, challenge.id);
 
   return {
@@ -322,6 +332,47 @@ export async function issueContinuationChallenge(
     delivery: sms.delivery,
     dev_code: "dev_code" in sms ? sms.dev_code : undefined,
   };
+}
+
+const mobileCodeBodySchema = z.object({
+  challenge_id: z.string().uuid(),
+});
+
+export function parseMobileContinuationCodeBody(body: unknown) {
+  return mobileCodeBodySchema.parse(body);
+}
+
+export async function unlockMobileContinuationCode(
+  completedRoundId: string,
+  userId: string,
+  challengeId: string,
+) {
+  const sql = getSql();
+
+  const [challenge] = await sql<
+    { id: string; user_id: string; completed_round_id: string; status: string; expires_at: Date }[]
+  >`
+    SELECT id, user_id, completed_round_id, status::text AS status, expires_at
+    FROM continuation_challenges
+    WHERE id = ${challengeId}
+    LIMIT 1
+  `;
+
+  if (
+    !challenge ||
+    challenge.user_id !== userId ||
+    challenge.completed_round_id !== completedRoundId
+  ) {
+    throw new ApiError(422, "CHALLENGE_INVALID", "Érvénytelen challenge");
+  }
+  if (challenge.status !== "issued") {
+    throw new ApiError(422, "CHALLENGE_NOT_USABLE", "A challenge már felhasználva");
+  }
+  if (challenge.expires_at.getTime() <= Date.now()) {
+    throw new ApiError(410, "CHALLENGE_EXPIRED", "A challenge lejárt");
+  }
+
+  return startContinuationMobileCode(userId, challengeId);
 }
 
 export async function submitContinuationRequest(

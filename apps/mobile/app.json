@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Winunio",
+    "slug": "winunio",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "winunio",
+    "android": {
+      "package": "com.winunio.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#6F8F72",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": true
+    },
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "eas": {
+        "projectId": "pending-play-console-setup"
+      }
+    }
+  }
+}

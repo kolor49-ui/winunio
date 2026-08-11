@@ -53,12 +53,20 @@ export async function POST(request: Request) {
           user,
           verification_email_sent: false,
           email_error: formatResendError(emailError),
+          access_token: token,
         },
         201,
       );
     }
 
-    return jsonOk({ user, verification_email_sent: verificationEmailSent }, 201);
+    return jsonOk(
+      {
+        user,
+        verification_email_sent: verificationEmailSent,
+        access_token: token,
+      },
+      201,
+    );
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("RESEND_FAILED:")) {
       return Response.json(

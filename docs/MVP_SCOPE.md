@@ -43,7 +43,7 @@ Működő páros vita életciklus: vitaindítás → jelentkezés → meghívás
 | Privát üzenetek | MVP-n kívül |
 | Automatikus partnerkiválasztás / pontszám | Alapelv |
 | Személyre szabott ajánlóalgoritmus | Csak egyszerű, magyarázható rendezés |
-| Natív mobilalkalmazás | Reszponzív web elég |
+| Natív mobilalkalmazás | Reszponzív web elég **web MVP-hez**; **Android app v1** tervezett — [MOBILE_APP.md](MOBILE_APP.md), ADR-037 |
 | Kriptovaluta, automatikus adományozás | MVP-n kívül |
 | Közönségi kommentek | MVP-n kívül |
 | AI vitaösszefoglaló | MVP-n kívül |

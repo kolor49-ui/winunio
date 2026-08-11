@@ -10,10 +10,10 @@ Minden végpontnál dokumentálandó: cél, bemenet, válasz, jogosultság, üzl
 
 | Mód | Használat |
 |-----|-----------|
-| Session / JWT | Általános bejelentkezett műveletek |
-| WebAuthn assertion | Folytatáskérés véglegesítése (kötelező) |
+| Session cookie | Web böngésző |
+| `Authorization: Bearer` | Android app ([MOBILE_APP.md](MOBILE_APP.md)) |
 
-Vitázók: e-mail + jelszó (MVP). Passkey API megmarad későbbi natív apphoz.
+Login/register válasz: `access_token` (JWT, 14 nap).
 
 ### `DELETE /api/v1/auth/account`
 
@@ -198,7 +198,16 @@ A `POST …/arguments`, `POST …/closing-statements`, `POST …/debates`, `POST
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests/challenge`
 
-Challenge kiadása + SMS OTP küldése (bejelentkezett, telefon megerősítve).
+Challenge kiadása + SMS OTP küldése (web). Android app: `delivery: "mobile"`, SMS nélkül.
+
+### `POST /api/v1/rounds/:completedRoundId/continuation-requests/challenge/mobile-code`
+
+| | |
+|---|---|
+| **Fejléc** | `x-winunio-client: android`, Bearer token |
+| **Bemenet** | `challenge_id` |
+| **Válasz** | `verification_code` (6 jegy) — app biometria után hívja |
+| **Utána** | `POST …/continuation-requests` ugyanazzal `sms_code`-ként |
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests`
 
