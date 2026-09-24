@@ -151,8 +151,12 @@ export function DebateEditor(props: Props) {
   const [spellSuggestions, setSpellSuggestions] = useState<
     SpellCheckSuggestion[] | null
   >(null);
+  const [spellCheckBaseText, setSpellCheckBaseText] = useState<string | null>(
+    null,
+  );
   const [acceptedSpell, setAcceptedSpell] = useState<Set<number>>(new Set());
   const [spellLoading, setSpellLoading] = useState(false);
+  const [spellError, setSpellError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const saveTimer = useRef<number | undefined>(undefined);
   const onValuesChangeRef = useRef(onValuesChange);
@@ -226,7 +230,11 @@ export function DebateEditor(props: Props) {
       setSubmitError(null);
       setReviewIssues(null);
       setReviewStatus(null);
-      setSpellSuggestions(null);
+      if (field === "reasoning") {
+        setSpellSuggestions(null);
+        setSpellCheckBaseText(null);
+        setSpellError(null);
+      }
     },
     [],
   );
@@ -256,32 +264,43 @@ export function DebateEditor(props: Props) {
       return;
     }
     setSpellLoading(true);
+    setSpellError(null);
     setSubmitError(null);
     try {
       const suggestions = await requestSpellCheck(text);
+      setSpellCheckBaseText(text);
       setSpellSuggestions(suggestions);
       setAcceptedSpell(new Set(suggestions.map((_, index) => index)));
     } catch (error) {
-      setSubmitError(
+      setSpellError(
         error instanceof Error
           ? error.message
           : "Helyesírás-ellenőrzés sikertelen",
       );
+      setSpellSuggestions(null);
+      setSpellCheckBaseText(null);
     } finally {
       setSpellLoading(false);
     }
   }
 
   function applySpellSuggestions() {
-    if (!spellSuggestions?.length) return;
+    if (!spellSuggestions || !spellCheckBaseText) return;
     const nextReasoning = applyAcceptedSpellSuggestions(
-      values.reasoning,
+      spellCheckBaseText,
       spellSuggestions,
       acceptedSpell,
     );
     setValues((current) => ({ ...current, reasoning: nextReasoning }));
     setDirty(true);
     setSpellSuggestions(null);
+    setSpellCheckBaseText(null);
+    setAcceptedSpell(new Set());
+  }
+
+  function dismissSpellSuggestions() {
+    setSpellSuggestions(null);
+    setSpellCheckBaseText(null);
     setAcceptedSpell(new Set());
   }
 
@@ -388,6 +407,62 @@ export function DebateEditor(props: Props) {
         diktálsz.
       </p>
 
+      <div className="debate-editor-spell-toolbar">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => void runSpellCheck()}
+          disabled={busy || spellLoading}
+        >
+          {spellLoading ? "Ellenőrzés…" : "Helyesírás ellenőrzése"}
+        </button>
+      </div>
+
+      {spellError && (
+        <p className="error debate-editor-spell-error" role="alert">
+          {spellError}
+        </p>
+      )}
+
+      {spellSuggestions && spellCheckBaseText && (
+        <div className="debate-editor-spell panel-nested">
+          <p className="meta">
+            Helyesírási javaslatok — csak elfogadás után kerülnek be.
+          </p>
+          <SpellCheckDiff
+            text={spellCheckBaseText}
+            suggestions={spellSuggestions}
+            accepted={acceptedSpell}
+            onToggle={(index) => {
+              setAcceptedSpell((current) => {
+                const next = new Set(current);
+                if (next.has(index)) next.delete(index);
+                else next.add(index);
+                return next;
+              });
+            }}
+          />
+          {spellSuggestions.length > 0 && (
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={applySpellSuggestions}
+              >
+                Javaslatok elfogadása
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={dismissSpellSuggestions}
+              >
+                Elvetés
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <label className="debate-editor-field debate-editor-quote">
         Idézet <span className="meta">(opcionális)</span>
         <textarea
@@ -410,58 +485,10 @@ export function DebateEditor(props: Props) {
         />
       </label>
 
-      <div className="debate-editor-toolbar">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => void runSpellCheck()}
-          disabled={busy || spellLoading}
-        >
-          {spellLoading ? "Ellenőrzés…" : "Helyesírás ellenőrzése"}
-        </button>
+      {!disableDraftPersistence && draftMessage && (
         <p className="debate-editor-draft-status" aria-live="polite">
-          {!disableDraftPersistence ? draftMessage : null}
+          {draftMessage}
         </p>
-      </div>
-
-      {spellSuggestions && (
-        <div className="debate-editor-spell panel-nested">
-          <p className="meta">
-            Helyesírási javaslatok — csak elfogadás után kerülnek be.
-          </p>
-          <SpellCheckDiff
-            text={values.reasoning}
-            suggestions={spellSuggestions}
-            accepted={acceptedSpell}
-            onToggle={(index) => {
-              setAcceptedSpell((current) => {
-                const next = new Set(current);
-                if (next.has(index)) next.delete(index);
-                else next.add(index);
-                return next;
-              });
-            }}
-          />
-          <div className="form-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={applySpellSuggestions}
-            >
-              Javaslatok elfogadása
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setSpellSuggestions(null);
-                setAcceptedSpell(new Set());
-              }}
-            >
-              Elvetés
-            </button>
-          </div>
-        </div>
       )}
 
       {!embedded && reviewIssues && reviewStatus && (

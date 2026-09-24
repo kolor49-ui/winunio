@@ -1658,6 +1658,14 @@ textarea {
   font-size: 0.875rem;
 }
 
+.debate-editor-spell-toolbar {
+  margin-top: 0.5rem;
+}
+
+.debate-editor-spell-error {
+  margin-top: 0.5rem;
+}
+
 .debate-editor-toolbar {
   display: flex;
   flex-wrap: wrap;
