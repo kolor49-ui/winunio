@@ -330,6 +330,16 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 ---
 
+## ADR-039 — Helyesírás-ellenőrzés: nincs AI, csak szóköz-beszúrás
+
+**Dátum:** 2026-08-11  
+**Státusz:** Elfogadva  
+**Döntés:** A „Helyesírás ellenőrzése” **nem** használ OpenAI-t. Csak determinisztikus **hiányzó szóköz** javaslat (ugyanazok a betűk, legfeljebb szóköz kerül be). Szócsere, ékezet-javítás, átfogalmazás **tilos**.  
+**Indok:** Az AI javaslatok jelentést változtattak; a résztvevő csak formai, biztonságos javítást kérhet.  
+**Felülírja:** CONTENT_EDITOR §3 AI-alapú helyesírás tervét.
+
+---
+
 ## ADR-038 — Folytatáskérés: TOTP (Google Authenticator); SMS és telefon gate kikerül
 
 **Dátum:** 2026-08-11  
@@ -366,3 +376,4 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 | 035–036 | 2026-07-28 | Elfogadva |
 | 037 | 2026-08-11 | Elfogadva; fázis 1 elindítva — [MOBILE_APP.md](MOBILE_APP.md), `apps/mobile` |
 | 038 | 2026-08-11 | Elfogadva; TOTP folytatáskérés — SMS/telefon gate kikerült |
+| 039 | 2026-08-11 | Elfogadva; helyesírás = csak szóköz, nincs AI |

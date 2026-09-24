@@ -115,9 +115,9 @@ Tartalmi ellenőrzéskor az AI **tilos**:
 | Szabály | Részlet |
 |---------|---------|
 | Indítás | **Csak** a résztvevő kifejezett kérésére („Helyesírás ellenőrzése” gomb) |
-| Tartalom | Elütés, helyesírási hiba, ékezet, egyértelmű központozás |
-| Tiltott | Stilisztika, szócsere hangnemből, mondatszerkezet, tartalmi pontosítás, érvelés-javítás |
-| Bizonytalanság | Többféleképp értelmezhető esetben **nincs** javaslat |
+| Tartalom | **Csak** hiányzó szóköz / összeérő szavak (determinisztikus heurisztika) |
+| Tiltott | AI szócsere, átfogalmazás, stílus, hangnem, ékezet-találgatás, tartalmi módosítás |
+| Bizonytalanság | Ha nincs egyértelmű szóköz-javaslat → **nincs** javaslat |
 
 ### Javaslat megjelenítése
 

@@ -4,9 +4,9 @@ import { getSql } from "@/server/db";
 import { readEnv } from "@/server/env";
 import {
   detectMissingSpaceSuggestions,
-  mergeSpellCheckSuggestions,
   missingSpaceSuggestionsToReviewIssues,
 } from "@/server/missing-space-detection";
+import { filterConservativeSpellCheckSuggestions } from "@/server/spell-check-conservative";
 import { computeContentHash } from "@/server/services/content-hash";
 import { createModerationCaseFromReview } from "@/server/services/moderation-service";
 import {
@@ -804,93 +804,13 @@ export async function spellCheckParticipantContent(input: {
     throw new ApiError(422, "VALIDATION_ERROR", "A szöveg nem lehet üres");
   }
 
-  const { apiKey, model } = getOpenAiConfig();
-  if (!apiKey) {
-    throw new ApiError(
-      503,
-      "SPELL_CHECK_UNAVAILABLE",
-      "A helyesírás-ellenőrzés most nem érhető el",
-    );
-  }
-
   const localSuggestions = detectMissingSpaceSuggestions(trimmed);
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "winunio_spell_check",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              suggestions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    original: { type: "string" },
-                    suggestion: { type: "string" },
-                    start: { type: "integer" },
-                    end: { type: "integer" },
-                  },
-                  required: ["original", "suggestion", "start", "end"],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["suggestions"],
-            additionalProperties: false,
-          },
-        },
-      },
-      messages: [
-        {
-          role: "system",
-          content:
-            "Csak helyesírási és központozási javításokat adj (elütés, ékezet, hiányzó szóköz, összeérő szavak). TILOS stílus, hangnem, mondatszerkezet vagy tartalmi módosítás.",
-        },
-        { role: "user", content: trimmed },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    throw new ApiError(
-      503,
-      "SPELL_CHECK_UNAVAILABLE",
-      "A helyesírás-ellenőrzés most nem érhető el",
-    );
-  }
-
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const raw = data.choices?.[0]?.message?.content;
-  if (!raw) {
-    throw new ApiError(
-      503,
-      "SPELL_CHECK_UNAVAILABLE",
-      "A helyesírás-ellenőrzés most nem érhető el",
-    );
-  }
-
-  const parsed = JSON.parse(raw) as { suggestions: SpellCheckSuggestion[] };
-  const aiSuggestions = z
-    .array(spellCheckSuggestionSchema)
-    .parse(parsed.suggestions ?? []);
-
-  const merged = mergeSpellCheckSuggestions(localSuggestions, aiSuggestions);
+  const conservative = filterConservativeSpellCheckSuggestions(
+    trimmed,
+    localSuggestions,
+  );
   return {
-    suggestions: filterNoOpSpellCheckSuggestions(trimmed, merged),
+    suggestions: filterNoOpSpellCheckSuggestions(trimmed, conservative),
   };
 }
 

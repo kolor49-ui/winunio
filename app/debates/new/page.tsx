@@ -1020,8 +1020,8 @@ export default function NewDebatePage() {
                 )}
                 {spellSuggestions.question.length === 0 && (
                   <p className="hint">
-                    Nincs egyértelmű helyesírási javaslat a vitakérdésben. Az
-                    álláspont mezőnél használd a „Helyesírás ellenőrzése” gombot.
+                    Nincs szóköz-javaslat a vitakérdésben. Az álláspont mezőnél
+                    ugyanígy csak hiányzó szóköz ellenőrizhető.
                   </p>
                 )}
                 <button
