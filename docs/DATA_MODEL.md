@@ -13,6 +13,7 @@ User ──────────────┬──< PublicProfile
                    ├──< ContinuationRequest
                    ├──< PasskeyCredential
                    ├──< PhoneVerification
+                   ├──< UserTotpCredential
                    └──< SecurityEvent / AuditLog
 
 Debate ──< Round ──< Argument
@@ -33,7 +34,7 @@ Debate ──< Round ──< Argument
 | `id` | UUID | |
 | `email` | string | Kötelező regisztrációnál |
 | `email_verified_at` | timestamp \| null | Folytatáskéréshez kötelező |
-| `phone_verified_at` | timestamp \| null | Első folytatáskérés előtt kötelező |
+| `phone_verified_at` | timestamp \| null | Legacy; folytatáskéréshez nem kötelező (ADR-038) |
 | `created_at` | timestamp | |
 | `status` | enum | `active` \| `suspended` \| `deleted` |
 
@@ -288,6 +289,21 @@ A vita aktuális jutalma = legutóbbi `DebateReward` rekord. Küszöb előtt nin
 | `user_id` | User ref | |
 | `phone_e164` | string | |
 | `verified_at` | timestamp | |
+
+Legacy — folytatáskéréshez nem kötelező (ADR-038).
+
+---
+
+## UserTotpCredential
+
+| Mező | Típus | Megjegyzés |
+|------|-------|------------|
+| `user_id` | User ref (PK) | |
+| `secret_ciphertext` | string | AES-256-GCM, AUTH_SECRET derivált kulcs |
+| `enabled_at` | timestamp | |
+| `created_at` | timestamp | |
+
+Beállítás közben: `user_totp_pending` (TTL, egyszeri QR flow).
 
 ---
 

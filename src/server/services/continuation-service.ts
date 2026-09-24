@@ -8,7 +8,7 @@ import type { ContinuationRequestRecord, RoundUnlockRule } from "@/domain/types"
 import { DomainError } from "@/domain/types";
 import { ApiError } from "@/server/api/http";
 import { getSql } from "@/server/db";
-import { isPhoneVerified, startContinuationMobileCode, startContinuationSmsOtp, verifyContinuationSmsOtp } from "@/server/services/phone-service";
+import { isTotpEnabled, verifyTotpForContinuation } from "@/server/services/totp-service";
 import { logSecurityEvent } from "@/server/services/security-event-service";
 import { notifyNewRoundOpened } from "@/server/services/user-notification-service";
 
@@ -18,7 +18,7 @@ const ROUND_DEADLINE_HOURS = 72;
 
 const submitBodySchema = z.object({
   challenge_id: z.string().uuid(),
-  sms_code: z.string().regex(/^\d{6}$/),
+  totp_code: z.string().regex(/^\d{6}$/),
 });
 
 export function parseContinuationSubmitBody(body: unknown) {
@@ -69,11 +69,10 @@ async function assertCanRequestContinuation(
   const [user] = await sql<
     {
       email_verified_at: Date | null;
-      phone_verified_at: Date | null;
       status: string;
     }[]
   >`
-    SELECT email_verified_at, phone_verified_at, status::text AS status
+    SELECT email_verified_at, status::text AS status
     FROM users WHERE id = ${userId} LIMIT 1
   `;
 
@@ -83,11 +82,11 @@ async function assertCanRequestContinuation(
   if (!user.email_verified_at) {
     throw new ApiError(403, "EMAIL_NOT_VERIFIED", "E-mail megerősítés szükséges");
   }
-  if (!user.phone_verified_at) {
+  if (!(await isTotpEnabled(userId))) {
     throw new ApiError(
       403,
-      "PHONE_NOT_VERIFIED",
-      "Telefonszám megerősítés szükséges az első folytatáskéréshez",
+      "TOTP_NOT_CONFIGURED",
+      "Authenticator app beállítása szükséges a folytatáskéréshez",
     );
   }
 
@@ -264,8 +263,8 @@ export async function getContinuationStatus(
     viewer_is_participant: viewerIsParticipant,
     viewer_can_request: viewerCanRequest,
     viewer_block_reason: viewerBlockReason,
-    viewer_phone_verified: viewerUserId
-      ? await isPhoneVerified(viewerUserId)
+    viewer_totp_enabled: viewerUserId
+      ? await isTotpEnabled(viewerUserId)
       : false,
   };
 }
@@ -322,15 +321,11 @@ export async function issueContinuationChallenge(
     };
   }
 
-  const sms = await startContinuationSmsOtp(userId, challenge.id);
-
   return {
     already_requested: false as const,
     challenge_id: challenge.id,
     expires_at: challenge.expires_at.toISOString(),
-    phone_masked: sms.phone_masked,
-    delivery: sms.delivery,
-    dev_code: "dev_code" in sms ? sms.dev_code : undefined,
+    delivery: "totp" as const,
   };
 }
 
@@ -372,7 +367,11 @@ export async function unlockMobileContinuationCode(
     throw new ApiError(410, "CHALLENGE_EXPIRED", "A challenge lejárt");
   }
 
-  return startContinuationMobileCode(userId, challengeId);
+  return {
+    delivery: "totp" as const,
+    challenge_id: challengeId,
+    expires_at: challenge.expires_at.toISOString(),
+  };
 }
 
 export async function submitContinuationRequest(
@@ -455,7 +454,7 @@ export async function submitContinuationRequest(
     throw new ApiError(410, "CHALLENGE_EXPIRED", "A challenge lejárt");
   }
 
-  await verifyContinuationSmsOtp(userId, challenge.id, input.sms_code);
+  await verifyTotpForContinuation(userId, input.totp_code);
 
   const unlockRules = await loadUnlockRules();
 

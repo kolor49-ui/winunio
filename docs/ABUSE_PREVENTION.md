@@ -16,14 +16,14 @@ A folytatáskérés **nem** rögzíthető kizárólag kliensoldali gombnyomás v
 
 1. bejelentkezett felhasználó;
 2. **megerősített e-mail-cím**;
-3. **megerősített telefonszám** (első folytatáskérés előtt kötelező; utána a fiókhoz kötött);
+3. **beállított authenticator app (TOTP)** — egyszeri fiókbeállítás (ADR-038);
 4. szerver által kiadott, **egyszer használható** challenge;
-5. **SMS OTP** (6 jegy, a fiókhoz kötött telefonra) — emberi jelenlét, eszközön;
+5. **TOTP kód** (6 jegy, Google Authenticator vagy más RFC 6238 app) — emberi jelenlét, eszközön;
 6. challenge **szerveroldali** ellenőrzése;
 7. felhasználó + lezárt forduló **egyediségének** ellenőrzése (`UNIQUE(user_id, completed_round_id)`);
 8. **sebességkorlát** teljesítése.
 
-> **MVP (2026-07):** Webes folytatáskérés megerősítése **SMS OTP** (ADR-036). Passkey a web UI-ból kikerült; natív app későbbi fázis. Turnstile nincs. Botvédelem: e-mail + telefon (első alkalom) + SMS minden kérésnél + challenge + rate limit.
+> **MVP (2026-08):** Folytatáskérés megerősítése **TOTP** (ADR-038). SMS és telefon gate kikerült. Turnstile nincs. Botvédelem: e-mail + egyszeri TOTP beállítás + TOTP minden kérésnél + challenge + rate limit.
 
 ### Challenge szabályok
 
@@ -37,20 +37,27 @@ A kliens **nem** küldhet érvényes folytatáskérést előzetesen kiadott chal
 
 ---
 
-## 2. SMS OTP megerősítés minden folytatáskérésnél (MVP web)
+## 2. TOTP megerősítés minden folytatáskérésnél (MVP web)
 
-**Döntés:** Minden folytatáskérés véglegesítéséhez **SMS OTP** szükséges a fiókhoz kötött telefonra (ADR-036).
+**Döntés:** Minden folytatáskérés véglegesítéséhez **TOTP kód** szükséges az authenticator appból (ADR-038).
 
-### UI folyamat
+### Egyszeri beállítás (fiók)
+
+```
+Fiók → Authenticator beállítása
+  → QR-kód (Google Authenticator)
+  → 6 jegy ellenőrzés
+  → kész
+```
+
+### UI folyamat (minden kérés)
 
 ```
 KÉREM A FOLYTATÁST
-  → SMS kód a regisztrált telefonra
-  → 6 jegy beírása
+  → challenge kiadás
+  → 6 jegy az authenticator appból
   → kérés rögzítve
 ```
-
-**Passkey (WebAuthn):** későbbi **natív app** — nem része a webes MVP folytatás UI-nak.
 
 ---
 
@@ -70,7 +77,7 @@ Az MVP-ben **nincs** külön nyilvános „függő” és „megerősített” s
 - Minden szabályosan rögzített kérés érvényesnek minősül és beleszámít a küszöbbe.
 - Utólagos csalásvizsgálat, függő státusz és külön „megerősített aktivitás” számláló **nem** része az MVP-nek.
 
-A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-mail, telefon, SMS OTP, rate limit) emelik.
+A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-mail, TOTP beállítás, TOTP minden kérésnél, rate limit) emelik.
 
 ---
 
@@ -80,8 +87,8 @@ A jutalom **szimulált**; a visszaélés költségét a fenti súrlódások (e-m
 |---------|-----------|
 | Folytatáskérés / fiók / nap | Redis/Upstash rate limit |
 | Challenge kiadás | Rate limit / fiók |
-| OTP / telefon | Szolgáltatói limit + saját cooldown |
-| Új fiók | Első folytatáskéréshez telefon kötelező |
+| TOTP beállítás | Egyszeri / fiók; pending TTL |
+| Új fiók | Első folytatáskéréshez TOTP beállítás kötelező |
 
 Pontos számok: admin konfiguráció; ne égesd be a forráskódba.
 
@@ -105,7 +112,7 @@ Lájk és résztvevő-szavazat **nem** implementálandó — nincs alternatív �
 Minden folytatáskérés-kísérlet (siker és sikertelen) → `SecurityEvent` / `AuditLog`:
 
 - user_id, completed_round_id, challenge_id;
-- SMS OTP eredmény;
+- TOTP eredmény;
 - rate limit elutasítás;
 - időbélyeg, IP hash (GDPR-kompatibilis tárolás).
 
@@ -115,9 +122,8 @@ Minden folytatáskérés-kísérlet (siker és sikertelen) → `SecurityEvent` /
 
 | Réteg | MVP javaslat |
 |-------|----------------|
-| SMS OTP | Twilio Verify |
-| Botvédelem | SMS OTP + rate limit |
-| Telefon OTP | Twilio Verify, Sinch vagy más |
+| Folytatás megerősítés | TOTP (RFC 6238), titkosított secret tárolás |
+| Botvédelem | TOTP + challenge + rate limit |
 | Rate limit | Redis / Upstash |
 | Adatbázis | Postgres + egyedi kulcsok |
 
@@ -130,12 +136,12 @@ A pontos szolgáltató később cserélhető; a **biztonsági követelmény** ne
 ```
 1. Fiók létezik, nem suspended
 2. E-mail verified
-3. Telefon verified (első folytatáskérésnél kötelező)
+3. TOTP beállítva (első folytatáskérés előtt kötelező)
 4. Vita `waiting_for_continuation`; forduló teljes, kétoldalú `published`
 5. Még nincs kérés ebből a fiókból erre a completed_round_id-re
 6. Rate limit OK
 7. Challenge issued, nem expired, nem consumed
-8. SMS OTP OK
+8. TOTP OK
 9. INSERT ContinuationRequest (tranzakció: számlálás + esetleges küszöb)
 ```
 

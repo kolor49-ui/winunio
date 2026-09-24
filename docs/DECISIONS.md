@@ -324,9 +324,20 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 **Dátum:** 2026-08-11  
 **Státusz:** Elfogadva  
 **Döntés:** **Android-only** natív app (React Native + Expo). v1 = **teljes webes MVP** — vitaindítás, jelentkezés, vitázás, zárás, folytatáskérés, vitáim; **nem** kell böngészőbe lépkedni vitázóknak.  
-**Folytatáskérés appban:** **biometria** (ujjlenyomat / eszköz PIN), nem SMS. Web továbbra is SMS (ADR-036).  
+**Folytatáskérés appban:** ugyanaz a **TOTP** flow mint weben (ADR-038); biometria terv elvetve a korai fázisban.  
 **Nincs v1-ben:** iOS, admin, push (FCM → v1.1).  
 **Részletek:** [MOBILE_APP.md](MOBILE_APP.md).
+
+---
+
+## ADR-038 — Folytatáskérés: TOTP (Google Authenticator); SMS és telefon gate kikerül
+
+**Dátum:** 2026-08-11  
+**Státusz:** Elfogadva  
+**Döntés:** Folytatáskérés megerősítése **TOTP** (RFC 6238, Google Authenticator kompatibilis) minden kérésnél. **Egyszeri** authenticator beállítás a fiókban (QR-kód) — **telefon/SMS gate nincs**. Twilio SMS költség elkerülése.  
+**Indok:** SMS per-kérés költséges; TOTP ingyenes, eszközön maradó emberi megerősítés.  
+**Felülírja:** ADR-036 (SMS OTP); ADR-020 (telefon kötelező első kérés előtt).  
+**Megmarad:** challenge + rate limit + e-mail verified + `UNIQUE(user_id, completed_round_id)`.
 
 ---
 
@@ -354,3 +365,4 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 | 034 | 2026-07-23 | Elfogadva; implementálva |
 | 035–036 | 2026-07-28 | Elfogadva |
 | 037 | 2026-08-11 | Elfogadva; fázis 1 elindítva — [MOBILE_APP.md](MOBILE_APP.md), `apps/mobile` |
+| 038 | 2026-08-11 | Elfogadva; TOTP folytatáskérés — SMS/telefon gate kikerült |

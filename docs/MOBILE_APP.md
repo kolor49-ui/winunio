@@ -20,7 +20,7 @@ A web **marad** (asztali, linkek, SEO). Az app **elsődleges mobilélmény**.
 | Nyelv | TypeScript |
 | API | HTTPS → `https://www.winunio.com/api/v1` |
 | Auth | JWT Bearer (lásd Előfeltétel) |
-| Folytatáskérés megerősítés | **Biometria** (`expo-local-authentication`) — nem SMS az appban |
+| Folytatáskérés megerősítés | **TOTP** (ugyanaz mint weben, ADR-038) |
 | Store | Google Play (meglévő fejlesztői fiók, új app listing) |
 | Csomagnév | `com.winunio.app` (javasolt) |
 
@@ -32,7 +32,7 @@ A web **marad** (asztali, linkek, SEO). Az app **elsődleges mobilélmény**.
 
 1. Login/register válasz: `access_token` (JWT).
 2. `Authorization: Bearer` elfogadása védett API-n.
-3. Android folytatás: `POST …/challenge/mobile-code` + biometria UX az appban.
+3. Android folytatás: challenge + `totp_code` (authenticator app).
 
 ---
 
@@ -95,8 +95,8 @@ Minden sor = **benne van v1-ben**. Forrás: [USER_FLOWS.md](USER_FLOWS.md), [API
 
 | Funkció | UF | App specifikus |
 |---------|-----|----------------|
-| Folytatáskérés | UF-07 | **Biometria** + challenge API (SMS helyett) |
-| Telefon egyszeri verifikáció | UF-07 | `POST /phone/start`, `confirm` — első alkalom |
+| Folytatáskérés | UF-07 | **TOTP** + challenge API |
+| Authenticator beállítás | UF-07 | `POST /auth/totp/setup`, `confirm` — egyszer |
 | Értesítés B válaszára | UF-06a | `POST …/response-notifications` |
 | Folytatásszámláló | UF-08 | státusz API-ból |
 
@@ -104,16 +104,14 @@ Minden sor = **benne van v1-ben**. Forrás: [USER_FLOWS.md](USER_FLOWS.md), [API
 
 ```
 KÉREM A FOLYTATÁST
-  → [első alkalom: telefon OTP egyszer, ha kell]
+  → [első alkalom: TOTP beállítás a fiókban]
   → challenge kiadás (POST …/challenge)
-  → biometria (ujjlenyomat / PIN)
-  → POST …/continuation-requests (challenge_id + app_assertion)
+  → 6 jegy az authenticator appból
+  → POST …/continuation-requests (challenge_id + totp_code)
   → kérés rögzítve
 ```
 
-A backend **új mező** szükséges: mobil biometria assertion (nem WebAuthn, nem SMS). Implementáció: signed challenge + `LocalAuthentication` success token vagy egyszerűsített HMAC időbélyeg — **ADR-037 implementációs részletezése külön lépés**.
-
-> Addig a web **SMS OTP** marad (ADR-036). App és web **külön megerősítési csatorna**, ugyanaz a challenge + rate limit.
+Web és app **ugyanaz** a TOTP csatorna (ADR-038).
 
 ---
 
@@ -138,7 +136,7 @@ A backend **új mező** szükséges: mobil biometria assertion (nem WebAuthn, ne
 4. **Vita lista + részlet** (olvasás)
 5. **Vitaindítás + jelentkezés + meghívás**
 6. **Forduló írás + zárógondolat**
-7. **Folytatáskérés biometriával**
+7. **Folytatáskérés TOTP-pal**
 8. **Vitáim, account, report**
 9. **Play internal testing** → production
 

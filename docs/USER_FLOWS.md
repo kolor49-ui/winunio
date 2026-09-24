@@ -146,19 +146,19 @@ Vita olvasása (A már publikálva, B még nem)
 
 ```
 Vita olvasása (teljes published forduló után)
+  → [első alkalom: authenticator app beállítása a fiókban]
   → KÉREM A FOLYTATÁST
-  → [első alkalom: telefon OTP egyszer]
-  → challenge kiadás + SMS kód
-  → 6 jegy beírása
+  → challenge kiadás
+  → 6 jegy az authenticator appból
   → kérés rögzítve
   → számláló frissül
 ```
 
 | Dimenzió | Viselkedés |
 |----------|------------|
-| Hiba | Már kért / nem teljes published / rate limit / SMS hiba |
+| Hiba | Már kért / nem teljes published / rate limit / TOTP hiba |
 | Idempotens | Ismételt kattintás → ugyanaz a rekord, számláló nem nő |
-| Jogosultság | Bejelentkezett + verified e-mail + telefon (első) |
+| Jogosultság | Bejelentkezett + verified e-mail + TOTP beállítva |
 
 ---
 

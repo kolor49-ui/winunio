@@ -123,6 +123,8 @@ export async function deleteUserAccount(userId: string, password: string) {
     await tx`DELETE FROM email_auth_tokens WHERE user_id = ${userId}`;
     await tx`DELETE FROM passkey_credentials WHERE user_id = ${userId}`;
     await tx`DELETE FROM phone_verifications WHERE user_id = ${userId}`;
+    await tx`DELETE FROM user_totp_credentials WHERE user_id = ${userId}`;
+    await tx`DELETE FROM user_totp_pending WHERE user_id = ${userId}`;
 
     await tx`
       UPDATE public_profiles

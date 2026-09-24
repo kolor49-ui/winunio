@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AccountDeleteForm } from "./account-delete-form";
+import { TotpSetupPanel } from "./totp-setup-panel";
 import { InstallAppButton } from "../install-app-button";
 import { UserPushSetup } from "../user-push-setup";
 import { getSession } from "@/server/api/http";
@@ -36,6 +37,11 @@ export default async function AccountPage() {
       </header>
 
       <div className="layout-main">
+        <section className="layout-panel">
+          <h2 className="layout-panel-title">Folytatáskérés — authenticator</h2>
+          <TotpSetupPanel initialEnabled={user.totp_enabled} />
+        </section>
+
         <section className="layout-panel">
           <h2 className="layout-panel-title">Értesítések</h2>
           <p className="hint">

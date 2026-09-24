@@ -4,6 +4,7 @@ import { getSql } from "@/server/db";
 import { hashPassword } from "@/server/auth/password";
 import { ensureBootstrapAdmin } from "@/server/services/bootstrap-admin-service";
 import { notifyAdminsUserRegistered } from "@/server/services/admin-notification-service";
+import { isTotpEnabled } from "@/server/services/totp-service";
 
 const registerSchema = z.object({
   email: z.string().email().max(320),
@@ -134,11 +135,14 @@ export const getUserById = cache(async (userId: string) => {
 
   const promoted = await ensureBootstrapAdmin(user.id, user.email);
 
+  const totpEnabled = await isTotpEnabled(user.id);
+
   return {
     id: user.id,
     email: user.email,
     email_verified: user.email_verified_at !== null,
     phone_verified: user.phone_verified_at !== null,
+    totp_enabled: totpEnabled,
     is_admin: promoted ? true : user.is_admin,
     display_name: user.display_name ?? null,
     is_anonymous: user.is_anonymous ?? true,

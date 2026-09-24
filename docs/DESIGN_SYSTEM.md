@@ -78,9 +78,9 @@ Minden jutalmi megjelenítésnél:
 - **Tiltott szavak:** szavazat, szavazz, like, VS
 - Egy kérés / forduló — a UI jelezze az egyszeri limitet
 
-SMS megerősítés copy:
+TOTP megerősítés copy:
 
-> SMS kódot küldtünk a regisztrált telefonszámodra — írd be a 6 jegyű kódot.
+> Írd be a Google Authenticator (vagy más authenticator app) 6 jegyű kódját.
 
 ---
 
@@ -102,7 +102,7 @@ SMS megerősítés copy:
 | `RoundStatus` | Aktív forduló fázisok (`awaiting_a` / `awaiting_b`), timeout — jutalom nélkül küszöb előtt |
 | `RoundAwaitingB` | A publikálva; várakozás + értesítés kérés gomb |
 | `ClosingStatementForm` | Zárásra vár — rejtett partner szöveg |
-| `ContinuationRequestFlow` | challenge + SMS OTP + telefon gate (első alkalom) |
+| `ContinuationRequestFlow` | challenge + TOTP + authenticator egyszeri beállítás |
 | `DebateRewardReveal` | Függő összeg küszöb után; kifizethető megjelenítés lezáráskor |
 | `DebateEditor` | **Tervezett** — saját érvelés + idézet + forrás; paste tiltás; piszkozat |
 | `ContentReviewFeedback` | **Tervezett** — megjelölt problémák, szabály-hivatkozás; **nincs** AI-szöveg |

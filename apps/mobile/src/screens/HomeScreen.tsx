@@ -12,7 +12,7 @@ export function HomeScreen({ email, onLogout }: Props) {
       <Text style={styles.email}>{email}</Text>
       <Text style={styles.hint}>
         Android app v0.1 — bejelentkezés működik.{"\n"}
-        Viták, vitázás és folytatáskérés biometriával következik.
+        Viták, vitázás és folytatáskérés (TOTP) következik.
       </Text>
       <Pressable style={styles.button} onPress={onLogout}>
         <Text style={styles.buttonText}>Kijelentkezés</Text>

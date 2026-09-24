@@ -198,7 +198,7 @@ A `POST …/arguments`, `POST …/closing-statements`, `POST …/debates`, `POST
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests/challenge`
 
-Challenge kiadása + SMS OTP küldése (web). Android app: `delivery: "mobile"`, SMS nélkül.
+Challenge kiadása. Válasz: `challenge_id`, `delivery: "totp"`. Nincs SMS.
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests/challenge/mobile-code`
 
@@ -206,19 +206,22 @@ Challenge kiadása + SMS OTP küldése (web). Android app: `delivery: "mobile"`,
 |---|---|
 | **Fejléc** | `x-winunio-client: android`, Bearer token |
 | **Bemenet** | `challenge_id` |
-| **Válasz** | `verification_code` (6 jegy) — app biometria után hívja |
-| **Utána** | `POST …/continuation-requests` ugyanazzal `sms_code`-ként |
+| **Válasz** | `delivery: "totp"` — app későbbi fázis; ugyanaz a TOTP flow |
 
 ### `POST /api/v1/rounds/:completedRoundId/continuation-requests`
 
 | | |
 |---|---|
-| **Bemenet** | `challenge_id`, `sms_code` (6 jegy) |
+| **Bemenet** | `challenge_id`, `totp_code` (6 jegy) |
 | **Üzleti szabály** | ABUSE_PREVENTION teljes pipeline |
 | **Idempotencia** | **Kötelező** — `UNIQUE(user_id, completed_round_id)`; retry → `200` meglévő |
 | **Mellékhatás** | Számláló +1; esetleg atomi küszöb-esemény |
 
-**Hibakódok:** `401` auth; `403` telefon/e-mail; `409` duplicate; `422` SMS/challenge; `429` rate limit.
+**Hibakódok:** `401` auth; `403` e-mail / TOTP nincs beállítva; `409` duplicate; `422` TOTP/challenge; `429` rate limit.
+
+### `POST /api/v1/auth/totp/setup` / `confirm`
+
+Egyszeri authenticator (TOTP) beállítás a fiókban. Setup: QR + `manual_secret`; confirm: 6 jegy.
 
 ---
 
@@ -233,11 +236,15 @@ Challenge kiadása + SMS OTP küldése (web). Android app: `delivery: "mobile"`,
 
 ---
 
-## Phone / Passkey
+## Phone / Passkey / TOTP
 
 ### `POST /api/v1/phone/start` / `confirm`
 
-OTP indítás és megerősítés.
+Telefon OTP (legacy API — folytatáskéréshez **nem** kötelező, ADR-038).
+
+### `POST /api/v1/auth/totp/setup` / `confirm`
+
+Authenticator app beállítás folytatáskéréshez.
 
 ### `POST /api/v1/passkeys/register` / `authenticate`
 

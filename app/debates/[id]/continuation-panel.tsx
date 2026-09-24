@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { formatHuPhoneDisplay, formatHuPhoneForApi } from "../../phone-hu";
-import { PhoneInputHu } from "../../phone-input-hu";
 
 export type ContinuationStatusView = {
   completed_round_id: string;
@@ -16,7 +14,7 @@ export type ContinuationStatusView = {
   viewer_is_participant: boolean;
   viewer_can_request: boolean;
   viewer_block_reason: string | null;
-  viewer_phone_verified: boolean;
+  viewer_totp_enabled: boolean;
 };
 
 type Props = {
@@ -47,102 +45,18 @@ export function ContinuationPanel({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const [phoneVerified, setPhoneVerified] = useState(
-    initialStatus.viewer_phone_verified,
+  const totpEnabled = initialStatus.viewer_totp_enabled;
+  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(
+    null,
   );
-  const [phoneLocal, setPhoneLocal] = useState("");
-  const [pendingPhoneE164, setPendingPhoneE164] = useState<string | null>(null);
-  const [phoneSetupCode, setPhoneSetupCode] = useState("");
-  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
   const [continuationCode, setContinuationCode] = useState("");
-
-  async function startPhone(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!viewerUserId) return;
-    setError(null);
-    setLoading("phone-start");
-    let phone: string;
-    try {
-      phone = formatHuPhoneForApi(phoneLocal);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Érvénytelen telefonszám");
-      setLoading(null);
-      return;
-    }
-    try {
-      const res = await fetch("/api/v1/phone/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error?.message ?? "SMS indítás sikertelen");
-        return;
-      }
-      setPendingPhoneE164(data.phone_e164 ?? phone);
-      setPhoneSetupCode("");
-      setInfo(
-        data.delivery === "sms"
-          ? `SMS elküldve: ${formatHuPhoneDisplay(data.phone_e164 ?? phone)}`
-          : data.dev_code
-            ? `Fejlesztői kód: ${data.dev_code}`
-            : (data.message ?? "Ellenőrző kódot küldtünk."),
-      );
-    } catch {
-      setError("Hálózati hiba");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function confirmPhone(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!viewerUserId || !pendingPhoneE164) return;
-    if (!/^\d{6}$/.test(phoneSetupCode)) {
-      setError("A kód 6 számjegy.");
-      return;
-    }
-    setError(null);
-    setLoading("phone-confirm");
-    try {
-      const res = await fetch("/api/v1/phone/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: pendingPhoneE164,
-          code: phoneSetupCode,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error?.message ?? "Telefon megerősítés sikertelen");
-        return;
-      }
-      setPhoneVerified(true);
-      setPendingPhoneE164(null);
-      setPhoneSetupCode("");
-      setInfo("Telefonszám megerősítve.");
-    } catch {
-      setError("Hálózati hiba");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  function resetPhoneFlow() {
-    setPendingPhoneE164(null);
-    setPhoneSetupCode("");
-    setError(null);
-    setInfo(null);
-  }
 
   function resetContinuationFlow() {
     setPendingChallengeId(null);
     setContinuationCode("");
   }
 
-  async function submitContinuation(challengeId: string, smsCode: string) {
+  async function submitContinuation(challengeId: string, totpCode: string) {
     const res = await fetch(
       `/api/v1/rounds/${status.completed_round_id}/continuation-requests`,
       {
@@ -150,7 +64,7 @@ export function ContinuationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challenge_id: challengeId,
-          sms_code: smsCode,
+          totp_code: totpCode,
         }),
       },
     );
@@ -198,7 +112,9 @@ export function ContinuationPanel({
       );
       const challengeData = await challengeRes.json();
       if (!challengeRes.ok) {
-        throw new Error(challengeData.error?.message ?? "SMS indítás sikertelen");
+        throw new Error(
+          challengeData.error?.message ?? "Challenge indítás sikertelen",
+        );
       }
 
       if (challengeData.already_requested) {
@@ -213,13 +129,7 @@ export function ContinuationPanel({
 
       setPendingChallengeId(challengeData.challenge_id);
       setContinuationCode("");
-      setInfo(
-        challengeData.delivery === "sms"
-          ? `SMS kódot küldtünk ide: ${challengeData.phone_masked ?? "a regisztrált számodra"}.`
-          : challengeData.dev_code
-            ? `Fejlesztői kód: ${challengeData.dev_code}`
-            : "Írd be az SMS-ben kapott 6 jegyű kódot.",
-      );
+      setInfo("Írd be a Google Authenticator 6 jegyű kódját.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Hálózati hiba");
     } finally {
@@ -272,98 +182,37 @@ export function ContinuationPanel({
         !status.viewer_is_participant &&
         !status.viewer_already_requested && (
           <>
-            {!phoneVerified && (
+            {!totpEnabled && (
               <div className="continuation-setup">
                 <p className="hint">
-                  Első folytatáskérés előtt telefonszám megerősítés szükséges (egyszeri).
+                  Első folytatáskérés előtt egyszer be kell állítanod egy
+                  authenticator appot (pl. Google Authenticator).
                 </p>
-
-                {!pendingPhoneE164 ? (
-                  <form onSubmit={startPhone} className="form phone-verify-form">
-                    <label htmlFor="continuation-phone-local">
-                      Telefonszám
-                      <PhoneInputHu
-                        id="continuation-phone-local"
-                        value={phoneLocal}
-                        onChange={setPhoneLocal}
-                        disabled={loading !== null}
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="btn btn-secondary"
-                      disabled={loading !== null || phoneLocal.replace(/\D/g, "").length < 9}
-                    >
-                      {loading === "phone-start" ? "Küldés…" : "Kód küldése SMS-ben"}
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={confirmPhone} className="form phone-verify-form">
-                    <p className="hint phone-verify-sent">
-                      Kódot küldtünk ide:{" "}
-                      <strong>{formatHuPhoneDisplay(pendingPhoneE164)}</strong>
-                    </p>
-                    <label htmlFor="continuation-phone-setup-code">
-                      6 jegyű SMS kód
-                      <input
-                        id="continuation-phone-setup-code"
-                        name="code"
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        pattern="\d{6}"
-                        maxLength={6}
-                        placeholder="123456"
-                        value={phoneSetupCode}
-                        onChange={(e) =>
-                          setPhoneSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                        }
-                        required
-                        disabled={loading !== null}
-                        autoFocus
-                      />
-                    </label>
-                    <div className="phone-verify-actions">
-                      <button
-                        type="submit"
-                        className="btn btn-secondary"
-                        disabled={loading !== null || phoneSetupCode.length !== 6}
-                      >
-                        {loading === "phone-confirm"
-                          ? "Ellenőrzés…"
-                          : "Telefon megerősítése"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={loading !== null}
-                        onClick={resetPhoneFlow}
-                      >
-                        Másik szám
-                      </button>
-                    </div>
-                  </form>
-                )}
+                <Link href="/account#authenticator" className="btn btn-secondary">
+                  Authenticator beállítása
+                </Link>
               </div>
             )}
 
-            {phoneVerified && !pendingChallengeId && (
+            {totpEnabled && !pendingChallengeId && (
               <button
                 type="button"
                 className="btn"
                 onClick={() => void requestContinuation()}
                 disabled={loading !== null}
               >
-                {loading === "continuation" ? "SMS küldése…" : "KÉREM A FOLYTATÁST"}
+                {loading === "continuation"
+                  ? "Indítás…"
+                  : "KÉREM A FOLYTATÁST"}
               </button>
             )}
 
-            {phoneVerified && pendingChallengeId && (
+            {totpEnabled && pendingChallengeId && (
               <form onSubmit={confirmContinuation} className="form phone-verify-form">
-                <label htmlFor="continuation-sms-code">
-                  6 jegyű SMS kód
+                <label htmlFor="continuation-totp-code">
+                  6 jegyű kód az authenticator appból
                   <input
-                    id="continuation-sms-code"
+                    id="continuation-totp-code"
                     name="code"
                     type="text"
                     inputMode="numeric"
@@ -373,7 +222,9 @@ export function ContinuationPanel({
                     placeholder="123456"
                     value={continuationCode}
                     onChange={(e) =>
-                      setContinuationCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      setContinuationCode(
+                        e.target.value.replace(/\D/g, "").slice(0, 6),
+                      )
                     }
                     required
                     disabled={loading !== null}
@@ -400,14 +251,14 @@ export function ContinuationPanel({
                       setError(null);
                     }}
                   >
-                    Új SMS
+                    Mégse
                   </button>
                 </div>
               </form>
             )}
 
             {status.viewer_block_reason &&
-              !phoneVerified &&
+              !totpEnabled &&
               !status.viewer_can_request && (
                 <p className="hint">{status.viewer_block_reason}</p>
               )}
