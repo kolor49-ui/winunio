@@ -417,7 +417,7 @@ export function DebateEditor(props: Props) {
           {spellLoading ? "Ellenőrzés…" : "Helyesírás ellenőrzése"}
         </button>
         <p className="hint debate-editor-spell-hint">
-          Csak hiányzó szóköz — a szavakat nem írjuk át, a jelentés nem változik.
+          Csak szóköz-javítás — betűt nem cserélünk, a jelentés nem változik.
         </p>
       </div>
 
@@ -430,7 +430,7 @@ export function DebateEditor(props: Props) {
       {spellSuggestions && spellCheckBaseText && (
         <div className="debate-editor-spell panel-nested">
           <p className="meta">
-            Szóköz-javaslatok — csak elfogadás után kerülnek be.
+            Helyesírási javaslatok — csak elfogadás után kerülnek be.
           </p>
           <SpellCheckDiff
             text={spellCheckBaseText}

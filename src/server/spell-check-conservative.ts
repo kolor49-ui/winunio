@@ -1,8 +1,7 @@
 import type { MissingSpaceSuggestion } from "@/server/missing-space-detection";
 
 /**
- * Helyesírás-javaslat csak akkor engedélyezett, ha a betűk sorrendje változatlan —
- * legfeljebb szóköz / központozás előtti térköz kerül be. Nincs szócsere, nincs átfogalmazás.
+ * Szóköz-javítás: ugyanazok a betűk, csak szóköz kerül be vagy ki.
  */
 export function isSpacingOnlySpellFix(original: string, suggestion: string): boolean {
   const strip = (value: string) =>

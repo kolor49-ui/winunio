@@ -330,12 +330,12 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 ---
 
-## ADR-039 — Helyesírás-ellenőrzés: nincs AI, csak szóköz-beszúrás
+## ADR-039 — Helyesírás-ellenőrzés: determinisztikus szóköz, nincs AI
 
 **Dátum:** 2026-08-11  
-**Státusz:** Elfogadva  
-**Döntés:** A „Helyesírás ellenőrzése” **nem** használ OpenAI-t. Csak determinisztikus **hiányzó szóköz** javaslat (ugyanazok a betűk, legfeljebb szóköz kerül be). Szócsere, ékezet-javítás, átfogalmazás **tilos**.  
-**Indok:** Az AI javaslatok jelentést változtattak; a résztvevő csak formai, biztonságos javítást kérhet.  
+**Státusz:** Elfogadva (módosítva)  
+**Döntés:** A „Helyesírás ellenőrzése” **nem** használ OpenAI-t vagy szótárat. Csak **determinisztikus szóköz**-javítás (összeérő szavak, téves „ s” felosztás, ismert elő- és utótagok). **Betűt nem cserélünk** — nincs átfogalmazás. Helyes szavakat nem bontjuk szét.  
+**Indok:** AI és heurisztikus „s”-felosztás hamis/veszélyes javaslatokat adott.  
 **Felülírja:** CONTENT_EDITOR §3 AI-alapú helyesírás tervét.
 
 ---

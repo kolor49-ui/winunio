@@ -35,7 +35,6 @@ const GLUED_FOLLOWERS = [
   "ez",
   "mivel",
   "ha",
-  "s",
 ] as const;
 
 /** Ismert összeolvadt szópárok — teljes token cseréje. */

@@ -6,7 +6,7 @@ import {
   detectMissingSpaceSuggestions,
   missingSpaceSuggestionsToReviewIssues,
 } from "@/server/missing-space-detection";
-import { filterConservativeSpellCheckSuggestions } from "@/server/spell-check-conservative";
+import { spellCheckHungarian } from "@/server/spell-check-heuristics";
 import { computeContentHash } from "@/server/services/content-hash";
 import { createModerationCaseFromReview } from "@/server/services/moderation-service";
 import {
@@ -804,11 +804,7 @@ export async function spellCheckParticipantContent(input: {
     throw new ApiError(422, "VALIDATION_ERROR", "A szöveg nem lehet üres");
   }
 
-  const localSuggestions = detectMissingSpaceSuggestions(trimmed);
-  const conservative = filterConservativeSpellCheckSuggestions(
-    trimmed,
-    localSuggestions,
-  );
+  const conservative = spellCheckHungarian(trimmed);
   return {
     suggestions: filterNoOpSpellCheckSuggestions(trimmed, conservative),
   };
