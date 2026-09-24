@@ -330,13 +330,13 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 
 ---
 
-## ADR-039 — Helyesírás-ellenőrzés: determinisztikus szóköz, nincs AI
+## ADR-039 — Helyesírás-ellenőrzés: heurisztika + OpenAI szigorú szűréssel
 
 **Dátum:** 2026-08-11  
 **Státusz:** Elfogadva (módosítva)  
-**Döntés:** A „Helyesírás ellenőrzése” **nem** használ OpenAI-t vagy szótárat. Csak **determinisztikus szóköz**-javítás (összeérő szavak, téves „ s” felosztás, ismert elő- és utótagok). **Betűt nem cserélünk** — nincs átfogalmazás. Helyes szavakat nem bontjuk szét.  
-**Indok:** AI és heurisztikus „s”-felosztás hamis/veszélyes javaslatokat adott.  
-**Felülírja:** CONTENT_EDITOR §3 AI-alapú helyesírás tervét.
+**Döntés:** A „Helyesírás ellenőrzése” **hibrid**: (1) **determinisztikus heurisztika** szóköz-javításra (összeérő szavak, téves „ s” felosztás, ismert elő- és utótagok); (2) **OpenAI** elütés/ékezet-javaslatokra, de minden AI-javaslat **konzervatív poszt-szűrőn** megy át (Levenshtein ≤2, egy szó, nincs átfogalmazás, nincs egybetűs felosztás). Helyes szavakat nem bontjuk szét. OpenAI hiba vagy hiányzó kulcs → csak heurisztika.  
+**Indok:** Csak szóköz túl gyenge; nyers AI átfogalmazott. A szűrő + erős prompt visszaadja az elütés-javítást biztonságosan.  
+**Felülírja:** CONTENT_EDITOR §3 korábbi „csak szóköz” szövegét.
 
 ---
 
@@ -376,4 +376,4 @@ Döntési napló. **Státusz:** `Elfogadva` = rögzített spec; `Nyitott` = még
 | 035–036 | 2026-07-28 | Elfogadva |
 | 037 | 2026-08-11 | Elfogadva; fázis 1 elindítva — [MOBILE_APP.md](MOBILE_APP.md), `apps/mobile` |
 | 038 | 2026-08-11 | Elfogadva; TOTP folytatáskérés — SMS/telefon gate kikerült |
-| 039 | 2026-08-11 | Elfogadva; helyesírás = csak szóköz, nincs AI |
+| 039 | 2026-08-11 | Elfogadva; helyesírás = heurisztika + OpenAI szigorú szűréssel |

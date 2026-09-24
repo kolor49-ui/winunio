@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  filterConservativeSpellCheckSuggestions,
+  isConservativeTypoFix,
   isSpacingOnlySpellFix,
 } from "@/server/spell-check-conservative";
 import { spellCheckHungarian } from "@/server/spell-check-heuristics";
@@ -35,5 +37,30 @@ describe("spell-check-heuristics", () => {
     expect(
       result.every((s) => isSpacingOnlySpellFix(s.original, s.suggestion)),
     ).toBe(true);
+  });
+});
+
+describe("spell-check-conservative", () => {
+  it("engedélyez rövid elütés-javítást", () => {
+    expect(isConservativeTypoFix("ros", "rossz")).toBe(true);
+    expect(isConservativeTypoFix("konyv", "könyv")).toBe(true);
+  });
+
+  it("elutasít átfogalmazást és több szavas javítást", () => {
+    expect(isConservativeTypoFix("megamrúl", "megamarad")).toBe(false);
+    expect(isConservativeTypoFix("jó", "nagyon jó")).toBe(false);
+  });
+
+  it("elutasítja az alapoktatás felbontását AI szűrőben", () => {
+    const text = "Az alapoktatás ingyenes.";
+    const filtered = filterConservativeSpellCheckSuggestions(text, [
+      {
+        original: "alapoktatás",
+        suggestion: "alapoktatá s",
+        start: 3,
+        end: 14,
+      },
+    ]);
+    expect(filtered).toHaveLength(0);
   });
 });

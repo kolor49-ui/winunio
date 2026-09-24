@@ -417,7 +417,7 @@ export function DebateEditor(props: Props) {
           {spellLoading ? "Ellenőrzés…" : "Helyesírás ellenőrzése"}
         </button>
         <p className="hint debate-editor-spell-hint">
-          Csak szóköz-javítás — betűt nem cserélünk, a jelentés nem változik.
+          Elütés és szóköz javítása — jelentést nem változtatunk, minden javaslat külön elfogadható.
         </p>
       </div>
 

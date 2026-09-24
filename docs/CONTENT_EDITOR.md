@@ -115,8 +115,8 @@ Tartalmi ellenőrzéskor az AI **tilos**:
 | Szabály | Részlet |
 |---------|---------|
 | Indítás | **Csak** a résztvevő kifejezett kérésére („Helyesírás ellenőrzése” gomb) |
-| Tartalom | Determinisztikus hiányzó/téves szóköz (összeérő szavak, „ s” javítás) — betűcsere nincs |
-| Tiltott | AI, szótár/szócsere, átfogalmazás, stílus, helyes szó felbontása, tartalmi módosítás |
+| Tartalom | Heurisztika: hiányzó/téves szóköz. OpenAI: elütés, ékezet — minden javaslat konzervatív szűrőn |
+| Tiltott | Átfogalmazás, stílus, szinonima, helyes szó felbontása, tartalmi módosítás, szótár |
 | Bizonytalanság | Ha nincs egyértelmű, konzervatív javaslat → **nincs** javaslat |
 
 ### Javaslat megjelenítése
