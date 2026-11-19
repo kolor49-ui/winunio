@@ -68,10 +68,19 @@
       .pitch {
         position: absolute;
         inset: -2% -2% -2% -6%;
+        /* mobil: 78% 55% — asztali override lentebb */
         background: url("./hero-pitch.jpg") 78% 55% / cover no-repeat;
         transform: scale(1.05);
         animation: pitch-drift 18s ease-in-out infinite alternate;
         filter: saturate(1.04) contrast(1.04) brightness(1.04);
+      }
+
+      @media (min-width: 721px) {
+        .pitch {
+          /* fej + labda bent a keretben; mobil pozíció érintetlen */
+          background-position: 74% 28%;
+          inset: 0 -2% -4% -4%;
+        }
       }
 
       .flood {
