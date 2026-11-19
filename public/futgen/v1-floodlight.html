@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>futgen · Floodlight</title>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --pitch: #062e1f;
+        --pitch-deep: #031910;
+        --foam: #d7ffe8;
+        --blue: #6eb6ff;
+        --blue-deep: #0a2a4a;
+        --line: rgba(215, 255, 232, 0.18);
+        --live: #ff5a5a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--foam);
+        font-family: Manrope, system-ui, sans-serif;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -5%, rgba(110, 182, 255, 0.35), transparent 60%),
+          linear-gradient(180deg, var(--blue-deep) 0%, #071a12 28%, var(--pitch-deep) 100%);
+        min-height: 100vh;
+      }
+      .back { display:inline-block; margin:1rem 1.25rem 0; color:var(--blue); font-weight:700; text-decoration:none; letter-spacing:.06em; text-transform:uppercase; font-size:.75rem; }
+      .wrap { width:min(980px, calc(100% - 2rem)); margin:0 auto; padding:0 0 3rem; position:relative; }
+      .sky-goal {
+        position:absolute; right:2%; top:1.5rem; width:min(280px, 46vw); opacity:.9; pointer-events:none;
+        filter: drop-shadow(0 0 30px rgba(110,182,255,.35));
+      }
+      .ball {
+        position:absolute; left:8%; top:7.5rem; width:64px; animation:kick 3.2s ease-in-out infinite;
+        filter: drop-shadow(0 12px 18px rgba(0,0,0,.45));
+      }
+      @keyframes kick {
+        0%,100% { transform: translate(0,0) rotate(0deg); }
+        40% { transform: translate(18px,-22px) rotate(40deg); }
+        70% { transform: translate(8px,-8px) rotate(18deg); }
+      }
+      h1 {
+        font-family: "Archivo Black", sans-serif;
+        font-size: clamp(2.8rem, 9vw, 5.2rem);
+        line-height: .9; letter-spacing: -.04em; margin: 1.4rem 0 .5rem;
+        text-transform: uppercase;
+      }
+      h1 .g { color: #2dff9a; }
+      h1 .b { color: var(--blue); }
+      .lead { max-width: 28rem; color: rgba(215,255,232,.72); line-height:1.45; margin:0 0 1.5rem; }
+      .ages, .filters { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.8rem; }
+      .ages button, .filters button {
+        appearance:none; border:1px solid var(--line); background:rgba(3,25,16,.55);
+        color:var(--foam); font:inherit; font-weight:800; padding:.55rem .85rem; cursor:pointer;
+        clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+      }
+      .ages button.is-active { background:#128a55; border-color:#2dff9a; color:#031910; }
+      .filters button.is-active { background:var(--blue); border-color:var(--blue); color:#031018; }
+      .league {
+        border:1px solid var(--line); background: linear-gradient(90deg, rgba(18,138,85,.2), rgba(10,42,74,.35));
+        margin-top:.75rem; backdrop-filter: blur(6px);
+      }
+      .league-head {
+        display:flex; justify-content:space-between; align-items:center;
+        padding:.75rem 1rem; border-bottom:1px solid var(--line); font-weight:800;
+        background: rgba(6,46,31,.55);
+      }
+      .league-head span.b { color:var(--blue); font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; }
+      .match {
+        display:grid; grid-template-columns:1fr auto auto; gap:.8rem; align-items:center;
+        padding:.8rem 1rem; border-bottom:1px solid var(--line);
+      }
+      .match:last-child { border-bottom:0; }
+      .team { display:flex; gap:.5rem; align-items:center; font-weight:800; margin:.2rem 0; }
+      .crest { width:14px; height:14px; background:#2dff9a; clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+      .meta { font-weight:800; color:rgba(215,255,232,.5); min-width:3rem; text-align:right; }
+      .meta.live, .score.live { color:var(--live); }
+      .score { font-family:"Archivo Black",sans-serif; display:grid; gap:.15rem; text-align:right; }
+      .tag { margin-top:1.5rem; font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; color:rgba(110,182,255,.75); }
+    </style>
+  </head>
+  <body>
+    <a class="back" href="./index.html">← változatok</a>
+    <div class="wrap">
+      <svg class="sky-goal" viewBox="0 0 280 160" fill="none" aria-hidden="true">
+        <path d="M20 150 V30 H260 V150" stroke="#6eb6ff" stroke-width="5"/>
+        <path d="M20 30 H260" stroke="#9fd0ff" stroke-width="6"/>
+        <path d="M40 40 V150 M70 40 V150 M100 40 V150 M130 40 V150 M160 40 V150 M190 40 V150 M220 40 V150 M250 40 V150" stroke="#6eb6ff" stroke-opacity=".35" stroke-width="2"/>
+        <path d="M20 55 H260 M20 80 H260 M20 105 H260 M20 130 H260" stroke="#6eb6ff" stroke-opacity=".28" stroke-width="2"/>
+      </svg>
+      <svg class="ball" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="#f4f7f5" stroke="#0a2a4a" stroke-width="2"/>
+        <path d="M32 14l8 6-3 10h-10l-3-10z M18 28l8 2 2 10-8 6-6-8z M46 28l-8 2-2 10 8 6 6-8z M24 50l8-4 8 4-3 6h-10z" fill="#0a2a4a"/>
+      </svg>
+      <h1>fut<span class="g">gen</span><br /><span class="b">floodlight</span></h1>
+      <p class="lead">Éjszakai pálya. Zöld a gyep, kék a reflektoros ég. Éles kapuháló, mozgó labda.</p>
+      <div class="ages">
+        <button class="is-active" type="button">Összes</button>
+        <button type="button">U15</button><button type="button">U17</button><button type="button">U19</button>
+      </div>
+      <div class="filters">
+        <button class="is-active" type="button">Összes</button>
+        <button type="button">Élő</button>
+        <button type="button">Befejezett</button>
+      </div>
+      <article class="league">
+        <div class="league-head"><div>U15 Elite Liga</div><span class="b">élő pálya</span></div>
+        <div class="match">
+          <div>
+            <div class="team"><span class="crest"></span>Ferencváros U15</div>
+            <div class="team"><span class="crest"></span>Puskás Akadémia U15</div>
+          </div>
+          <div class="meta live">61′</div>
+          <div class="score live"><span>2</span><span>1</span></div>
+        </div>
+        <div class="match">
+          <div>
+            <div class="team"><span class="crest"></span>MTK U15</div>
+            <div class="team"><span class="crest"></span>Győri ETO U15</div>
+          </div>
+          <div class="meta">16:00</div>
+          <div class="score"><span>-</span><span>-</span></div>
+        </div>
+      </article>
+      <p class="tag">01 · Floodlight · zöld gyep / kék ég</p>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,3 @@
+# futgen: URL-only koncepció — ne indexelje a kereső
+User-agent: *
+Disallow: /futgen/

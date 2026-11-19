@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>futgen · Ice Derby</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+3:wght@600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #0b1020;
+        --ice: #8ec8ff;
+        --ice-deep: #1c3f7a;
+        --turf: #0f3d28;
+        --turf-bright: #1dbf6c;
+        --ink: #eef4ff;
+        --line: rgba(142, 200, 255, 0.22);
+        --live: #ff4d6d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: "Source Sans 3", system-ui, sans-serif;
+        background:
+          linear-gradient(115deg, #0a1733 0 48%, #071910 48% 100%);
+      }
+      .noise {
+        position: fixed; inset: 0; pointer-events: none; opacity: .18; mix-blend-mode: soft-light;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .back {
+        position: relative; z-index: 2; display: inline-block; margin: 1rem 1.25rem 0;
+        color: var(--ice); text-decoration: none; font-weight: 800; letter-spacing: .1em;
+        text-transform: uppercase; font-size: .75rem;
+      }
+      .wrap {
+        position: relative; z-index: 1; width: min(980px, calc(100% - 2rem));
+        margin: 0 auto; padding: 0 0 3rem;
+      }
+      .hero {
+        display: grid; grid-template-columns: 1.2fr .8fr; gap: 1rem; align-items: end;
+        margin-top: 1.2rem;
+      }
+      @media (max-width: 760px) {
+        .hero { grid-template-columns: 1fr; }
+      }
+      h1 {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(3.4rem, 11vw, 6.4rem);
+        line-height: .85; margin: 0; letter-spacing: .02em;
+      }
+      h1 .ice { color: var(--ice); }
+      h1 .turf { color: var(--turf-bright); }
+      .lead {
+        margin: .7rem 0 0; max-width: 28rem; line-height: 1.45;
+        color: rgba(238, 244, 255, .72); font-weight: 600;
+      }
+      .arena {
+        position: relative; height: 190px; border: 2px solid var(--line);
+        background:
+          linear-gradient(90deg, rgba(28,63,122,.55) 0 50%, rgba(15,61,40,.65) 50% 100%);
+        overflow: hidden;
+      }
+      .goal {
+        position: absolute; top: 28px; width: 78px; height: 120px;
+        border: 3px solid #fff; border-bottom: 0;
+      }
+      .goal.left { left: 18px; border-color: var(--ice); box-shadow: 0 0 20px rgba(142,200,255,.35); }
+      .goal.right { right: 18px; border-color: var(--turf-bright); box-shadow: 0 0 20px rgba(29,191,108,.3); }
+      .goal .net {
+        position: absolute; inset: 0;
+        background-image:
+          linear-gradient(rgba(255,255,255,.2) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.2) 1px, transparent 1px);
+        background-size: 11px 11px; opacity: .55;
+      }
+      .mid {
+        position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+        background: #fff; transform: translateX(-50%); opacity: .55;
+      }
+      .mid::before {
+        content: ""; position: absolute; left: 50%; top: 50%; width: 54px; height: 54px;
+        border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); opacity: .55;
+      }
+      .ball {
+        position: absolute; width: 36px; height: 36px; top: 46%; left: 42%;
+        animation: strike 2.4s cubic-bezier(.2,.8,.2,1) infinite;
+        filter: drop-shadow(0 8px 10px rgba(0,0,0,.45));
+      }
+      @keyframes strike {
+        0%, 100% { transform: translate(0,0) rotate(0); }
+        35% { transform: translate(70px, -34px) rotate(120deg); }
+        55% { transform: translate(118px, 8px) rotate(200deg); }
+        75% { transform: translate(40px, 18px) rotate(280deg); }
+      }
+      .ages, .filters { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1.1rem 0 .55rem; }
+      button {
+        appearance: none; border: 2px solid transparent; font: inherit; font-weight: 800;
+        padding: .5rem .85rem; cursor: pointer; text-transform: uppercase; letter-spacing: .04em;
+        background: rgba(255,255,255,.06); color: var(--ink);
+      }
+      .ages button.is-active {
+        background: var(--turf-bright); color: #04140c; border-color: #063d24;
+      }
+      .filters button.is-active {
+        background: var(--ice); color: #071428; border-color: var(--ice-deep);
+      }
+      .league {
+        margin-top: .8rem; border: 2px solid var(--line);
+        background: rgba(7, 12, 24, .72);
+      }
+      .league-head {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: .75rem 1rem; font-family: "Bebas Neue", sans-serif;
+        font-size: 1.35rem; letter-spacing: .04em;
+        background: linear-gradient(90deg, rgba(28,63,122,.55), rgba(15,61,40,.45));
+        border-bottom: 2px solid var(--line);
+      }
+      .league-head span { color: var(--ice); font-size: .95rem; }
+      .match {
+        display: grid; grid-template-columns: 1fr auto auto; gap: .8rem;
+        align-items: center; padding: .85rem 1rem;
+        border-bottom: 1px solid rgba(142,200,255,.12);
+      }
+      .match:last-child { border-bottom: 0; }
+      .team {
+        display: flex; align-items: center; gap: .5rem; font-weight: 800; margin: .15rem 0;
+      }
+      .crest {
+        width: 12px; height: 12px; background: var(--ice);
+        clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%);
+      }
+      .match:nth-child(even) .crest { background: var(--turf-bright); }
+      .meta { font-weight: 800; color: rgba(238,244,255,.5); text-align: right; min-width: 3rem; }
+      .meta.live, .score.live { color: var(--live); }
+      .score {
+        font-family: "Bebas Neue", sans-serif; font-size: 1.55rem; line-height: 1;
+        display: grid; gap: .15rem; text-align: right; min-width: 1.4rem;
+      }
+      .tag {
+        margin-top: 1.3rem; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase;
+        color: rgba(142, 200, 255, .7);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <a class="back" href="./index.html">← változatok</a>
+    <div class="wrap">
+      <div class="hero">
+        <div>
+          <h1><span class="ice">FUT</span><span class="turf">GEN</span><br />ICE DERBY</h1>
+          <p class="lead">
+            Jeges indigókék balra, sötét gyepzöld jobbra. Éles kapuk, derby feszültség, lövésszerű labda.
+          </p>
+        </div>
+        <div class="arena" aria-hidden="true">
+          <div class="mid"></div>
+          <div class="goal left"><div class="net"></div></div>
+          <div class="goal right"><div class="net"></div></div>
+          <svg class="ball" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="30" fill="#f2f6ff" stroke="#0b1020" stroke-width="3" />
+            <path d="M32 14l8 6-3 10h-10l-3-10z M18 28l8 2 2 10-8 6-6-8z M46 28l-8 2-2 10 8 6 6-8z M24 50l8-4 8 4-3 6h-10z" fill="#0b1020" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="ages">
+        <button class="is-active" type="button">Összes</button>
+        <button type="button">U13</button>
+        <button type="button">U15</button>
+        <button type="button">U17</button>
+        <button type="button">U19</button>
+      </div>
+      <div class="filters">
+        <button class="is-active" type="button">Összes</button>
+        <button type="button">Élő</button>
+        <button type="button">Vége</button>
+        <button type="button">Következő</button>
+      </div>
+
+      <article class="league">
+        <div class="league-head">
+          <div>U15 Elite — Derby Night</div>
+          <span>BLUE vs GREEN</span>
+        </div>
+        <div class="match">
+          <div>
+            <div class="team"><span class="crest"></span>Ferencváros U15</div>
+            <div class="team"><span class="crest"></span>Újpest U15</div>
+          </div>
+          <div class="meta live">78′</div>
+          <div class="score live"><span>2</span><span>2</span></div>
+        </div>
+        <div class="match">
+          <div>
+            <div class="team"><span class="crest"></span>Honvéd U15</div>
+            <div class="team"><span class="crest"></span>MTK U15</div>
+          </div>
+          <div class="meta">Vége</div>
+          <div class="score"><span>1</span><span>0</span></div>
+        </div>
+      </article>
+      <p class="tag">04 · Ice Derby · jégkék / gyepzöld</p>
+    </div>
+  </body>
+</html>

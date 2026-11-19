@@ -7,6 +7,26 @@
       "permanent": true
     }
   ],
+  "headers": [
+    {
+      "source": "/futgen",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/futgen/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    }
+  ],
   "crons": [
     {
       "path": "/api/v1/cron/run",

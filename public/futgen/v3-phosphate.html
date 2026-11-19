@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>futgen · Phosphate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #020403;
+        --green: #78ff9a;
+        --green-dim: #1d5c32;
+        --blue: #4db8ff;
+        --ink: #b8ffc8;
+        --line: #12351d;
+        --live: #ff7a45;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin:0; min-height:100vh; color:var(--ink);
+        font-family: "Share Tech Mono", ui-monospace, monospace;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(77,184,255,.12), transparent 42%),
+          repeating-linear-gradient(180deg, rgba(120,255,154,.03) 0 2px, transparent 2px 4px),
+          var(--bg);
+      }
+      body::after {
+        content:""; position:fixed; inset:0; pointer-events:none;
+        background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.18) 2px, rgba(0,0,0,.18) 3px);
+        mix-blend-mode: multiply;
+      }
+      .back { position:relative; z-index:2; display:inline-block; margin:1rem 1.25rem 0; color:var(--blue); text-decoration:none; letter-spacing:.14em; font-size:.75rem; text-transform:uppercase; }
+      .wrap { position:relative; z-index:1; width:min(920px, calc(100% - 2rem)); margin:0 auto; padding:0 0 3rem; }
+      .board-frame {
+        margin-top:1rem; border:2px solid var(--green-dim);
+        box-shadow: 0 0 0 1px #0a1f12, inset 0 0 40px rgba(120,255,154,.05), 0 0 30px rgba(77,184,255,.08);
+        background: #050a07;
+        padding: 1rem .9rem 1.1rem;
+      }
+      .top-row { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
+      .goal-mini {
+        width:110px; height:70px; border:2px solid var(--blue); border-bottom:0; position:relative; flex:0 0 auto;
+        box-shadow: 0 0 12px rgba(77,184,255,.35);
+      }
+      .goal-mini i {
+        position:absolute; inset:0;
+        background:
+          linear-gradient(rgba(77,184,255,.25) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(77,184,255,.25) 1px, transparent 1px);
+        background-size:10px 10px;
+      }
+      .ball {
+        position:absolute; width:28px; height:28px; right:18px; bottom:-10px;
+        animation: bounce 1.1s ease-in-out infinite;
+      }
+      @keyframes bounce {
+        0%,100% { transform: translateY(0); }
+        50% { transform: translateY(-16px); }
+      }
+      h1 {
+        font-family: "Chakra Petch", sans-serif; font-weight:700;
+        font-size: clamp(2rem, 6vw, 3.4rem); margin:0; letter-spacing:.02em;
+        color: var(--green); text-shadow: 0 0 10px rgba(120,255,154,.35);
+      }
+      h1 em { font-style:normal; color:var(--blue); text-shadow:0 0 10px rgba(77,184,255,.4); }
+      .lead { margin:.55rem 0 0; color:#6fa87d; max-width:26rem; line-height:1.4; }
+      .ages, .filters { display:flex; gap:.35rem; flex-wrap:wrap; margin:1rem 0 .5rem; }
+      button {
+        appearance:none; border:1px solid var(--green-dim); background:#07140c; color:var(--green);
+        font:inherit; padding:.45rem .7rem; cursor:pointer; text-transform:uppercase; letter-spacing:.06em;
+      }
+      .ages button.is-active { background:var(--green); color:#031008; box-shadow:0 0 14px rgba(120,255,154,.35); }
+      .filters button.is-active { border-color:var(--blue); color:var(--blue); }
+      .league { margin-top:.7rem; border-top:1px dashed var(--green-dim); }
+      .league-head {
+        display:flex; justify-content:space-between; padding:.65rem 0; color:var(--green); font-family:"Chakra Petch",sans-serif;
+        letter-spacing:.08em; text-transform:uppercase; font-size:.85rem;
+      }
+      .league-head span { color:var(--blue); }
+      .match {
+        display:grid; grid-template-columns: 4.5rem 1fr auto; gap:.6rem; align-items:center;
+        padding:.55rem 0; border-bottom:1px solid #0d2416;
+      }
+      .clock { color:var(--blue); font-weight:700; }
+      .clock.live { color:var(--live); animation: blink 1s steps(1) infinite; }
+      @keyframes blink { 50% { opacity:.35; } }
+      .team { font-family:"Chakra Petch",sans-serif; font-weight:600; margin:.1rem 0; }
+      .score { color:var(--green); font-size:1.15rem; text-align:right; min-width:2.2rem; }
+      .score.live { color:var(--live); }
+      .tag { margin-top:1rem; color:#4f7a5c; letter-spacing:.14em; font-size:.72rem; text-transform:uppercase; }
+    </style>
+  </head>
+  <body>
+    <a class="back" href="./index.html">← változatok</a>
+    <div class="wrap">
+      <div class="board-frame">
+        <div class="top-row">
+          <div>
+            <h1>FUTGEN <em>PHOS</em></h1>
+            <p class="lead">LED scoreboard. Foszfor-zöld a szöveg, a kék csak státusz és kapu.</p>
+          </div>
+          <div class="goal-mini" aria-hidden="true">
+            <i></i>
+            <svg class="ball" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="30" fill="#0b1a10" stroke="#4db8ff" stroke-width="4"/>
+              <path d="M32 14l8 6-3 10h-10l-3-10z M18 28l8 2 2 10-8 6-6-8z M46 28l-8 2-2 10 8 6 6-8z M24 50l8-4 8 4-3 6h-10z" fill="#78ff9a"/>
+            </svg>
+          </div>
+        </div>
+        <div class="ages">
+          <button class="is-active" type="button">ALL</button>
+          <button type="button">U12</button><button type="button">U15</button><button type="button">U19</button>
+        </div>
+        <div class="filters">
+          <button class="is-active" type="button">SCORE</button>
+          <button type="button">LIVE</button>
+          <button type="button">FT</button>
+        </div>
+        <article class="league">
+          <div class="league-head"><div>U19 MLSZ</div><span>CHANNEL A</span></div>
+          <div class="match">
+            <div class="clock">FT</div>
+            <div>
+              <div class="team">VASAS U19</div>
+              <div class="team">ZTE U19</div>
+            </div>
+            <div class="score">3<br />1</div>
+          </div>
+          <div class="match">
+            <div class="clock live">67'</div>
+            <div>
+              <div class="team">FTC U19</div>
+              <div class="team">PAKSI U19</div>
+            </div>
+            <div class="score live">2<br />2</div>
+          </div>
+        </article>
+        <p class="tag">03 · Phosphate · zöld kijelző / kék jelzés</p>
+      </div>
+    </div>
+  </body>
+</html>

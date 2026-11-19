@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>futgen · Neon Split</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #050508;
+        --blue: #00a2ff;
+        --green: #39ff14;
+        --ink: #e8fff0;
+        --muted: #7f8b99;
+        --live: #ff2d55;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; color: var(--ink);
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        background: var(--bg);
+        overflow-x: hidden;
+      }
+      .split {
+        position: fixed; inset: 0; pointer-events: none; z-index: 0;
+        background:
+          linear-gradient(90deg, rgba(0,162,255,.14) 0 50%, rgba(57,255,20,.12) 50% 100%),
+          repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,.015) 3px, rgba(255,255,255,.015) 4px);
+      }
+      .split::before {
+        content:""; position:absolute; left:50%; top:0; bottom:0; width:2px;
+        background: linear-gradient(var(--blue), var(--green));
+        box-shadow: 0 0 18px var(--blue), 0 0 28px var(--green);
+        animation: pulse 1.8s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,100% { opacity:.7; }
+        50% { opacity:1; filter:brightness(1.3); }
+      }
+      .back { position:relative; z-index:1; display:inline-block; margin:1rem 1.25rem 0; color:var(--blue); text-decoration:none; font-weight:700; font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; }
+      .wrap { position:relative; z-index:1; width:min(980px, calc(100% - 2rem)); margin:0 auto; padding:0 0 3rem; }
+      .decor { position:absolute; inset:0; pointer-events:none; }
+      .goal-l, .goal-r { position:absolute; top:5.5rem; width:120px; height:90px; }
+      .goal-l { left:0; border:3px solid var(--blue); border-right:0; box-shadow: 0 0 16px rgba(0,162,255,.45); }
+      .goal-r { right:0; border:3px solid var(--green); border-left:0; box-shadow: 0 0 16px rgba(57,255,20,.4); }
+      .net-l, .net-r { position:absolute; inset:0; background-image:
+        linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+        background-size: 14px 14px; opacity:.7; }
+      .ball {
+        position:absolute; top:8.2rem; left:calc(50% - 22px); width:44px; height:44px;
+        animation: cross 2.6s linear infinite;
+      }
+      @keyframes cross {
+        0% { transform: translateX(-120px) rotate(0); }
+        50% { transform: translateX(120px) rotate(180deg); }
+        100% { transform: translateX(-120px) rotate(360deg); }
+      }
+      h1 {
+        font-family: Orbitron, sans-serif; font-weight:800;
+        font-size: clamp(2.2rem, 7vw, 4.2rem); letter-spacing: -.02em;
+        margin: 2.2rem 0 .6rem; line-height:1;
+      }
+      h1 .b { color: var(--blue); text-shadow: 0 0 18px rgba(0,162,255,.65); }
+      h1 .g { color: var(--green); text-shadow: 0 0 18px rgba(57,255,20,.55); }
+      .lead { max-width:34rem; color:var(--muted); line-height:1.5; margin:0 0 1.4rem; }
+      .ages, .filters { display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:.7rem; }
+      button {
+        appearance:none; border:1px solid #1d2733; background:#0a0d12; color:var(--ink);
+        font:inherit; font-weight:700; padding:.5rem .75rem; cursor:pointer;
+      }
+      .ages button.is-active { border-color:var(--green); color:var(--green); box-shadow:0 0 12px rgba(57,255,20,.25); }
+      .filters button.is-active { border-color:var(--blue); color:var(--blue); box-shadow:0 0 12px rgba(0,162,255,.3); }
+      .league { margin-top:.8rem; border:1px solid #18202b; background:rgba(8,10,14,.88); }
+      .league-head {
+        display:flex; justify-content:space-between; padding:.7rem .9rem; font-weight:700;
+        border-bottom:1px solid #18202b;
+        background: linear-gradient(90deg, rgba(0,162,255,.12), transparent 45%, rgba(57,255,20,.1));
+      }
+      .match { display:grid; grid-template-columns:1fr auto auto; gap:.7rem; padding:.75rem .9rem; border-bottom:1px solid #141b24; align-items:center; }
+      .match:last-child { border-bottom:0; }
+      .team { display:flex; gap:.45rem; align-items:center; font-weight:700; margin:.15rem 0; }
+      .crest { width:10px; height:10px; background:var(--blue); }
+      .match:nth-child(odd) .crest { background:var(--green); }
+      .meta { color:var(--muted); font-weight:700; text-align:right; min-width:3rem; }
+      .meta.live, .score.live { color:var(--live); text-shadow:0 0 10px rgba(255,45,85,.45); }
+      .score { font-family:Orbitron,sans-serif; display:grid; gap:.1rem; text-align:right; }
+      .tag { margin-top:1.4rem; color:var(--muted); font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; }
+    </style>
+  </head>
+  <body>
+    <div class="split" aria-hidden="true"></div>
+    <a class="back" href="./index.html">← változatok</a>
+    <div class="wrap">
+      <div class="decor" aria-hidden="true">
+        <div class="goal-l"><div class="net-l"></div></div>
+        <div class="goal-r"><div class="net-r"></div></div>
+        <svg class="ball" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill="#111" stroke="#00a2ff" stroke-width="3"/>
+          <path d="M32 14l8 6-3 10h-10l-3-10z M18 28l8 2 2 10-8 6-6-8z M46 28l-8 2-2 10 8 6 6-8z M24 50l8-4 8 4-3 6h-10z" fill="#39ff14"/>
+        </svg>
+      </div>
+      <h1><span class="b">fut</span><span class="g">gen</span><br />neon split</h1>
+      <p class="lead">Bal oldal kék, jobb oldal zöld. A labda a felezővonalon cikázik. Cyber livescore.</p>
+      <div class="ages">
+        <button class="is-active" type="button">ALL</button>
+        <button type="button">U14</button><button type="button">U16</button><button type="button">U18</button>
+      </div>
+      <div class="filters">
+        <button class="is-active" type="button">LIVE FEED</button>
+        <button type="button">DONE</button>
+        <button type="button">NEXT</button>
+      </div>
+      <article class="league">
+        <div class="league-head"><div>U17 NB I // HU</div><div style="color:var(--blue)">01:12:44</div></div>
+        <div class="match">
+          <div>
+            <div class="team"><span class="crest"></span>Debrecen U17</div>
+            <div class="team"><span class="crest"></span>Honvéd U17</div>
+          </div>
+          <div class="meta live">44′</div>
+          <div class="score live"><span>1</span><span>1</span></div>
+        </div>
+        <div class="match">
+          <div>
+            <div class="team"><span class="crest"></span>Fehérvár U17</div>
+            <div class="team"><span class="crest"></span>Diósgyőr U17</div>
+          </div>
+          <div class="meta">17:30</div>
+          <div class="score"><span>-</span><span>-</span></div>
+        </div>
+      </article>
+      <p class="tag">02 · Neon Split · kék || zöld</p>
+    </div>
+  </body>
+</html>

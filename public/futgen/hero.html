@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>futgen — hero / korosztályok</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #06261f;
+        --ink-soft: #0a3d32;
+        --foam: #f0fff8;
+        --muted: rgba(6, 38, 31, 0.68);
+        --green: #1dbf6c;
+        --mint: #5dffc2;
+        --mint-strong: #3af0b0;
+        --mint-panel: #7dffc9;
+        --mint-panel-deep: #4fe8b4;
+        --blue: #4ea1ff;
+        --line: rgba(6, 38, 31, 0.14);
+        --bg: #050807;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: #f2f7f4;
+        font-family: Manrope, system-ui, sans-serif;
+      }
+
+      .back {
+        position: fixed;
+        z-index: 40;
+        top: 1rem;
+        left: 1rem;
+        color: #f2f7f4;
+        text-decoration: none;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 0.45rem 0.7rem;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(8px);
+      }
+
+      .hero {
+        position: relative;
+        height: min(72vh, 640px);
+        min-height: 420px;
+        overflow: hidden;
+        isolation: isolate;
+        background: var(--bg);
+      }
+
+      .pitch {
+        position: absolute;
+        inset: -2% -2% -2% -6%;
+        background: url("./hero-pitch.jpg") 78% 55% / cover no-repeat;
+        transform: scale(1.05);
+        animation: pitch-drift 18s ease-in-out infinite alternate;
+        filter: saturate(1.04) contrast(1.04) brightness(1.04);
+      }
+
+      .flood {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background:
+          radial-gradient(ellipse 55% 40% at 72% 18%, rgba(255, 248, 220, 0.22), transparent 70%),
+          radial-gradient(ellipse 40% 30% at 88% 12%, rgba(180, 210, 255, 0.16), transparent 65%);
+        mix-blend-mode: screen;
+        animation: flood-pulse 5.5s ease-in-out infinite alternate;
+      }
+
+      .edge-blur {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+        background:
+          radial-gradient(
+            ellipse 92% 88% at 70% 52%,
+            transparent 26%,
+            rgba(5, 8, 7, 0.28) 52%,
+            rgba(5, 8, 7, 0.78) 76%,
+            #050807 100%
+          ),
+          linear-gradient(
+            90deg,
+            rgba(5, 8, 7, 0.9) 0%,
+            rgba(5, 8, 7, 0.58) 16%,
+            rgba(5, 8, 7, 0.14) 34%,
+            transparent 46%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(5, 8, 7, 0.5) 0%,
+            transparent 16%,
+            transparent 80%,
+            rgba(5, 8, 7, 0.85) 100%
+          );
+      }
+
+      .haze {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background: linear-gradient(
+          105deg,
+          rgba(78, 161, 255, 0.06),
+          transparent 40%,
+          rgba(29, 191, 108, 0.07)
+        );
+        mix-blend-mode: screen;
+      }
+
+      .hero-copy {
+        position: absolute;
+        z-index: 6;
+        left: clamp(1.1rem, 5vw, 4rem);
+        top: 42%;
+        transform: translateY(-50%);
+        max-width: min(24rem, 42vw);
+        pointer-events: none;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(3.2rem, 9vw, 6.2rem);
+        line-height: 0.88;
+        letter-spacing: 0.02em;
+        text-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+      }
+
+      h1 .g {
+        color: var(--green);
+      }
+
+      h1 .b {
+        color: var(--blue);
+      }
+
+      .lead {
+        margin: 0.75rem 0 0;
+        font-size: clamp(0.92rem, 1.6vw, 1.05rem);
+        line-height: 1.45;
+        color: rgba(242, 247, 244, 0.74);
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.75);
+      }
+
+      .filter-bar {
+        position: relative;
+        z-index: 8;
+        width: min(820px, calc(100% - 2rem));
+        margin: -1.75rem 0 0 clamp(1rem, 4vw, 3.5rem);
+        padding-bottom: 3rem;
+      }
+
+      .ages-row {
+        display: flex;
+        gap: 0.4rem;
+        overflow-x: auto;
+        padding: 0.35rem 0 0.55rem;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(93, 255, 194, 0.45) transparent;
+      }
+
+      .age-chip {
+        appearance: none;
+        flex: 0 0 auto;
+        border: 1px solid rgba(93, 255, 194, 0.35);
+        background: rgba(8, 20, 16, 0.85);
+        color: #e9fff6;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.04em;
+        padding: 0.55rem 0.85rem;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        line-height: 1;
+      }
+
+      .age-chip:hover {
+        border-color: var(--mint);
+      }
+
+      .age-chip.is-active {
+        background: linear-gradient(180deg, var(--mint-panel), var(--mint-panel-deep));
+        border-color: var(--mint-strong);
+        color: var(--ink);
+        box-shadow: 0 8px 22px rgba(93, 255, 194, 0.22);
+      }
+
+      /* Menta lenyíló panel */
+      .panel {
+        display: none;
+        margin-top: 0.4rem;
+        border: 1px solid rgba(6, 38, 31, 0.18);
+        background: linear-gradient(165deg, var(--mint-panel) 0%, var(--mint-panel-deep) 100%);
+        color: var(--ink);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        padding: 0.9rem 0.95rem 1rem;
+      }
+
+      .panel.is-open {
+        display: block;
+        animation: open-in 0.18s ease;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.65rem;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .panel-choice {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-align: right;
+      }
+
+      .ico {
+        width: 1.05rem;
+        height: 1.05rem;
+        color: var(--ink-soft);
+        display: inline-grid;
+        place-items: center;
+      }
+
+      .ico svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* Szervező gomb → görgethető megyelista */
+      .organizer-btn {
+        width: 100%;
+        appearance: none;
+        border: 1px solid rgba(6, 38, 31, 0.2);
+        background: rgba(255, 255, 255, 0.35);
+        color: var(--ink);
+        font: inherit;
+        font-weight: 800;
+        font-size: 0.95rem;
+        padding: 0.7rem 0.85rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        text-align: left;
+      }
+
+      .organizer-btn:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .organizer-btn .spacer {
+        margin-left: auto;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .organizer-btn .chev {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-right: 2px solid var(--ink-soft);
+        border-bottom: 2px solid var(--ink-soft);
+        transform: rotate(45deg);
+        flex: 0 0 auto;
+        opacity: 0.7;
+      }
+
+      .organizer-btn.is-open .chev {
+        transform: rotate(-135deg);
+        margin-top: 0.2rem;
+      }
+
+      .county-scroll {
+        display: none;
+        margin-top: 0.45rem;
+        max-height: 9.5rem;
+        overflow-y: auto;
+        border: 1px solid rgba(6, 38, 31, 0.18);
+        background: rgba(4, 40, 32, 0.92);
+        scrollbar-width: thin;
+        scrollbar-color: var(--mint) rgba(255, 255, 255, 0.08);
+      }
+
+      .county-scroll.is-open {
+        display: block;
+        animation: open-in 0.16s ease;
+      }
+
+      .county-option {
+        width: 100%;
+        appearance: none;
+        border: 0;
+        border-bottom: 1px solid rgba(93, 255, 194, 0.12);
+        background: transparent;
+        color: #e9fff6;
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 0.62rem 0.8rem;
+        cursor: pointer;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .county-option:last-child {
+        border-bottom: 0;
+      }
+
+      .county-option:hover {
+        background: rgba(93, 255, 194, 0.12);
+      }
+
+      .county-option.is-selected {
+        background: rgba(93, 255, 194, 0.22);
+        color: #fff;
+      }
+
+      .county-option .ico {
+        color: var(--mint);
+      }
+
+      .level-block {
+        display: none;
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid rgba(6, 38, 31, 0.16);
+      }
+
+      .level-block.is-visible {
+        display: block;
+        animation: open-in 0.18s ease;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .chip {
+        appearance: none;
+        border: 1px solid rgba(6, 38, 31, 0.2);
+        background: rgba(255, 255, 255, 0.35);
+        color: var(--ink);
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.88rem;
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .chip:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .chip.is-selected {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--mint);
+      }
+
+      .chip .ico {
+        color: inherit;
+      }
+
+      .foot-note {
+        margin: 1rem 0 0;
+        font-size: 0.8rem;
+        color: rgba(242, 247, 244, 0.4);
+      }
+
+      @media (max-width: 720px) {
+        .hero {
+          height: 58vh;
+          min-height: 340px;
+        }
+        .hero-copy {
+          top: auto;
+          bottom: 12%;
+          transform: none;
+          max-width: calc(100% - 2rem);
+        }
+        .filter-bar {
+          margin-left: 1rem;
+          margin-right: 1rem;
+          width: auto;
+        }
+      }
+
+      @keyframes pitch-drift {
+        from {
+          transform: scale(1.05) translate3d(0, 0, 0);
+        }
+        to {
+          transform: scale(1.09) translate3d(1%, -0.5%, 0);
+        }
+      }
+
+      @keyframes flood-pulse {
+        from {
+          opacity: 0.7;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes open-in {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="back" href="./index.html">← változatok</a>
+
+    <section class="hero" aria-label="futgen hero">
+      <div class="pitch" role="img" aria-label="Fehér 7-es mez, futgen, labda a levegőben"></div>
+      <div class="flood" aria-hidden="true"></div>
+      <div class="haze" aria-hidden="true"></div>
+      <div class="edge-blur" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <h1><span class="g">FUT</span><span class="b">GEN</span></h1>
+        <p class="lead">Korosztály → szervező megye → bajnokság.</p>
+      </div>
+    </section>
+
+    <section class="filter-bar" aria-label="Korosztály szűrő">
+      <div class="ages-row" id="ages" role="tablist" aria-label="Korosztályok U9–U19"></div>
+
+      <div class="panel" id="panel" hidden>
+        <div class="panel-head">
+          <p class="panel-title">
+            <span class="ico" aria-hidden="true"><svg><use href="#i-map"></use></svg></span>
+            Szűrés · <span id="panel-age">U15</span>
+          </p>
+          <p class="panel-choice" id="panel-choice"></p>
+        </div>
+
+        <button type="button" class="organizer-btn" id="organizer-btn" aria-expanded="false">
+          <span class="ico" aria-hidden="true"><svg><use href="#i-map"></use></svg></span>
+          <span id="organizer-label">Szervező megye</span>
+          <span class="spacer" id="organizer-hint">válassz</span>
+          <span class="chev" aria-hidden="true"></span>
+        </button>
+
+        <div class="county-scroll" id="county-scroll" role="listbox" aria-label="Megyék"></div>
+
+        <div class="level-block" id="level-block">
+          <div class="panel-head">
+            <p class="panel-title">
+              <span class="ico" aria-hidden="true"><svg><use href="#i-star"></use></svg></span>
+              Bajnokság formája
+            </p>
+          </div>
+          <div class="chips" id="level-chips"></div>
+        </div>
+      </div>
+
+      <p class="foot-note">Koncepció · összes magyar megye a szervező listában</p>
+    </section>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" style="position: absolute">
+      <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z" />
+        <circle cx="12" cy="11" r="2.2" />
+      </symbol>
+      <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="m12 3.5 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 15.8 7.2 18.4l.9-5.4L4.2 9.2l5.4-.8L12 3.5z" />
+      </symbol>
+      <symbol id="i-region" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 7.5 12 4l8 3.5v9L12 20l-8-3.5v-9z" />
+        <path d="M12 4v16M4 7.5l8 3.5 8-3.5" />
+      </symbol>
+      <symbol id="i-futsal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="8.2" />
+        <path d="M12 3.8v16.4M3.8 12h16.4M7.2 6.2l9.6 11.6M16.8 6.2 7.2 17.8" />
+      </symbol>
+      <symbol id="i-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M8 4h8v5a4 4 0 0 1-8 0V4z" />
+        <path d="M8 6H5.5A2.5 2.5 0 0 0 5.5 11H8M16 6h2.5A2.5 2.5 0 0 1 18.5 11H16" />
+        <path d="M10 15h4v2H10zM9 20h6" />
+      </symbol>
+    </svg>
+
+    <script>
+      const AGES = ["U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19"];
+
+      // Magyarország: főváros + 19 megye
+      const COUNTIES = [
+        "Budapest",
+        "Bács-Kiskun",
+        "Baranya",
+        "Békés",
+        "Borsod-Abaúj-Zemplén",
+        "Csongrád-Csanád",
+        "Fejér",
+        "Győr-Moson-Sopron",
+        "Hajdú-Bihar",
+        "Heves",
+        "Jász-Nagykun-Szolnok",
+        "Komárom-Esztergom",
+        "Nógrád",
+        "Pest",
+        "Somogy",
+        "Szabolcs-Szatmár-Bereg",
+        "Tolna",
+        "Vas",
+        "Veszprém",
+        "Zala",
+      ].map((label) => ({
+        id: label
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, ""),
+        label,
+      }));
+
+      const LEVELS = [
+        { id: "kiemelt", label: "Kiemelt", icon: "i-star" },
+        { id: "regionalis", label: "Regionális", icon: "i-region" },
+        { id: "futsal", label: "Futsal", icon: "i-futsal" },
+        { id: "kupa", label: "Kupa", icon: "i-cup" },
+      ];
+
+      const state = Object.fromEntries(AGES.map((a) => [a, { county: null, level: null }]));
+      let activeAge = null;
+      let countyOpen = false;
+
+      const agesEl = document.getElementById("ages");
+      const panel = document.getElementById("panel");
+      const panelAge = document.getElementById("panel-age");
+      const panelChoice = document.getElementById("panel-choice");
+      const organizerBtn = document.getElementById("organizer-btn");
+      const organizerLabel = document.getElementById("organizer-label");
+      const organizerHint = document.getElementById("organizer-hint");
+      const countyScroll = document.getElementById("county-scroll");
+      const levelBlock = document.getElementById("level-block");
+      const levelChips = document.getElementById("level-chips");
+
+      function ico(id) {
+        return `<span class="ico" aria-hidden="true"><svg><use href="#${id}"></use></svg></span>`;
+      }
+
+      function countyLabel(id) {
+        return COUNTIES.find((c) => c.id === id)?.label || null;
+      }
+
+      function levelLabel(id) {
+        return LEVELS.find((l) => l.id === id)?.label || null;
+      }
+
+      function choiceText(age) {
+        const s = state[age];
+        return [countyLabel(s.county), levelLabel(s.level)].filter(Boolean).join(" · ");
+      }
+
+      function renderAges() {
+        agesEl.innerHTML = AGES.map(
+          (age) => `
+          <button type="button" class="age-chip${activeAge === age ? " is-active" : ""}" data-age="${age}" role="tab" aria-selected="${activeAge === age}">
+            ${age}
+          </button>`,
+        ).join("");
+      }
+
+      function renderCounties() {
+        if (!activeAge) return;
+        const selected = state[activeAge].county;
+        countyScroll.innerHTML = COUNTIES.map(
+          (c) => `
+          <button type="button" class="county-option${selected === c.id ? " is-selected" : ""}" data-id="${c.id}" role="option" aria-selected="${selected === c.id}">
+            ${ico("i-map")}${c.label}
+          </button>`,
+        ).join("");
+      }
+
+      function renderPanel() {
+        if (!activeAge) {
+          panel.hidden = true;
+          panel.classList.remove("is-open");
+          countyOpen = false;
+          return;
+        }
+
+        const s = state[activeAge];
+        panel.hidden = false;
+        panel.classList.add("is-open");
+        panelAge.textContent = activeAge;
+        panelChoice.textContent = choiceText(activeAge) || "Először a szervező";
+
+        const cName = countyLabel(s.county);
+        organizerLabel.textContent = cName ? cName : "Szervező megye";
+        organizerHint.textContent = cName ? "módosít" : "válassz";
+        organizerBtn.classList.toggle("is-open", countyOpen);
+        organizerBtn.setAttribute("aria-expanded", countyOpen ? "true" : "false");
+        countyScroll.classList.toggle("is-open", countyOpen);
+        renderCounties();
+
+        if (s.county) {
+          levelBlock.classList.add("is-visible");
+          levelChips.innerHTML = LEVELS.map(
+            (l) => `
+            <button type="button" class="chip${s.level === l.id ? " is-selected" : ""}" data-id="${l.id}">
+              ${ico(l.icon)}${l.label}
+            </button>`,
+          ).join("");
+        } else {
+          levelBlock.classList.remove("is-visible");
+          levelChips.innerHTML = "";
+        }
+      }
+
+      agesEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".age-chip");
+        if (!btn) return;
+        const age = btn.dataset.age;
+        if (activeAge === age) {
+          activeAge = null;
+          countyOpen = false;
+        } else {
+          activeAge = age;
+          countyOpen = !state[age].county;
+        }
+        renderAges();
+        renderPanel();
+      });
+
+      organizerBtn.addEventListener("click", () => {
+        if (!activeAge) return;
+        countyOpen = !countyOpen;
+        renderPanel();
+      });
+
+      countyScroll.addEventListener("click", (e) => {
+        const opt = e.target.closest(".county-option");
+        if (!opt || !activeAge) return;
+        state[activeAge].county = opt.dataset.id;
+        state[activeAge].level = null;
+        countyOpen = false;
+        renderPanel();
+      });
+
+      levelChips.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip || !activeAge || !state[activeAge].county) return;
+        state[activeAge].level = chip.dataset.id;
+        renderPanel();
+      });
+
+      renderAges();
+      renderPanel();
+    </script>
+  </body>
+</html>
