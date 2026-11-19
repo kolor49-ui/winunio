@@ -508,29 +508,72 @@
       }
 
       @media (max-width: 720px) {
+        html,
+        body {
+          min-height: 100dvh;
+          background: #0a2418;
+        }
+
+        /* Főnézet: teljes képernyős füves hero, választó az alsó negyedben */
         .hero {
-          height: 58vh;
-          min-height: 340px;
+          height: 100dvh;
+          min-height: 100dvh;
           transition: height 0.22s ease, min-height 0.22s ease, opacity 0.18s ease, margin 0.22s ease;
+        }
+        .pitch {
+          background-position: 72% 62%;
+        }
+        .edge-blur {
+          background:
+            radial-gradient(
+              ellipse 95% 90% at 68% 48%,
+              transparent 30%,
+              rgba(5, 8, 7, 0.18) 58%,
+              rgba(5, 8, 7, 0.45) 82%,
+              rgba(10, 36, 24, 0.72) 100%
+            ),
+            linear-gradient(
+              90deg,
+              rgba(5, 8, 7, 0.72) 0%,
+              rgba(5, 8, 7, 0.35) 18%,
+              transparent 40%
+            ),
+            linear-gradient(
+              180deg,
+              rgba(5, 8, 7, 0.35) 0%,
+              transparent 14%,
+              transparent 78%,
+              rgba(10, 36, 24, 0.25) 100%
+            );
         }
         .hero-copy {
           top: auto;
-          bottom: 12%;
+          bottom: 28%;
           transform: none;
           max-width: calc(100% - 2rem);
         }
         .filter-bar {
-          margin-left: 1rem;
-          margin-right: 1rem;
+          position: fixed;
+          left: 1rem;
+          right: 1rem;
+          bottom: max(1rem, env(safe-area-inset-bottom));
+          top: auto;
           width: auto;
+          margin: 0;
+          padding-bottom: 0.35rem;
+          z-index: 8;
+        }
+        .foot-note {
+          margin-top: 0.55rem;
+          color: rgba(242, 247, 244, 0.55);
         }
 
-        /* Korosztály nyitva: hero el, fűháttér, eredeti panel-elrendezés */
+        /* Korosztály nyitva: hero el, fűháttér; bezárás → vissza a főnézetre */
         body.is-filtering {
           overflow: hidden;
           height: 100dvh;
           background:
-            linear-gradient(180deg, rgba(4, 18, 12, 0.35), rgba(4, 18, 12, 0.55)),
+            linear-gradient(180deg, rgba(4, 18, 12, 0.28), rgba(4, 18, 12, 0.5)),
             repeating-linear-gradient(
               90deg,
               #0f3d24 0px,
@@ -550,21 +593,23 @@
           overflow: hidden;
         }
         body.is-filtering .filter-bar {
-          position: relative;
+          position: fixed;
+          inset: auto 1rem 0 1rem;
+          top: 3.5rem;
+          bottom: max(1rem, env(safe-area-inset-bottom));
           z-index: 20;
-          width: auto;
-          margin: 0 1rem;
-          padding: 3.6rem 0 1.25rem;
+          margin: 0;
+          padding: 0;
+          overflow-y: auto;
           background: transparent;
-          min-height: auto;
         }
         body.is-filtering .county-scroll.is-open {
-          max-height: min(52dvh, 22rem);
+          max-height: min(48dvh, 20rem);
         }
         body.is-filtering .foot-note {
           display: none;
         }
-        body.is-filtering.is-scroll-open .pitch-close {
+        body.is-filtering .pitch-close {
           display: flex;
         }
       }
@@ -774,7 +819,13 @@
 
       function syncFilteringMode() {
         document.body.classList.toggle("is-filtering", Boolean(activeAge));
-        document.body.classList.toggle("is-scroll-open", Boolean(activeAge && countyOpen));
+      }
+
+      function backToHeroHome() {
+        activeAge = null;
+        countyOpen = false;
+        renderAges();
+        renderPanel();
       }
 
       function renderPanel() {
@@ -837,9 +888,7 @@
       });
 
       pitchClose.addEventListener("click", () => {
-        if (!countyOpen) return;
-        countyOpen = false;
-        renderPanel();
+        backToHeroHome();
       });
 
       countyScroll.addEventListener("click", (e) => {
