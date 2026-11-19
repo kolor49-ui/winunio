@@ -426,6 +426,7 @@
         .hero {
           height: 58vh;
           min-height: 340px;
+          transition: height 0.22s ease, min-height 0.22s ease, opacity 0.18s ease, margin 0.22s ease;
         }
         .hero-copy {
           top: auto;
@@ -437,6 +438,55 @@
           margin-left: 1rem;
           margin-right: 1rem;
           width: auto;
+        }
+
+        /* Korosztály nyitva: hero el, szűrő + görgető full screen */
+        body.is-filtering {
+          overflow: hidden;
+          height: 100dvh;
+        }
+        body.is-filtering .hero {
+          height: 0;
+          min-height: 0;
+          opacity: 0;
+          margin: 0;
+          pointer-events: none;
+          overflow: hidden;
+        }
+        body.is-filtering .filter-bar {
+          position: fixed;
+          inset: 0;
+          z-index: 20;
+          width: auto;
+          margin: 0;
+          padding: 3.4rem 1rem 1rem;
+          background: var(--bg);
+          display: flex;
+          flex-direction: column;
+          min-height: 100dvh;
+          box-sizing: border-box;
+        }
+        body.is-filtering .ages-row {
+          flex: 0 0 auto;
+        }
+        body.is-filtering .panel.is-open {
+          flex: 1 1 auto;
+          min-height: 0;
+          margin-top: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        body.is-filtering .county-scroll.is-open {
+          flex: 1 1 auto;
+          max-height: none;
+          min-height: 0;
+        }
+        body.is-filtering .foot-note {
+          display: none;
+        }
+        body.is-filtering .back {
+          z-index: 30;
         }
       }
 
@@ -636,11 +686,16 @@
         ).join("");
       }
 
+      function syncFilteringMode() {
+        document.body.classList.toggle("is-filtering", Boolean(activeAge));
+      }
+
       function renderPanel() {
         if (!activeAge) {
           panel.hidden = true;
           panel.classList.remove("is-open");
           countyOpen = false;
+          syncFilteringMode();
           return;
         }
 
@@ -670,6 +725,7 @@
           levelBlock.classList.remove("is-visible");
           levelChips.innerHTML = "";
         }
+        syncFilteringMode();
       }
 
       agesEl.addEventListener("click", (e) => {
