@@ -39,106 +39,21 @@
         font-family: Manrope, system-ui, sans-serif;
       }
 
-      /* Jobb felső: labda + kapu + bezárás (gördülő zárása) */
-      .pitch-close {
-        display: none;
+      .back {
         position: fixed;
         z-index: 40;
-        top: 0.75rem;
-        right: 0.85rem;
-        appearance: none;
-        border: 0;
-        background: transparent;
-        padding: 0;
-        cursor: pointer;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.2rem;
+        top: 1rem;
+        left: 1rem;
         color: #f2f7f4;
-      }
-
-      .pitch-close-art {
-        display: flex;
-        align-items: flex-end;
-        gap: 0.35rem;
-        filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
-      }
-
-      .pitch-close-art .ball {
-        width: 2.15rem;
-        height: 2.15rem;
-        border-radius: 50%;
-        background:
-          radial-gradient(circle at 32% 28%, #ffffff 0%, #f0f0f0 28%, #d8d8d8 55%, #b8b8b8 100%);
-        position: relative;
-        box-shadow: inset -3px -4px 8px rgba(0, 0, 0, 0.25);
-        overflow: hidden;
-      }
-
-      .pitch-close-art .ball::before {
-        content: "";
-        position: absolute;
-        inset: 18% 22%;
-        background:
-          linear-gradient(135deg, transparent 42%, #1a1a1a 42%, #1a1a1a 48%, transparent 48%),
-          linear-gradient(45deg, transparent 42%, #1a1a1a 42%, #1a1a1a 48%, transparent 48%);
-        opacity: 0.85;
-      }
-
-      .pitch-close-art .ball::after {
-        content: "";
-        position: absolute;
-        top: 36%;
-        left: 36%;
-        width: 28%;
-        height: 28%;
-        background: #151515;
-        clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-      }
-
-      .pitch-close-art .goal {
-        width: 2.6rem;
-        height: 1.85rem;
-        border: 2.5px solid rgba(245, 250, 248, 0.92);
-        border-bottom: 0;
-        border-radius: 2px 2px 0 0;
-        position: relative;
-        background:
-          repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 5px,
-            rgba(255, 255, 255, 0.22) 5px,
-            rgba(255, 255, 255, 0.22) 6px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 5px,
-            rgba(255, 255, 255, 0.18) 5px,
-            rgba(255, 255, 255, 0.18) 6px
-          );
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
-      }
-
-      .pitch-close-art .goal::after {
-        content: "";
-        position: absolute;
-        left: -3px;
-        right: -3px;
-        bottom: -2px;
-        height: 3px;
-        background: rgba(245, 250, 248, 0.95);
-        border-radius: 1px;
-      }
-
-      .pitch-close-label {
-        font-family: Manrope, system-ui, sans-serif;
-        font-size: 0.68rem;
+        text-decoration: none;
+        font-size: 0.75rem;
         font-weight: 800;
-        letter-spacing: 0.14em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+        padding: 0.45rem 0.7rem;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(8px);
       }
 
       .hero {
@@ -525,21 +440,10 @@
           width: auto;
         }
 
-        /* Korosztály nyitva: hero el, fűháttér, eredeti panel-elrendezés */
+        /* Korosztály nyitva: hero el, szűrő + görgető full screen */
         body.is-filtering {
           overflow: hidden;
           height: 100dvh;
-          background:
-            linear-gradient(180deg, rgba(4, 18, 12, 0.35), rgba(4, 18, 12, 0.55)),
-            repeating-linear-gradient(
-              90deg,
-              #0f3d24 0px,
-              #12512e 6px,
-              #0c3320 12px,
-              #157038 18px,
-              #0f3d24 24px
-            ),
-            #0d2f1c;
         }
         body.is-filtering .hero {
           height: 0;
@@ -550,22 +454,39 @@
           overflow: hidden;
         }
         body.is-filtering .filter-bar {
-          position: relative;
+          position: fixed;
+          inset: 0;
           z-index: 20;
           width: auto;
-          margin: 0 1rem;
-          padding: 3.6rem 0 1.25rem;
-          background: transparent;
-          min-height: auto;
+          margin: 0;
+          padding: 3.4rem 1rem 1rem;
+          background: var(--bg);
+          display: flex;
+          flex-direction: column;
+          min-height: 100dvh;
+          box-sizing: border-box;
+        }
+        body.is-filtering .ages-row {
+          flex: 0 0 auto;
+        }
+        body.is-filtering .panel.is-open {
+          flex: 1 1 auto;
+          min-height: 0;
+          margin-top: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
         body.is-filtering .county-scroll.is-open {
-          max-height: min(52dvh, 22rem);
+          flex: 1 1 auto;
+          max-height: none;
+          min-height: 0;
         }
         body.is-filtering .foot-note {
           display: none;
         }
-        body.is-filtering.is-scroll-open .pitch-close {
-          display: flex;
+        body.is-filtering .back {
+          z-index: 30;
         }
       }
 
@@ -600,13 +521,7 @@
     </style>
   </head>
   <body>
-    <button type="button" class="pitch-close" id="pitch-close" aria-label="Bezárás">
-      <span class="pitch-close-art" aria-hidden="true">
-        <span class="ball"></span>
-        <span class="goal"></span>
-      </span>
-      <span class="pitch-close-label">bezárás</span>
-    </button>
+    <a class="back" href="./index.html">← változatok</a>
 
     <section class="hero" aria-label="futgen hero">
       <div class="pitch" role="img" aria-label="Fehér 7-es mez, futgen, labda a levegőben"></div>
@@ -733,7 +648,6 @@
       const countyScroll = document.getElementById("county-scroll");
       const levelBlock = document.getElementById("level-block");
       const levelChips = document.getElementById("level-chips");
-      const pitchClose = document.getElementById("pitch-close");
 
       function ico(id) {
         return `<span class="ico" aria-hidden="true"><svg><use href="#${id}"></use></svg></span>`;
@@ -774,7 +688,6 @@
 
       function syncFilteringMode() {
         document.body.classList.toggle("is-filtering", Boolean(activeAge));
-        document.body.classList.toggle("is-scroll-open", Boolean(activeAge && countyOpen));
       }
 
       function renderPanel() {
@@ -833,12 +746,6 @@
       organizerBtn.addEventListener("click", () => {
         if (!activeAge) return;
         countyOpen = !countyOpen;
-        renderPanel();
-      });
-
-      pitchClose.addEventListener("click", () => {
-        if (!countyOpen) return;
-        countyOpen = false;
         renderPanel();
       });
 
